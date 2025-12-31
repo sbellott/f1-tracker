@@ -92,8 +92,7 @@ export function apiNoContent(): NextResponse {
  */
 export function apiCached<T>(
   data: T,
-  cachedAt: Date,
-  maxAge: number = 3600 // 1 hour default
+  maxAge: number = 3600 // 1 hour default in seconds
 ): NextResponse<ApiSuccessResponse<T>> {
   const response = NextResponse.json(
     {
@@ -101,7 +100,7 @@ export function apiCached<T>(
       data,
       meta: {
         cached: true,
-        cachedAt: cachedAt.toISOString(),
+        cachedAt: new Date().toISOString(),
       },
     } as ApiSuccessResponse<T>,
     { status: 200 }

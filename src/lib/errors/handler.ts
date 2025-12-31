@@ -134,13 +134,19 @@ function handlePrismaError(error: PrismaClientError): NextResponse {
 
 /**
  * Wrapper for API route handlers with automatic error handling
+ * Supports both routes with and without dynamic params
  */
-export function withErrorHandler<T>(
-  handler: (req: NextRequest, context?: T) => Promise<NextResponse>
+export function withErrorHandler<T = undefined>(
+  handler: T extends undefined
+    ? (req: NextRequest) => Promise<NextResponse>
+    : (req: NextRequest, context: T) => Promise<NextResponse>
 ) {
-  return async (req: NextRequest, context?: T): Promise<NextResponse> => {
+  return async (req: NextRequest, context: T): Promise<NextResponse> => {
     try {
-      return await handler(req, context);
+      if (context !== undefined) {
+        return await (handler as (req: NextRequest, context: T) => Promise<NextResponse>)(req, context);
+      }
+      return await (handler as (req: NextRequest) => Promise<NextResponse>)(req);
     } catch (error) {
       return handleApiError(error);
     }
