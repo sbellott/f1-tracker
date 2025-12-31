@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { ApiError } from "./api-error";
 
@@ -136,9 +136,9 @@ function handlePrismaError(error: PrismaClientError): NextResponse {
  * Wrapper for API route handlers with automatic error handling
  */
 export function withErrorHandler<T>(
-  handler: (req: Request, context?: T) => Promise<NextResponse>
+  handler: (req: NextRequest, context?: T) => Promise<NextResponse>
 ) {
-  return async (req: Request, context?: T): Promise<NextResponse> => {
+  return async (req: NextRequest, context?: T): Promise<NextResponse> => {
     try {
       return await handler(req, context);
     } catch (error) {
