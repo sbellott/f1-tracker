@@ -1,9 +1,17 @@
+/**
+ * NextAuth.js Full Configuration
+ *
+ * This file contains the complete auth configuration with Prisma adapter.
+ * It extends the base Edge-compatible config with database operations.
+ */
+
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db/prisma";
 import { signInSchema } from "@/lib/validations/auth.schema";
 import { verifyPassword } from "./utils";
+import { authConfig } from "./auth.config";
 
 declare module "next-auth" {
   interface Session {
@@ -29,15 +37,8 @@ declare module "@auth/core/jwt" {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
   providers: [
     Credentials({
       name: "credentials",
@@ -83,31 +84,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user, trigger, session }) {
-      // Initial sign in
-      if (user) {
-        token.id = user.id;
-        token.pseudo = user.pseudo;
-      }
-
-      // Handle session update (e.g., profile change)
-      if (trigger === "update" && session) {
-        token.name = session.user?.name;
-        token.pseudo = session.user?.pseudo;
-        token.picture = session.user?.image;
-      }
-
-      return token;
-    },
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id;
-        session.user.pseudo = token.pseudo;
-      }
-      return session;
-    },
-  },
   events: {
     async signIn({ user }) {
       console.log(`[Auth] User signed in: ${user.email}`);
