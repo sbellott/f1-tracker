@@ -1,0 +1,390 @@
+// F1 Tracker - Prisma Schema
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AUTHENTICATION (NextAuth.js)
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  pseudo        String?
+  avatar        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Preferences
+  notifyBeforeSession Boolean @default(true)
+  notifyDelayMinutes  Int     @default(30)
+  darkMode            Boolean @default(true)
+
+  // Relations
+  accounts     Account[]
+  sessions     Session[]
+  groups       GroupMember[]
+  predictions  Prediction[]
+  badges       UserBadge[]
+  createdGroups Group[]     @relation("GroupCreator")
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================
+// GROUPS & PREDICTIONS
+// ============================================
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  inviteCode  String   @unique @default(cuid())
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  createdBy   User          @relation("GroupCreator", fields: [createdById], references: [id])
+  members     GroupMember[]
+  predictions Prediction[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id          String   @id @default(cuid())
+  userId      String
+  groupId     String
+  joinedAt    DateTime @default(now())
+  totalPoints Int      @default(0)
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@map("group_members")
+}
+
+model Prediction {
+  id          String       @id @default(cuid())
+  userId      String
+  groupId     String
+  raceId      String
+  sessionType SessionType  @default(RACE)
+
+  // Predictions (JSON arrays of driver IDs)
+  topTen      String[]     // Array of 10 driver IDs in order
+  polePosition String?     // Driver ID
+  fastestLap   String?     // Driver ID
+
+  // Results
+  points      Int?
+  pointsBreakdown Json?    // Detailed breakdown
+
+  createdAt   DateTime @default(now())
+  lockedAt    DateTime?
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  race  Race  @relation(fields: [raceId], references: [id])
+
+  @@unique([userId, groupId, raceId, sessionType])
+  @@map("predictions")
+}
+
+// ============================================
+// F1 DATA
+// ============================================
+
+model Race {
+  id        String   @id @default(cuid())
+  season    Int
+  round     Int
+  name      String
+  officialName String?
+  circuitId String
+  date      DateTime
+  hasSprint Boolean  @default(false)
+
+  // Results (populated after race)
+  resultsJson Json?
+
+  // Relations
+  circuit     Circuit       @relation(fields: [circuitId], references: [id])
+  sessions    RaceSession[]
+  predictions Prediction[]
+
+  @@unique([season, round])
+  @@map("races")
+}
+
+model RaceSession {
+  id        String      @id @default(cuid())
+  raceId    String
+  type      SessionType
+  dateTime  DateTime
+  completed Boolean     @default(false)
+
+  // Broadcast info
+  canalPlusChannel String?
+  isLive           Boolean @default(true)
+
+  // Results
+  resultsJson Json?
+
+  // Relations
+  race Race @relation(fields: [raceId], references: [id], onDelete: Cascade)
+
+  @@unique([raceId, type])
+  @@map("race_sessions")
+}
+
+enum SessionType {
+  FP1
+  FP2
+  FP3
+  SPRINT_QUALIFYING
+  SPRINT
+  QUALIFYING
+  RACE
+}
+
+model Circuit {
+  id            String  @id @default(cuid())
+  ergastId      String  @unique // ID from Ergast API
+  name          String
+  officialName  String?
+  country       String
+  city          String
+  length        Float?  // in km
+  turns         Int?
+  lapRecord     String? // "1:23.456"
+  lapRecordHolder String?
+  lapRecordYear Int?
+  direction     String? // "clockwise" or "counter-clockwise"
+  firstGP       Int?
+  drsZones      Int?
+
+  // Content
+  trackImageUrl String?
+  facts         String? @db.Text
+  history       String? @db.Text
+
+  // Relations
+  races   Race[]
+  results CircuitHistory[]
+
+  @@map("circuits")
+}
+
+model CircuitHistory {
+  id        String @id @default(cuid())
+  circuitId String
+  season    Int
+
+  // Results
+  winnerId      String?
+  poleId        String?
+  fastestLapId  String?
+  winnerTime    String?
+
+  // Relations
+  circuit     Circuit     @relation(fields: [circuitId], references: [id])
+  winner      Driver?     @relation("CircuitWinner", fields: [winnerId], references: [id])
+  pole        Driver?     @relation("CircuitPole", fields: [poleId], references: [id])
+  fastestLap  Driver?     @relation("CircuitFastestLap", fields: [fastestLapId], references: [id])
+
+  @@unique([circuitId, season])
+  @@map("circuit_history")
+}
+
+model Driver {
+  id            String  @id @default(cuid())
+  ergastId      String  @unique // ID from Ergast API
+  code          String  // "VER", "HAM", etc.
+  number        Int?
+  firstName     String
+  lastName      String
+  nationality   String
+  dateOfBirth   DateTime?
+  photoUrl      String?
+
+  // Current team
+  constructorId String?
+
+  // Career stats (cached)
+  totalRaces    Int @default(0)
+  totalWins     Int @default(0)
+  totalPodiums  Int @default(0)
+  totalPoles    Int @default(0)
+  totalFastestLaps Int @default(0)
+  totalPoints   Float @default(0)
+  championships Int @default(0)
+
+  // Relations
+  constructor       Constructor?     @relation(fields: [constructorId], references: [id])
+  circuitWins       CircuitHistory[] @relation("CircuitWinner")
+  circuitPoles      CircuitHistory[] @relation("CircuitPole")
+  circuitFastestLaps CircuitHistory[] @relation("CircuitFastestLap")
+  standings         Standing[]
+
+  @@map("drivers")
+}
+
+model Constructor {
+  id            String  @id @default(cuid())
+  ergastId      String  @unique // ID from Ergast API
+  name          String
+  shortName     String?
+  nationality   String
+  base          String?
+  teamPrincipal String?
+  technicalDirector String?
+  engine        String?
+  color         String? // Hex color
+  logoUrl       String?
+
+  // Stats (cached)
+  totalWins     Int @default(0)
+  totalPodiums  Int @default(0)
+  totalPoles    Int @default(0)
+  championships Int @default(0)
+  firstSeason   Int?
+
+  // Relations
+  drivers   Driver[]
+  standings Standing[]
+
+  @@map("constructors")
+}
+
+model Standing {
+  id            String      @id @default(cuid())
+  season        Int
+  round         Int
+  type          StandingType
+  position      Int
+
+  driverId      String?
+  constructorId String?
+
+  points        Float
+  wins          Int @default(0)
+
+  // Relations
+  driver      Driver?      @relation(fields: [driverId], references: [id])
+  constructor Constructor? @relation(fields: [constructorId], references: [id])
+
+  @@unique([season, round, type, driverId])
+  @@unique([season, round, type, constructorId])
+  @@map("standings")
+}
+
+enum StandingType {
+  DRIVER
+  CONSTRUCTOR
+}
+
+// ============================================
+// GAMIFICATION
+// ============================================
+
+model Badge {
+  id          String @id @default(cuid())
+  code        String @unique
+  name        String
+  description String
+  icon        String // Emoji or icon name
+  condition   String // Description of how to earn
+
+  // Relations
+  users UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id         String   @id @default(cuid())
+  userId     String
+  badgeId    String
+  unlockedAt DateTime @default(now())
+  raceId     String?  // Race where badge was earned (if applicable)
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
+// ============================================
+// NEWS CACHE
+// ============================================
+
+model NewsItem {
+  id          String   @id @default(cuid())
+  externalId  String   @unique // URL or external ID
+  source      String   // "f1.com", "motorsport.com", etc.
+  title       String
+  summary     String?  @db.Text
+  imageUrl    String?
+  url         String
+  publishedAt DateTime
+  category    String?  // "teams", "drivers", "technical"
+  fetchedAt   DateTime @default(now())
+
+  @@index([publishedAt])
+  @@map("news_items")
+}
