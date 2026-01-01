@@ -1,115 +1,91 @@
-/**
- * NextAuth.js Full Configuration
- *
- * This file contains the complete auth configuration with Prisma adapter.
- * It extends the base Edge-compatible config with database operations.
- */
-
-import NextAuth from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import Credentials from "next-auth/providers/credentials";
-import { prisma } from "@/lib/db/prisma";
-import { signInSchema } from "@/lib/validations/auth.schema";
-import { verifyPassword } from "./utils";
-import { authConfig } from "./auth.config";
-
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      email: string;
-      name?: string | null;
-      image?: string | null;
-      pseudo?: string | null;
-    };
-  }
-
-  interface User {
-    pseudo?: string | null;
-  }
-}
-
-declare module "@auth/core/jwt" {
-  interface JWT {
-    id: string;
-    pseudo?: string | null;
-  }
-}
+import NextAuth from 'next-auth';
+import { PrismaAdapter } from '@auth/prisma-adapter';
+import Credentials from 'next-auth/providers/credentials';
+import { prisma } from '@/lib/db/prisma';
+import { verifyPassword } from './utils';
+import { loginSchema } from '@/lib/validations/auth.schema';
+import { ApiError } from '@/lib/errors/api-error';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  ...authConfig,
   adapter: PrismaAdapter(prisma),
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
   providers: [
     Credentials({
-      name: "credentials",
+      name: 'credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Mot de passe", type: "password" },
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        try {
-          const { email, password } = await signInSchema.parseAsync(credentials);
-
-          const user = await prisma.user.findUnique({
-            where: { email },
-            select: {
-              id: true,
-              email: true,
-              password: true,
-              pseudo: true,
-              avatar: true,
-            },
-          });
-
-          if (!user || !user.password) {
-            return null;
-          }
-
-          const isValidPassword = await verifyPassword(password, user.password);
-
-          if (!isValidPassword) {
-            return null;
-          }
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.pseudo,
-            image: user.avatar,
-            pseudo: user.pseudo,
-          };
-        } catch {
+        const validated = loginSchema.safeParse(credentials);
+        
+        if (!validated.success) {
           return null;
         }
+
+        const { email, password } = validated.data;
+
+        const user = await prisma.user.findUnique({
+          where: { email: email.toLowerCase() },
+        });
+
+        if (!user || !user.password) {
+          return null;
+        }
+
+        const isValid = await verifyPassword(password, user.password);
+
+        if (!isValid) {
+          return null;
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.pseudo,
+          image: user.avatar,
+        };
       },
     }),
   ],
-  events: {
-    async signIn({ user }) {
-      console.log(`[Auth] User signed in: ${user.email}`);
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
     },
-    async signOut() {
-      console.log("[Auth] User signed out");
+    async session({ session, token }) {
+      if (session.user && token.id) {
+        session.user.id = token.id as string;
+      }
+      return session;
     },
   },
-  debug: process.env.NODE_ENV === "development",
 });
 
 /**
- * Get current session user (for server components/actions)
+ * Helper to require authentication in API routes
+ * Returns the authenticated user or throws ApiError
  */
-export async function getCurrentUser() {
+export async function requireAuth(): Promise<{ id: string; email?: string | null; name?: string | null; image?: string | null }> {
   const session = await auth();
-  return session?.user ?? null;
-}
-
-/**
- * Require authentication (throws if not authenticated)
- */
-export async function requireAuth() {
-  const user = await getCurrentUser();
-  if (!user) {
-    throw new Error("Non authentifié");
+  
+  if (!session?.user?.id) {
+    throw new ApiError('UNAUTHORIZED', 'Vous devez être connecté', 401);
   }
-  return user;
+  
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    name: session.user.name,
+    image: session.user.image,
+  };
 }

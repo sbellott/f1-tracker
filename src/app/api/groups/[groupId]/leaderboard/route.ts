@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { apiSuccess } from "@/lib/utils/api-response";
 import { withErrorHandler } from "@/lib/errors/handler";
 import { requireAuth } from "@/lib/auth/config";
@@ -32,7 +32,9 @@ export const GET = withErrorHandler(
       throw ApiError.notFound("Groupe non trouvé");
     }
 
-    if (!group.userRole) {
+    // Verify user is a member
+    const isMember = group.members.some((m) => m.userId === user.id);
+    if (!isMember) {
       throw ApiError.forbidden("Vous n'êtes pas membre de ce groupe");
     }
 

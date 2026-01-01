@@ -1,30 +1,52 @@
-/**
- * Edge Middleware
- *
- * This middleware runs on Edge Runtime and handles:
- * - Route protection for authenticated users
- * - Redirect logic for auth pages
- *
- * Uses the Edge-compatible auth config (without Prisma)
- */
+import { auth } from '@/lib/auth/config';
+import { NextResponse } from 'next/server';
 
-import NextAuth from "next-auth";
-import { authConfig } from "@/lib/auth/auth.config";
+// Routes that require authentication
+const protectedRoutes = [
+  '/predictions',
+  '/groups',
+  '/profile',
+  '/api/predictions',
+  '/api/groups',
+  '/api/users/me',
+];
 
-export const { auth: middleware } = NextAuth(authConfig);
+// Routes that should redirect authenticated users
+const authRoutes = ['/login', '/register'];
+
+export default auth((req) => {
+  const { nextUrl, auth: session } = req;
+  const isLoggedIn = !!session?.user;
+  const pathname = nextUrl.pathname;
+
+  // Check if route is protected
+  const isProtectedRoute = protectedRoutes.some(
+    (route) => pathname.startsWith(route)
+  );
+
+  // Check if route is an auth route
+  const isAuthRoute = authRoutes.some(
+    (route) => pathname.startsWith(route)
+  );
+
+  // Redirect unauthenticated users from protected routes
+  if (isProtectedRoute && !isLoggedIn) {
+    const loginUrl = new URL('/login', nextUrl.origin);
+    loginUrl.searchParams.set('callbackUrl', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Redirect authenticated users from auth routes
+  if (isAuthRoute && isLoggedIn) {
+    return NextResponse.redirect(new URL('/', nextUrl.origin));
+  }
+
+  return NextResponse.next();
+});
 
 export const config = {
   matcher: [
-    // Protected pages
-    "/predictions/:path*",
-    "/groups/:path*",
-    "/profile/:path*",
-    // Protected API routes
-    "/api/predictions/:path*",
-    "/api/groups/:path*",
-    "/api/users/:path*",
-    // Auth pages (for redirect)
-    "/login",
-    "/register",
+    // Match all routes except static files and api routes that don't need auth
+    '/((?!_next/static|_next/image|favicon.ico|api/auth|api/calendar|api/standings|api/drivers|api/constructors|api/circuits).*)',
   ],
 };

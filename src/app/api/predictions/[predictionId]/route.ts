@@ -79,14 +79,15 @@ export const PUT = withErrorHandler(
     const data = predictionSchema.parse({
       ...body,
       raceId: existing.raceId,
+      groupId: existing.groupId,
     });
 
     const prediction = await upsertPrediction({
       userId: user.id,
       raceId: existing.raceId,
-      groupId: existing.groupId || undefined,
-      positions: data.positions,
-      pole: data.pole ?? null,
+      groupId: existing.groupId,
+      topTen: data.topTen,
+      polePosition: data.polePosition ?? null,
       fastestLap: data.fastestLap ?? null,
     });
 

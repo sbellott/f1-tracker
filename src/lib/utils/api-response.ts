@@ -1,115 +1,76 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-export interface ApiSuccessResponse<T> {
-  success: true;
-  data: T;
-  meta?: ResponseMeta;
+export type ApiResponse<T = unknown> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+};
+
+export function successResponse<T>(data: T, status = 200): NextResponse<ApiResponse<T>> {
+  return NextResponse.json({ success: true, data }, { status });
 }
 
-export interface ResponseMeta {
-  pagination?: PaginationMeta;
-  cached?: boolean;
-  cachedAt?: string;
+export function errorResponse(error: string, status = 400): NextResponse<ApiResponse> {
+  return NextResponse.json({ success: false, error }, { status });
 }
 
-export interface PaginationMeta {
-  page: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
+export function notFoundResponse(message = 'Resource not found'): NextResponse<ApiResponse> {
+  return NextResponse.json({ success: false, error: message }, { status: 404 });
+}
+
+export function unauthorizedResponse(message = 'Unauthorized'): NextResponse<ApiResponse> {
+  return NextResponse.json({ success: false, error: message }, { status: 401 });
+}
+
+export function forbiddenResponse(message = 'Forbidden'): NextResponse<ApiResponse> {
+  return NextResponse.json({ success: false, error: message }, { status: 403 });
+}
+
+export function serverErrorResponse(message = 'Internal server error'): NextResponse<ApiResponse> {
+  console.error('Server error:', message);
+  return NextResponse.json({ success: false, error: message }, { status: 500 });
+}
+
+export function validationErrorResponse(errors: Record<string, string[]>): NextResponse<ApiResponse> {
+  const errorMessages = Object.entries(errors)
+    .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+    .join('; ');
+  return NextResponse.json({ success: false, error: errorMessages }, { status: 422 });
 }
 
 /**
- * Create a successful API response
+ * Helper for successful API responses
  */
-export function apiSuccess<T>(
-  data: T,
-  meta?: ResponseMeta,
-  status: number = 200
-): NextResponse<ApiSuccessResponse<T>> {
-  return NextResponse.json(
-    {
-      success: true,
-      data,
-      ...(meta && { meta }),
-    } as ApiSuccessResponse<T>,
-    { status }
-  );
+export function apiSuccess<T>(data: T, status = 200): NextResponse<ApiResponse<T>> {
+  return NextResponse.json({ success: true, data }, { status });
 }
 
 /**
- * Create a paginated API response
+ * Helper for created (201) API responses
  */
-export function apiPaginated<T>(
-  data: T[],
-  pagination: {
-    page: number;
-    pageSize: number;
-    totalCount: number;
-  },
-  additionalMeta?: Omit<ResponseMeta, "pagination">
-): NextResponse<ApiSuccessResponse<T[]>> {
-  const totalPages = Math.ceil(pagination.totalCount / pagination.pageSize);
-
-  return NextResponse.json(
-    {
-      success: true,
-      data,
-      meta: {
-        pagination: {
-          page: pagination.page,
-          pageSize: pagination.pageSize,
-          totalCount: pagination.totalCount,
-          totalPages,
-          hasNextPage: pagination.page < totalPages,
-          hasPrevPage: pagination.page > 1,
-        },
-        ...additionalMeta,
-      },
-    } as ApiSuccessResponse<T[]>,
-    { status: 200 }
-  );
+export function apiCreated<T>(data: T): NextResponse<ApiResponse<T>> {
+  return NextResponse.json({ success: true, data }, { status: 201 });
 }
 
 /**
- * Create a created (201) response
- */
-export function apiCreated<T>(data: T): NextResponse<ApiSuccessResponse<T>> {
-  return apiSuccess(data, undefined, 201);
-}
-
-/**
- * Create a no content (204) response
+ * Helper for no content (204) API responses
  */
 export function apiNoContent(): NextResponse {
   return new NextResponse(null, { status: 204 });
 }
 
 /**
- * Create a cached response with cache headers
+ * Helper for cached API responses with Cache-Control headers
  */
-export function apiCached<T>(
-  data: T,
-  maxAge: number = 3600 // 1 hour default in seconds
-): NextResponse<ApiSuccessResponse<T>> {
-  const response = NextResponse.json(
+export function apiCached<T>(data: T, maxAge = 3600): NextResponse<ApiResponse<T>> {
+  return NextResponse.json(
+    { success: true, data },
     {
-      success: true,
-      data,
-      meta: {
-        cached: true,
-        cachedAt: new Date().toISOString(),
+      status: 200,
+      headers: {
+        'Cache-Control': `public, s-maxage=${maxAge}, stale-while-revalidate=${maxAge * 2}`,
       },
-    } as ApiSuccessResponse<T>,
-    { status: 200 }
+    }
   );
-
-  response.headers.set(
-    "Cache-Control",
-    `public, s-maxage=${maxAge}, stale-while-revalidate=${maxAge * 2}`
-  );
-
-  return response;
 }

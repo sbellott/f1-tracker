@@ -1,43 +1,50 @@
-import { NextRequest } from "next/server";
-import { prisma } from "@/lib/db/prisma";
-import { registerSchema } from "@/lib/validations/auth.schema";
-import { hashPassword } from "@/lib/auth/utils";
-import { handleApiError } from "@/lib/errors/handler";
-import { ApiError } from "@/lib/errors/api-error";
-import { apiCreated } from "@/lib/utils/api-response";
+import { NextRequest } from 'next/server';
+import { prisma } from '@/lib/db/prisma';
+import { hashPassword } from '@/lib/auth/utils';
+import { registerSchema } from '@/lib/validations/auth.schema';
+import {
+  successResponse,
+  errorResponse,
+  validationErrorResponse,
+  serverErrorResponse,
+} from '@/lib/utils/api-response';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, pseudo } = registerSchema.parse(body);
+    const validated = registerSchema.safeParse(body);
 
-    // Check if email already exists
+    if (!validated.success) {
+      // Format Zod errors to Record<string, string[]>
+      const formattedErrors: Record<string, string[]> = {};
+      for (const error of validated.error.errors) {
+        const path = error.path.join('.') || 'general';
+        if (!formattedErrors[path]) {
+          formattedErrors[path] = [];
+        }
+        formattedErrors[path].push(error.message);
+      }
+      return validationErrorResponse(formattedErrors);
+    }
+
+    const { email, password, pseudo } = validated.data;
+    const normalizedEmail = email.toLowerCase();
+
+    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
-      throw ApiError.conflict("Cette adresse email est déjà utilisée");
+      return errorResponse('Un compte avec cet email existe déjà', 409);
     }
 
-    // Check if pseudo already exists
-    const existingPseudo = await prisma.user.findFirst({
-      where: { pseudo },
-      select: { id: true },
-    });
-
-    if (existingPseudo) {
-      throw ApiError.conflict("Ce pseudo est déjà utilisé");
-    }
-
-    // Hash password
+    // Hash password and create user
     const hashedPassword = await hashPassword(password);
 
-    // Create user
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
         pseudo,
       },
@@ -45,19 +52,13 @@ export async function POST(request: NextRequest) {
         id: true,
         email: true,
         pseudo: true,
-        avatar: true,
         createdAt: true,
       },
     });
 
-    return apiCreated({
-      id: user.id,
-      email: user.email,
-      pseudo: user.pseudo,
-      avatar: user.avatar,
-      createdAt: user.createdAt,
-    });
+    return successResponse(user, 201);
   } catch (error) {
-    return handleApiError(error);
+    console.error('Registration error:', error);
+    return serverErrorResponse('Erreur lors de l\'inscription');
   }
 }

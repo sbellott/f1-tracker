@@ -6,15 +6,15 @@ import {
   type RaceResults,
   type ScoringBreakdown,
 } from "./scoring.service";
-import type { SessionType } from "@prisma/client";
+import type { SessionType, Prisma } from "@prisma/client";
 
 // ============================================
 // Types
 // ============================================
 
 export interface PredictionData {
-  positions: string[];
-  pole: string | null;
+  topTen: string[];
+  polePosition: string | null;
   fastestLap: string | null;
 }
 
@@ -23,14 +23,12 @@ export interface PredictionWithDetails {
   userId: string;
   raceId: string;
   groupId: string | null;
-  positions: string[];
-  pole: string | null;
+  topTen: string[];
+  polePosition: string | null;
   fastestLap: string | null;
   points: number | null;
-  scored: boolean;
   breakdown: ScoringBreakdown | null;
   createdAt: Date;
-  updatedAt: Date;
   race: {
     id: string;
     name: string;
@@ -54,10 +52,35 @@ export interface PredictionWithDetails {
 export interface CreatePredictionInput {
   userId: string;
   raceId: string;
-  groupId?: string;
-  positions: string[];
-  pole?: string | null;
+  groupId: string;
+  topTen: string[];
+  polePosition?: string | null;
   fastestLap?: string | null;
+}
+
+// Helper type for prediction with race relation
+interface PredictionWithRace {
+  id: string;
+  userId: string;
+  raceId: string;
+  groupId: string | null;
+  topTen: string[];
+  polePosition: string | null;
+  fastestLap: string | null;
+  points: number | null;
+  pointsBreakdown: unknown;
+  createdAt: Date;
+  race: {
+    id: string;
+    name: string;
+    round: number;
+    season: number;
+    date: Date;
+    circuit: {
+      name: string;
+      country: string;
+    };
+  };
 }
 
 // ============================================
@@ -70,7 +93,7 @@ export interface CreatePredictionInput {
 export async function upsertPrediction(
   input: CreatePredictionInput
 ): Promise<PredictionWithDetails> {
-  const { userId, raceId, groupId, positions, pole, fastestLap } = input;
+  const { userId, raceId, groupId, topTen, polePosition, fastestLap } = input;
 
   // Verify race exists and predictions are not locked
   const race = await prisma.race.findUnique({
@@ -90,76 +113,97 @@ export async function upsertPrediction(
   // Check lock time based on qualifying session
   const qualifyingSession = race.sessions[0];
   if (qualifyingSession && arePredictionsLocked(qualifyingSession.dateTime)) {
-    throw ApiError.predictionLocked(
-      "Les pronostics sont fermés pour cette course"
-    );
+    throw ApiError.predictionLocked();
   }
 
-  // Verify group membership if groupId provided
-  if (groupId) {
-    const membership = await prisma.groupMember.findUnique({
-      where: { groupId_userId: { groupId, userId } },
-    });
-
-    if (!membership) {
-      throw ApiError.forbidden("Vous n'êtes pas membre de ce groupe");
-    }
-  }
-
-  // Verify all drivers exist
-  const drivers = await prisma.driver.findMany({
-    where: { id: { in: positions } },
-    select: { id: true },
+  // Verify group membership (groupId is required)
+  const membership = await prisma.groupMember.findFirst({
+    where: { groupId, userId },
   });
 
-  if (drivers.length !== positions.length) {
+  if (!membership) {
+    throw ApiError.forbidden("Vous n'êtes pas membre de ce groupe");
+  }
+
+  // Verify all drivers exist - use Function casting to avoid constructor conflicts
+  const drivers = await (prisma.driver.findMany as Function)({
+    where: { id: { in: topTen } },
+    select: { id: true },
+  }) as { id: string }[];
+
+  if (drivers.length !== topTen.length) {
     throw ApiError.badRequest("Un ou plusieurs pilotes sont invalides");
   }
 
   // Check for duplicates
-  const uniquePositions = new Set(positions);
-  if (uniquePositions.size !== positions.length) {
+  const uniquePositions = new Set(topTen);
+  if (uniquePositions.size !== topTen.length) {
     throw ApiError.badRequest(
       "Chaque pilote ne peut apparaître qu'une seule fois"
     );
   }
 
-  // Upsert prediction
-  const prediction = await prisma.prediction.upsert({
-    where: groupId
-      ? {
-          userId_raceId_groupId: { userId, raceId, groupId },
-        }
-      : {
-          userId_raceId_groupId: { userId, raceId, groupId: "" },
-        },
-    update: {
-      positions,
-      pole,
-      fastestLap,
-      updatedAt: new Date(),
-    },
-    create: {
-      userId,
-      raceId,
-      groupId: groupId || null,
-      positions,
-      pole,
-      fastestLap,
-    },
-    include: {
-      race: {
-        include: {
-          circuit: {
-            select: {
-              name: true,
-              country: true,
+  // Build the where clause for finding existing prediction
+  const existingWhere: Prisma.PredictionWhereInput = {
+    userId,
+    raceId,
+    groupId,
+  };
+
+  // Check if prediction already exists
+  const existingPrediction = await prisma.prediction.findFirst({
+    where: existingWhere,
+  });
+
+  let prediction: PredictionWithRace;
+
+  if (existingPrediction) {
+    // Update existing prediction
+    prediction = await prisma.prediction.update({
+      where: { id: existingPrediction.id },
+      data: {
+        topTen,
+        polePosition,
+        fastestLap,
+      },
+      include: {
+        race: {
+          include: {
+            circuit: {
+              select: {
+                name: true,
+                country: true,
+              },
             },
           },
         },
       },
-    },
-  });
+    }) as unknown as PredictionWithRace;
+  } else {
+    // Create new prediction
+    prediction = await prisma.prediction.create({
+      data: {
+        userId,
+        raceId,
+        groupId,
+        topTen,
+        polePosition,
+        fastestLap,
+      },
+      include: {
+        race: {
+          include: {
+            circuit: {
+              select: {
+                name: true,
+                country: true,
+              },
+            },
+          },
+        },
+      },
+    }) as unknown as PredictionWithRace;
+  }
 
   return formatPredictionResponse(prediction);
 }
@@ -172,12 +216,15 @@ export async function getUserPrediction(
   raceId: string,
   groupId?: string
 ): Promise<PredictionWithDetails | null> {
+  // Build where clause
+  const where: Prisma.PredictionWhereInput = {
+    userId,
+    raceId,
+    ...(groupId && { groupId }),
+  };
+
   const prediction = await prisma.prediction.findFirst({
-    where: {
-      userId,
-      raceId,
-      groupId: groupId || null,
-    },
+    where,
     include: {
       race: {
         include: {
@@ -194,7 +241,7 @@ export async function getUserPrediction(
 
   if (!prediction) return null;
 
-  return formatPredictionResponse(prediction);
+  return formatPredictionResponse(prediction as unknown as PredictionWithRace);
 }
 
 /**
@@ -230,7 +277,11 @@ export async function getUserPredictions(
     },
   });
 
-  return Promise.all(predictions.map(formatPredictionResponse));
+  return Promise.all(
+    predictions.map((p) =>
+      formatPredictionResponse(p as unknown as PredictionWithRace)
+    )
+  );
 }
 
 /**
@@ -282,7 +333,7 @@ export async function getRacePredictions(
         select: {
           id: true,
           pseudo: true,
-          avatarUrl: true,
+          avatar: true,
         },
       },
     },
@@ -291,7 +342,11 @@ export async function getRacePredictions(
     },
   });
 
-  return Promise.all(predictions.map(formatPredictionResponse));
+  return Promise.all(
+    predictions.map((p) =>
+      formatPredictionResponse(p as unknown as PredictionWithRace)
+    )
+  );
 }
 
 /**
@@ -301,11 +356,11 @@ export async function scorePredictions(
   raceId: string,
   results: RaceResults
 ): Promise<{ scored: number; totalPoints: number }> {
-  // Get all unscored predictions for this race
+  // Get all unscored predictions for this race (points is null)
   const predictions = await prisma.prediction.findMany({
     where: {
       raceId,
-      scored: false,
+      points: null,
     },
   });
 
@@ -315,8 +370,8 @@ export async function scorePredictions(
   for (const prediction of predictions) {
     const breakdown = calculateScore(
       {
-        positions: prediction.positions,
-        pole: prediction.pole,
+        positions: prediction.topTen as string[],
+        pole: prediction.polePosition,
         fastestLap: prediction.fastestLap,
       },
       results
@@ -326,8 +381,7 @@ export async function scorePredictions(
       where: { id: prediction.id },
       data: {
         points: breakdown.totalPoints,
-        breakdownJson: breakdown,
-        scored: true,
+        pointsBreakdown: breakdown as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -353,17 +407,18 @@ export async function getUserStats(
 }> {
   const targetSeason = season || new Date().getFullYear();
 
+  // Get scored predictions (points is not null)
   const predictions = await prisma.prediction.findMany({
     where: {
       userId,
-      scored: true,
+      points: { not: null },
       race: {
         season: targetSeason,
       },
     },
     select: {
       points: true,
-      breakdownJson: true,
+      pointsBreakdown: true,
     },
   });
 
@@ -377,7 +432,7 @@ export async function getUserStats(
 
   // Count perfect podium predictions
   const perfectPredictions = predictions.filter((p) => {
-    const breakdown = p.breakdownJson as ScoringBreakdown | null;
+    const breakdown = p.pointsBreakdown as ScoringBreakdown | null;
     return breakdown?.podiumBonus === 50; // Exact podium bonus
   }).length;
 
@@ -422,9 +477,7 @@ export async function deletePrediction(
   // Check if predictions are locked
   const qualifyingSession = prediction.race.sessions[0];
   if (qualifyingSession && arePredictionsLocked(qualifyingSession.dateTime)) {
-    throw ApiError.predictionLocked(
-      "Impossible de supprimer un pronostic après la clôture"
-    );
+    throw ApiError.predictionLocked();
   }
 
   await prisma.prediction.delete({ where: { id: predictionId } });
@@ -435,46 +488,22 @@ export async function deletePrediction(
 // ============================================
 
 async function formatPredictionResponse(
-  prediction: {
-    id: string;
-    userId: string;
-    raceId: string;
-    groupId: string | null;
-    positions: string[];
-    pole: string | null;
-    fastestLap: string | null;
-    points: number | null;
-    scored: boolean;
-    breakdownJson: unknown;
-    createdAt: Date;
-    updatedAt: Date;
-    race: {
-      id: string;
-      name: string;
-      round: number;
-      season: number;
-      date: Date;
-      circuit: {
-        name: string;
-        country: string;
-      };
-    };
-  }
+  prediction: PredictionWithRace
 ): Promise<PredictionWithDetails> {
-  // Get driver details for positions
-  const drivers = await prisma.driver.findMany({
-    where: { id: { in: prediction.positions } },
+  // Get driver details for positions - use Function casting
+  const drivers = await (prisma.driver.findMany as Function)({
+    where: { id: { in: prediction.topTen } },
     select: {
       id: true,
       code: true,
       firstName: true,
       lastName: true,
     },
-  });
+  }) as { id: string; code: string; firstName: string; lastName: string }[];
 
   // Map drivers to their predicted positions
   const driverMap = new Map(drivers.map((d) => [d.id, d]));
-  const orderedDrivers = prediction.positions.map((driverId, index) => {
+  const orderedDrivers = prediction.topTen.map((driverId, index) => {
     const driver = driverMap.get(driverId);
     return {
       id: driverId,
@@ -490,14 +519,12 @@ async function formatPredictionResponse(
     userId: prediction.userId,
     raceId: prediction.raceId,
     groupId: prediction.groupId,
-    positions: prediction.positions,
-    pole: prediction.pole,
+    topTen: prediction.topTen,
+    polePosition: prediction.polePosition,
     fastestLap: prediction.fastestLap,
     points: prediction.points,
-    scored: prediction.scored,
-    breakdown: prediction.breakdownJson as ScoringBreakdown | null,
+    breakdown: prediction.pointsBreakdown as ScoringBreakdown | null,
     createdAt: prediction.createdAt,
-    updatedAt: prediction.updatedAt,
     race: prediction.race,
     drivers: orderedDrivers,
   };

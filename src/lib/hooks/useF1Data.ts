@@ -1,0 +1,209 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import type { Driver, Constructor, Circuit, Race } from "@/types";
+
+// ============================================
+// Query Keys
+// ============================================
+
+export const queryKeys = {
+  drivers: ["drivers"] as const,
+  driver: (id: string) => ["drivers", id] as const,
+  constructors: ["constructors"] as const,
+  constructor: (id: string) => ["constructors", id] as const,
+  circuits: ["circuits"] as const,
+  circuit: (id: string) => ["circuits", id] as const,
+  calendar: ["calendar"] as const,
+  nextRace: ["calendar", "next"] as const,
+  driverStandings: ["standings", "drivers"] as const,
+  constructorStandings: ["standings", "constructors"] as const,
+};
+
+// ============================================
+// Fetcher Functions
+// ============================================
+
+async function fetchAPI<T>(endpoint: string, extractKey?: string): Promise<T> {
+  const res = await fetch(endpoint);
+  if (!res.ok) {
+    throw new Error(`API Error: ${res.status}`);
+  }
+  const json = await res.json();
+  const data = json.data ?? json;
+  // If extractKey is provided, extract that nested property
+  if (extractKey && data && typeof data === 'object' && extractKey in data) {
+    return data[extractKey] as T;
+  }
+  return data as T;
+}
+
+// ============================================
+// Driver Hooks
+// ============================================
+
+export function useDrivers() {
+  return useQuery<Driver[]>({
+    queryKey: queryKeys.drivers,
+    queryFn: () => fetchAPI<Driver[]>("/api/drivers", "drivers"),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+export function useDriver(id: string) {
+  return useQuery<Driver>({
+    queryKey: queryKeys.driver(id),
+    queryFn: () => fetchAPI<Driver>(`/api/drivers/${id}`),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ============================================
+// Constructor Hooks
+// ============================================
+
+export function useConstructors() {
+  return useQuery<Constructor[]>({
+    queryKey: queryKeys.constructors,
+    queryFn: () => fetchAPI<Constructor[]>("/api/constructors", "constructors"),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useConstructor(id: string) {
+  return useQuery<Constructor>({
+    queryKey: queryKeys.constructor(id),
+    queryFn: () => fetchAPI<Constructor>(`/api/constructors/${id}`),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ============================================
+// Circuit Hooks
+// ============================================
+
+export function useCircuits() {
+  return useQuery<Circuit[]>({
+    queryKey: queryKeys.circuits,
+    // Use all=true to get all circuits regardless of season
+    queryFn: () => fetchAPI<Circuit[]>("/api/circuits?all=true", "circuits"),
+    staleTime: 10 * 60 * 1000, // 10 minutes - circuits change rarely
+  });
+}
+
+export function useCircuit(id: string) {
+  return useQuery<Circuit>({
+    queryKey: queryKeys.circuit(id),
+    queryFn: () => fetchAPI<Circuit>(`/api/circuits/${id}`),
+    enabled: !!id,
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+// ============================================
+// Calendar Hooks
+// ============================================
+
+export function useCalendar(season?: number) {
+  // Default to 2025 season (our seeded data)
+  const targetSeason = season || 2025;
+
+  return useQuery<Race[]>({
+    queryKey: [...queryKeys.calendar, targetSeason],
+    queryFn: () => fetchAPI<Race[]>(`/api/calendar?season=${targetSeason}`, "races"),
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+export function useNextRace() {
+  return useQuery<Race | null>({
+    queryKey: queryKeys.nextRace,
+    queryFn: () => fetchAPI<Race | null>("/api/calendar/next"),
+    staleTime: 60 * 1000, // 1 minute - next race info can change
+  });
+}
+
+// ============================================
+// Standings Hooks
+// ============================================
+
+interface Standing {
+  position: number;
+  driverId?: string;
+  constructorId?: string;
+  points: number;
+  wins: number;
+  driver?: Driver;
+  constructor?: Constructor;
+}
+
+export function useDriverStandings(season?: number) {
+  // Default to 2025 season (our seeded data)
+  const targetSeason = season || 2025;
+
+  return useQuery<Standing[]>({
+    queryKey: [...queryKeys.driverStandings, targetSeason],
+    queryFn: () => fetchAPI<Standing[]>(`/api/standings/drivers?season=${targetSeason}`),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useConstructorStandings(season?: number) {
+  // Default to 2025 season (our seeded data)
+  const targetSeason = season || 2025;
+
+  return useQuery<Standing[]>({
+    queryKey: [...queryKeys.constructorStandings, targetSeason],
+    queryFn: () => fetchAPI<Standing[]>(`/api/standings/constructors?season=${targetSeason}`),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ============================================
+// Combined Hook for Initial Load
+// ============================================
+
+export function useF1Data() {
+  const driversQuery = useDrivers();
+  const constructorsQuery = useConstructors();
+  const circuitsQuery = useCircuits();
+  const calendarQuery = useCalendar();
+  const nextRaceQuery = useNextRace();
+  const driverStandingsQuery = useDriverStandings();
+  const constructorStandingsQuery = useConstructorStandings();
+
+  const isLoading =
+    driversQuery.isLoading ||
+    constructorsQuery.isLoading ||
+    circuitsQuery.isLoading ||
+    calendarQuery.isLoading;
+
+  const isError =
+    driversQuery.isError ||
+    constructorsQuery.isError ||
+    circuitsQuery.isError ||
+    calendarQuery.isError;
+
+  return {
+    drivers: driversQuery.data || [],
+    constructors: constructorsQuery.data || [],
+    circuits: circuitsQuery.data || [],
+    races: calendarQuery.data || [],
+    nextRace: nextRaceQuery.data || null,
+    driverStandings: driverStandingsQuery.data || [],
+    constructorStandings: constructorStandingsQuery.data || [],
+    isLoading,
+    isError,
+    refetch: () => {
+      driversQuery.refetch();
+      constructorsQuery.refetch();
+      circuitsQuery.refetch();
+      calendarQuery.refetch();
+      nextRaceQuery.refetch();
+      driverStandingsQuery.refetch();
+      constructorStandingsQuery.refetch();
+    },
+  };
+}

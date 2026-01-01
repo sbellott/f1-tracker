@@ -133,18 +133,40 @@ function handlePrismaError(error: PrismaClientError): NextResponse {
 }
 
 /**
- * Wrapper for API route handlers with automatic error handling
- * Supports both routes with and without dynamic params
+ * Context type for dynamic route handlers
  */
-export function withErrorHandler<T = undefined>(
-  handler: T extends undefined
-    ? (req: NextRequest) => Promise<NextResponse>
-    : (req: NextRequest, context: T) => Promise<NextResponse>
+export interface RouteContext<T = Record<string, string>> {
+  params: Promise<T>;
+}
+
+/**
+ * Wrapper for API route handlers with automatic error handling
+ * Use for routes without dynamic params
+ */
+export function withErrorHandler(
+  handler: (req: NextRequest) => Promise<NextResponse>
+): (req: NextRequest) => Promise<NextResponse>;
+
+/**
+ * Wrapper for API route handlers with automatic error handling
+ * Use for routes with dynamic params (e.g., [id] routes)
+ */
+export function withErrorHandler<T extends Record<string, string>>(
+  handler: (req: NextRequest, context: RouteContext<T>) => Promise<NextResponse>
+): (req: NextRequest, context: RouteContext<T>) => Promise<NextResponse>;
+
+/**
+ * Implementation
+ */
+export function withErrorHandler<T extends Record<string, string>>(
+  handler:
+    | ((req: NextRequest) => Promise<NextResponse>)
+    | ((req: NextRequest, context: RouteContext<T>) => Promise<NextResponse>)
 ) {
-  return async (req: NextRequest, context: T): Promise<NextResponse> => {
+  return async (req: NextRequest, context?: RouteContext<T>): Promise<NextResponse> => {
     try {
       if (context !== undefined) {
-        return await (handler as (req: NextRequest, context: T) => Promise<NextResponse>)(req, context);
+        return await (handler as (req: NextRequest, context: RouteContext<T>) => Promise<NextResponse>)(req, context);
       }
       return await (handler as (req: NextRequest) => Promise<NextResponse>)(req);
     } catch (error) {

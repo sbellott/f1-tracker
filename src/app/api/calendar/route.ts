@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { apiSuccess, apiCached } from "@/lib/utils/api-response";
 import { withErrorHandler } from "@/lib/errors/handler";
 import { getSeasonCalendar } from "@/lib/services/calendar.service";

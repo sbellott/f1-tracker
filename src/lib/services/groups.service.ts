@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { generateInviteCode } from "@/lib/auth/utils";
 import { ApiError } from "@/lib/errors/api-error";
-import type { GroupRole } from "@prisma/client";
 
 // ============================================
 // Types
@@ -10,32 +9,31 @@ import type { GroupRole } from "@prisma/client";
 export interface GroupWithMembers {
   id: string;
   name: string;
-  description: string | null;
   inviteCode: string;
-  isPublic: boolean;
+  createdById: string;
   createdAt: Date;
   memberCount: number;
-  members: GroupMember[];
-  userRole: GroupRole | null;
+  members: GroupMemberInfo[];
+  isOwner: boolean;
 }
 
-export interface GroupMember {
+export interface GroupMemberInfo {
   id: string;
-  role: GroupRole;
+  userId: string;
   joinedAt: Date;
+  totalPoints: number;
   user: {
     id: string;
-    pseudo: string;
-    avatarUrl: string | null;
+    pseudo: string | null;
+    avatar: string | null;
   };
-  totalPoints: number;
 }
 
 export interface GroupLeaderboardEntry {
   rank: number;
   userId: string;
-  pseudo: string;
-  avatarUrl: string | null;
+  pseudo: string | null;
+  avatar: string | null;
   totalPoints: number;
   predictionsCount: number;
   averagePoints: number;
@@ -43,8 +41,6 @@ export interface GroupLeaderboardEntry {
 
 export interface CreateGroupData {
   name: string;
-  description?: string;
-  isPublic?: boolean;
   ownerId: string;
 }
 
@@ -61,13 +57,11 @@ export async function createGroup(data: CreateGroupData): Promise<GroupWithMembe
   const group = await prisma.group.create({
     data: {
       name: data.name,
-      description: data.description,
-      isPublic: data.isPublic ?? false,
       inviteCode,
+      createdById: data.ownerId,
       members: {
         create: {
           userId: data.ownerId,
-          role: "OWNER",
         },
       },
     },
@@ -78,7 +72,7 @@ export async function createGroup(data: CreateGroupData): Promise<GroupWithMembe
             select: {
               id: true,
               pseudo: true,
-              avatarUrl: true,
+              avatar: true,
             },
           },
         },
@@ -108,7 +102,7 @@ export async function getGroupById(
             select: {
               id: true,
               pseudo: true,
-              avatarUrl: true,
+              avatar: true,
             },
           },
         },
@@ -140,7 +134,7 @@ export async function getUserGroups(userId: string): Promise<GroupWithMembers[]>
                 select: {
                   id: true,
                   pseudo: true,
-                  avatarUrl: true,
+                  avatar: true,
                 },
               },
             },
@@ -173,7 +167,7 @@ export async function joinGroup(
             select: {
               id: true,
               pseudo: true,
-              avatarUrl: true,
+              avatar: true,
             },
           },
         },
@@ -199,7 +193,6 @@ export async function joinGroup(
     data: {
       groupId: group.id,
       userId,
-      role: "MEMBER",
     },
   });
 
@@ -212,17 +205,16 @@ export async function joinGroup(
  * Leave a group
  */
 export async function leaveGroup(groupId: string, userId: string): Promise<void> {
-  const membership = await prisma.groupMember.findUnique({
-    where: {
-      groupId_userId: { groupId, userId },
-    },
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
   });
 
-  if (!membership) {
-    throw ApiError.notFound("Vous n'êtes pas membre de ce groupe");
+  if (!group) {
+    throw ApiError.notFound("Groupe non trouvé");
   }
 
-  if (membership.role === "OWNER") {
+  // Check if user is the owner
+  if (group.createdById === userId) {
     // Check if there are other members
     const memberCount = await prisma.groupMember.count({
       where: { groupId },
@@ -230,7 +222,7 @@ export async function leaveGroup(groupId: string, userId: string): Promise<void>
 
     if (memberCount > 1) {
       throw ApiError.badRequest(
-        "Le propriétaire doit transférer la propriété avant de quitter le groupe"
+        "Le créateur doit transférer le groupe avant de le quitter"
       );
     }
 
@@ -239,8 +231,12 @@ export async function leaveGroup(groupId: string, userId: string): Promise<void>
     return;
   }
 
-  await prisma.groupMember.delete({
-    where: { groupId_userId: { groupId, userId } },
+  // Delete membership using the composite unique constraint
+  await prisma.groupMember.deleteMany({
+    where: {
+      groupId,
+      userId,
+    },
   });
 }
 
@@ -250,10 +246,10 @@ export async function leaveGroup(groupId: string, userId: string): Promise<void>
 export async function updateGroup(
   groupId: string,
   userId: string,
-  data: { name?: string; description?: string; isPublic?: boolean }
+  data: { name?: string }
 ): Promise<GroupWithMembers> {
-  // Verify user is owner or admin
-  await verifyGroupAdmin(groupId, userId);
+  // Verify user is owner
+  await verifyGroupOwner(groupId, userId);
 
   await prisma.group.update({
     where: { id: groupId },
@@ -269,13 +265,7 @@ export async function updateGroup(
  */
 export async function deleteGroup(groupId: string, userId: string): Promise<void> {
   // Verify user is owner
-  const membership = await prisma.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId } },
-  });
-
-  if (!membership || membership.role !== "OWNER") {
-    throw ApiError.forbidden("Seul le propriétaire peut supprimer le groupe");
-  }
+  await verifyGroupOwner(groupId, userId);
 
   await prisma.group.delete({ where: { id: groupId } });
 }
@@ -287,7 +277,7 @@ export async function regenerateInviteCode(
   groupId: string,
   userId: string
 ): Promise<string> {
-  await verifyGroupAdmin(groupId, userId);
+  await verifyGroupOwner(groupId, userId);
 
   const newCode = generateInviteCode();
   await prisma.group.update({
@@ -314,7 +304,7 @@ export async function getGroupLeaderboard(
         select: {
           id: true,
           pseudo: true,
-          avatarUrl: true,
+          avatar: true,
         },
       },
     },
@@ -327,7 +317,7 @@ export async function getGroupLeaderboard(
     where: {
       userId: { in: userIds },
       groupId,
-      scored: true,
+      points: { not: null },
       race: {
         season: targetSeason,
       },
@@ -364,7 +354,7 @@ export async function getGroupLeaderboard(
       rank: 0,
       userId: member.user.id,
       pseudo: member.user.pseudo,
-      avatarUrl: member.user.avatarUrl,
+      avatar: member.user.avatar,
       totalPoints: stats.totalPoints,
       predictionsCount: stats.predictionsCount,
       averagePoints:
@@ -384,92 +374,52 @@ export async function getGroupLeaderboard(
 }
 
 /**
- * Update member role
- */
-export async function updateMemberRole(
-  groupId: string,
-  adminUserId: string,
-  targetUserId: string,
-  newRole: GroupRole
-): Promise<void> {
-  // Verify admin
-  const adminMembership = await prisma.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId: adminUserId } },
-  });
-
-  if (
-    !adminMembership ||
-    (adminMembership.role !== "OWNER" && adminMembership.role !== "ADMIN")
-  ) {
-    throw ApiError.forbidden("Permission insuffisante");
-  }
-
-  // Cannot change owner role
-  const targetMembership = await prisma.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId: targetUserId } },
-  });
-
-  if (!targetMembership) {
-    throw ApiError.notFound("Membre non trouvé");
-  }
-
-  if (targetMembership.role === "OWNER") {
-    throw ApiError.forbidden("Impossible de modifier le rôle du propriétaire");
-  }
-
-  // Only owner can promote to admin
-  if (newRole === "ADMIN" && adminMembership.role !== "OWNER") {
-    throw ApiError.forbidden("Seul le propriétaire peut promouvoir un admin");
-  }
-
-  await prisma.groupMember.update({
-    where: { groupId_userId: { groupId, userId: targetUserId } },
-    data: { role: newRole },
-  });
-}
-
-/**
  * Remove a member from group
  */
 export async function removeMember(
   groupId: string,
-  adminUserId: string,
+  ownerUserId: string,
   targetUserId: string
 ): Promise<void> {
-  await verifyGroupAdmin(groupId, adminUserId);
+  await verifyGroupOwner(groupId, ownerUserId);
 
-  const targetMembership = await prisma.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId: targetUserId } },
+  // Cannot remove the owner
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
   });
 
-  if (!targetMembership) {
+  if (group?.createdById === targetUserId) {
+    throw ApiError.forbidden("Impossible de retirer le créateur du groupe");
+  }
+
+  // Find and delete the membership
+  const deleted = await prisma.groupMember.deleteMany({
+    where: {
+      groupId,
+      userId: targetUserId,
+    },
+  });
+
+  if (deleted.count === 0) {
     throw ApiError.notFound("Membre non trouvé");
   }
-
-  if (targetMembership.role === "OWNER") {
-    throw ApiError.forbidden("Impossible de retirer le propriétaire");
-  }
-
-  await prisma.groupMember.delete({
-    where: { groupId_userId: { groupId, userId: targetUserId } },
-  });
 }
 
 // ============================================
 // Helper Functions
 // ============================================
 
-async function verifyGroupAdmin(groupId: string, userId: string): Promise<void> {
-  const membership = await prisma.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId } },
+async function verifyGroupOwner(groupId: string, userId: string): Promise<void> {
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
   });
 
-  if (!membership) {
+  if (!group) {
     throw ApiError.notFound("Groupe non trouvé");
   }
 
-  if (membership.role !== "OWNER" && membership.role !== "ADMIN") {
-    throw ApiError.forbidden("Permission insuffisante");
+  if (group.createdById !== userId) {
+    throw ApiError.forbidden("Seul le créateur peut effectuer cette action");
   }
 }
 
@@ -477,44 +427,39 @@ function formatGroupResponse(
   group: {
     id: string;
     name: string;
-    description: string | null;
     inviteCode: string;
-    isPublic: boolean;
+    createdById: string;
     createdAt: Date;
     members: Array<{
       id: string;
-      role: GroupRole;
+      userId: string;
       joinedAt: Date;
+      totalPoints: number;
       user: {
         id: string;
-        pseudo: string;
-        avatarUrl: string | null;
+        pseudo: string | null;
+        avatar: string | null;
       };
     }>;
     _count: { members: number };
   },
   userId?: string
 ): GroupWithMembers {
-  const userMember = userId
-    ? group.members.find((m) => m.user.id === userId)
-    : null;
-
   return {
     id: group.id,
     name: group.name,
-    description: group.description,
     inviteCode: group.inviteCode,
-    isPublic: group.isPublic,
+    createdById: group.createdById,
     createdAt: group.createdAt,
     memberCount: group._count.members,
     members: group.members.map((m) => ({
       id: m.id,
-      role: m.role,
+      userId: m.userId,
       joinedAt: m.joinedAt,
+      totalPoints: m.totalPoints,
       user: m.user,
-      totalPoints: 0, // Calculated separately when needed
     })),
-    userRole: userMember?.role || null,
+    isOwner: userId === group.createdById,
   };
 }
 
@@ -528,6 +473,5 @@ export default {
   deleteGroup,
   regenerateInviteCode,
   getGroupLeaderboard,
-  updateMemberRole,
   removeMember,
 };

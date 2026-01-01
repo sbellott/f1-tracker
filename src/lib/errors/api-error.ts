@@ -86,13 +86,22 @@ export class ApiError extends Error {
   }
 
   toJSON() {
+    const error: {
+      code: ApiErrorCode;
+      message: string;
+      details?: unknown;
+    } = {
+      code: this.code,
+      message: this.message,
+    };
+
+    if (this.details !== undefined) {
+      error.details = this.details;
+    }
+
     return {
       success: false,
-      error: {
-        code: this.code,
-        message: this.message,
-        ...(this.details && { details: this.details }),
-      },
+      error,
     };
   }
 }

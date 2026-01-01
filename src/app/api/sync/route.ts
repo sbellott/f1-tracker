@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { apiSuccess } from "@/lib/utils/api-response";
 import { withErrorHandler } from "@/lib/errors/handler";
 import { requireAuth } from "@/lib/auth/config";
@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/errors/api-error";
 import { syncSeason, syncRaceResults } from "@/lib/services/sync.service";
 import { scorePredictions } from "@/lib/services/predictions.service";
 import { prisma } from "@/lib/db/prisma";
+import { Prisma } from "@prisma/client";
 
 const syncSeasonSchema = z.object({
   season: z.coerce.number().int().min(1950).max(2100),
@@ -17,6 +18,9 @@ const syncResultsSchema = z.object({
   round: z.coerce.number().int().min(1).max(30),
 });
 
+// Admin emails authorized for sync operations
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "").split(",").filter(Boolean);
+
 /**
  * POST /api/sync
  * Sync F1 data from Ergast API
@@ -25,8 +29,8 @@ const syncResultsSchema = z.object({
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const user = await requireAuth();
 
-  // Check if user is admin
-  if (user.role !== "ADMIN") {
+  // Check if user is admin via email list
+  if (!user.email || !ADMIN_EMAILS.includes(user.email)) {
     throw ApiError.forbidden("Accès réservé aux administrateurs");
   }
 
@@ -89,10 +93,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         throw ApiError.badRequest("Résultats non disponibles pour cette course");
       }
 
-      // Reset scored status
+      // Reset points to allow re-scoring
       await prisma.prediction.updateMany({
         where: { raceId: race.id },
-        data: { scored: false, points: null },
+        data: { points: null, pointsBreakdown: Prisma.DbNull },
       });
 
       const results = race.resultsJson as {

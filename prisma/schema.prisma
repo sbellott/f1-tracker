@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ============================================
@@ -46,12 +47,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -123,7 +124,7 @@ model Prediction {
   sessionType SessionType  @default(RACE)
 
   // Predictions (JSON arrays of driver IDs)
-  topTen      String[]     // Array of 10 driver IDs in order
+  topTen      Json         // Array of 10 driver IDs in order
   polePosition String?     // Driver ID
   fastestLap   String?     // Driver ID
 
@@ -218,8 +219,8 @@ model Circuit {
 
   // Content
   trackImageUrl String?
-  facts         String? @db.Text
-  history       String? @db.Text
+  facts         String?
+  history       String?
 
   // Relations
   races   Race[]
@@ -378,7 +379,7 @@ model NewsItem {
   externalId  String   @unique // URL or external ID
   source      String   // "f1.com", "motorsport.com", etc.
   title       String
-  summary     String?  @db.Text
+  summary     String?
   imageUrl    String?
   url         String
   publishedAt DateTime

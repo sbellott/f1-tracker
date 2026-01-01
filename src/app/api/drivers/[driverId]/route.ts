@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { apiCached } from "@/lib/utils/api-response";
 import { withErrorHandler } from "@/lib/errors/handler";
 import { ApiError } from "@/lib/errors/api-error";
@@ -24,7 +24,7 @@ export const GET = withErrorHandler(
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
     const query = querySchema.parse(searchParams);
 
-    const driver = await getDriverById(driverId, query.season);
+    const driver = await getDriverById(driverId);
 
     if (!driver) {
       throw ApiError.notFound("Pilote non trouvé");

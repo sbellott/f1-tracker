@@ -61,9 +61,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const prediction = await upsertPrediction({
     userId: user.id,
+    groupId: data.groupId,
     raceId: data.raceId,
-    positions: data.positions,
-    pole: data.pole ?? null,
+    topTen: data.topTen,
+    polePosition: data.polePosition ?? null,
     fastestLap: data.fastestLap ?? null,
   });
 

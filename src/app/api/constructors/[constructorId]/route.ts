@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { apiCached } from "@/lib/utils/api-response";
 import { withErrorHandler } from "@/lib/errors/handler";
 import { ApiError } from "@/lib/errors/api-error";
@@ -21,10 +21,11 @@ export const GET = withErrorHandler(
   async (request: NextRequest, context: RouteContext) => {
     const { constructorId } = await context.params;
 
+    // Season param reserved for future use
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
-    const query = querySchema.parse(searchParams);
+    querySchema.parse(searchParams);
 
-    const constructor = await getConstructorById(constructorId, query.season);
+    const constructor = await getConstructorById(constructorId);
 
     if (!constructor) {
       throw ApiError.notFound("Écurie non trouvée");

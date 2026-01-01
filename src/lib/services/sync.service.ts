@@ -12,6 +12,7 @@ import {
   getFastestLapDriver,
   getTopTenDrivers,
 } from "@/lib/api/ergast/transformers";
+import type { Prisma } from "@prisma/client";
 
 export interface SyncResult {
   success: boolean;
@@ -73,6 +74,13 @@ export async function syncSeason(season: number): Promise<SyncResult> {
   return result;
 }
 
+// Helper to access prisma.constructor via Function casting
+// This avoids TypeScript conflicts with JavaScript's native 'constructor' property
+const constructorModel = (prisma as unknown as Record<string, unknown>).constructor as unknown as {
+  upsert: Function;
+  findUnique: Function;
+};
+
 /**
  * Sync constructors
  */
@@ -81,9 +89,9 @@ async function syncConstructors(season: number): Promise<number> {
   const constructors = data.ConstructorTable.Constructors;
 
   let count = 0;
-  for (const constructor of constructors) {
-    const transformed = transformConstructor(constructor);
-    await prisma.constructor.upsert({
+  for (const team of constructors) {
+    const transformed = transformConstructor(team);
+    await constructorModel.upsert({
       where: { ergastId: transformed.ergastId },
       update: {
         name: transformed.name,
@@ -127,11 +135,11 @@ async function syncDrivers(season: number): Promise<number> {
     // Find constructor ID
     let constructorId: string | null = null;
     if (constructorErgastId) {
-      const constructor = await prisma.constructor.findUnique({
+      const team = await constructorModel.findUnique({
         where: { ergastId: constructorErgastId },
         select: { id: true },
-      });
-      constructorId = constructor?.id || null;
+      }) as { id: string } | null;
+      constructorId = team?.id || null;
     }
 
     await prisma.driver.upsert({
@@ -272,11 +280,11 @@ async function syncDriverStandings(season: number): Promise<number> {
   for (const standing of standingsList.DriverStandings) {
     const transformed = transformDriverStanding(standing, season, round);
 
-    // Find driver
-    const driver = await prisma.driver.findUnique({
+    // Find driver - use Function casting to bypass constructor conflicts
+    const driver = await (prisma.driver.findUnique as Function)({
       where: { ergastId: transformed.driverErgastId },
       select: { id: true },
-    });
+    }) as { id: string } | null;
 
     if (!driver) continue;
 
@@ -325,13 +333,13 @@ async function syncConstructorStandings(season: number): Promise<number> {
   for (const standing of standingsList.ConstructorStandings) {
     const transformed = transformConstructorStanding(standing, season, round);
 
-    // Find constructor
-    const constructor = await prisma.constructor.findUnique({
+    // Find constructor using the model accessor
+    const team = await constructorModel.findUnique({
       where: { ergastId: transformed.constructorErgastId },
       select: { id: true },
-    });
+    }) as { id: string } | null;
 
-    if (!constructor) continue;
+    if (!team) continue;
 
     await prisma.standing.upsert({
       where: {
@@ -339,7 +347,7 @@ async function syncConstructorStandings(season: number): Promise<number> {
           season,
           round,
           type: "CONSTRUCTOR",
-          constructorId: constructor.id,
+          constructorId: team.id,
         },
       },
       update: {
@@ -354,7 +362,7 @@ async function syncConstructorStandings(season: number): Promise<number> {
         position: transformed.position,
         points: transformed.points,
         wins: transformed.wins,
-        constructorId: constructor.id,
+        constructorId: team.id,
       },
     });
     count++;
@@ -404,16 +412,18 @@ export async function syncRaceResults(
     qualifyingData.RaceTable.Races[0]?.QualifyingResults || []
   );
 
-  // Store results as JSON
+  // Store results as JSON - cast to Prisma.InputJsonValue
+  const resultsJsonData = {
+    positions: topTen,
+    pole: poleDriver,
+    fastestLap: fastestLapDriver,
+    fullResults: results,
+  } as unknown as Prisma.InputJsonValue;
+
   await prisma.race.update({
     where: { id: race.id },
     data: {
-      resultsJson: {
-        positions: topTen,
-        pole: poleDriver,
-        fastestLap: fastestLapDriver,
-        fullResults: results,
-      },
+      resultsJson: resultsJsonData,
     },
   });
 

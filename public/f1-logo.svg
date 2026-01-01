@@ -1,0 +1,16 @@
+<svg width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- F1 Logo inspired design -->
+  <g>
+    <!-- F -->
+    <path d="M10 8 H30 V13 H15 V17 H27 V22 H15 V32 H10 V8 Z" fill="currentColor"/>
+    
+    <!-- 1 -->
+    <path d="M38 12 L38 32 H43 V12 L38 12 Z M36 8 H45 V12 H36 V8 Z" fill="currentColor"/>
+    
+    <!-- Racing stripe accent -->
+    <rect x="50" y="8" width="65" height="24" rx="2" fill="currentColor" opacity="0.1"/>
+    <rect x="52" y="14" width="4" height="12" rx="1" fill="#E10600"/>
+    <rect x="58" y="14" width="55" height="3" rx="1" fill="currentColor" opacity="0.3"/>
+    <rect x="58" y="23" width="45" height="3" rx="1" fill="currentColor" opacity="0.2"/>
+  </g>
+</svg>

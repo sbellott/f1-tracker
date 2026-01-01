@@ -30,8 +30,9 @@ export const GET = withErrorHandler(
       throw ApiError.notFound("Groupe non trouvé");
     }
 
-    // Verify user is a member
-    if (!group.userRole) {
+    // Verify user is a member by checking if they're in the members list
+    const isMember = group.members.some((m) => m.userId === user.id);
+    if (!isMember) {
       throw ApiError.forbidden("Vous n'êtes pas membre de ce groupe");
     }
 

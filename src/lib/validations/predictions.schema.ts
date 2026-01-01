@@ -1,57 +1,40 @@
-import { z } from "zod/v4";
+import { z } from 'zod';
 
-/**
- * Schema for creating/updating a prediction
- */
-export const predictionSchema = z.object({
-  raceId: z.string().cuid(),
-  positions: z
-    .array(z.string().cuid())
-    .length(10, "Vous devez sélectionner exactement 10 pilotes"),
-  pole: z.string().cuid().nullable().optional(),
-  fastestLap: z.string().cuid().nullable().optional(),
+export const sessionTypeSchema = z.enum(['FP1', 'FP2', 'FP3', 'SPRINT_QUALIFYING', 'SPRINT', 'QUALIFYING', 'RACE']);
+
+export const createPredictionSchema = z.object({
+  groupId: z.string().cuid('Invalid group ID'),
+  raceId: z.string().cuid('Invalid race ID'),
+  sessionType: sessionTypeSchema.default('RACE'),
+  topTen: z
+    .array(z.string())
+    .length(10, 'Must predict exactly 10 drivers')
+    .refine((arr) => new Set(arr).size === arr.length, 'Duplicate drivers not allowed'),
+  polePosition: z.string().optional(),
+  fastestLap: z.string().optional(),
 });
 
-export type PredictionInput = z.infer<typeof predictionSchema>;
+// Alias for route compatibility
+export const predictionSchema = createPredictionSchema;
 
-/**
- * Schema for querying predictions
- */
+// Query schema for GET requests
 export const predictionQuerySchema = z.object({
-  raceId: z.string().cuid().optional(),
-  season: z.coerce.number().int().min(1950).max(2100).optional(),
-  groupId: z.string().cuid().optional(),
+  raceId: z.string().optional(),
+  groupId: z.string().optional(),
+  sessionType: sessionTypeSchema.optional(),
+  season: z.coerce.number().int().min(2020).max(2030).optional(),
 });
 
-export type PredictionQueryInput = z.infer<typeof predictionQuerySchema>;
-
-/**
- * Schema for prediction response
- */
-export const predictionResponseSchema = z.object({
-  id: z.string().cuid(),
-  raceId: z.string().cuid(),
-  userId: z.string().cuid(),
-  positions: z.array(z.string()),
-  pole: z.string().nullable(),
-  fastestLap: z.string().nullable(),
-  points: z.number().nullable(),
-  scored: z.boolean(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
+export const updatePredictionSchema = z.object({
+  topTen: z
+    .array(z.string())
+    .length(10, 'Must predict exactly 10 drivers')
+    .refine((arr) => new Set(arr).size === arr.length, 'Duplicate drivers not allowed')
+    .optional(),
+  polePosition: z.string().optional().nullable(),
+  fastestLap: z.string().optional().nullable(),
 });
 
-/**
- * Schema for group prediction submission
- */
-export const groupPredictionSchema = z.object({
-  groupId: z.string().cuid(),
-  raceId: z.string().cuid(),
-  positions: z
-    .array(z.string().cuid())
-    .length(10, "Vous devez sélectionner exactement 10 pilotes"),
-  pole: z.string().cuid().nullable().optional(),
-  fastestLap: z.string().cuid().nullable().optional(),
-});
-
-export type GroupPredictionInput = z.infer<typeof groupPredictionSchema>;
+export type CreatePredictionInput = z.infer<typeof createPredictionSchema>;
+export type UpdatePredictionInput = z.infer<typeof updatePredictionSchema>;
+export type PredictionQuery = z.infer<typeof predictionQuerySchema>;

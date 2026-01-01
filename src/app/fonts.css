@@ -1,0 +1,20 @@
+/* F1 Racing Fonts - imported in globals.css */
+
+:root {
+  /* Primary font: Titillium Web - Modern racing aesthetic */
+  --font-primary: 'Titillium Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  
+  /* Display font: Rajdhani - Bold condensed for headlines */
+  --font-display: 'Rajdhani', 'Titillium Web', sans-serif;
+}
+
+body {
+  font-family: var(--font-primary);
+  letter-spacing: 0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}

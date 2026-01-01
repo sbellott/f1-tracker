@@ -1,235 +1,111 @@
-import { prisma } from "@/lib/db/prisma";
+import { prisma } from '@/lib/db/prisma';
+import type { Prisma } from '@prisma/client';
 
-// ============================================
-// Types
-// ============================================
-
+// Type exports for hooks
 export interface CircuitListItem {
   id: string;
   name: string;
   country: string;
   city: string;
+  ergastId: string;
 }
 
 export interface CircuitDetail extends CircuitListItem {
-  ergastId: string;
-  upcomingRace: UpcomingRace | null;
-  recentRaces: CircuitRaceInfo[];
-}
-
-export interface UpcomingRace {
-  id: string;
-  name: string;
-  date: Date;
-  round: number;
-  season: number;
-}
-
-export interface CircuitRaceInfo {
-  raceId: string;
-  name: string;
-  season: number;
-  round: number;
-  date: Date;
-  winner: {
+  latitude: number | null;
+  longitude: number | null;
+  races: Array<{
     id: string;
-    code: string;
-    firstName: string;
-    lastName: string;
-  } | null;
-  polePosition: {
+    season: number;
+    round: number;
+    name: string;
+    date: Date;
+  }>;
+  results: Array<{
     id: string;
-    code: string;
-    firstName: string;
-    lastName: string;
-  } | null;
+    season: number;
+    winner: { id: string; code: string; firstName: string; lastName: string } | null;
+    pole: { id: string; code: string; firstName: string; lastName: string } | null;
+    fastestLap: { id: string; code: string; firstName: string; lastName: string } | null;
+  }>;
 }
 
-// ============================================
-// Circuits Service
-// ============================================
-
-/**
- * Get all circuits
- */
-export async function getCircuits(): Promise<CircuitListItem[]> {
-  const circuits = await prisma.circuit.findMany({
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      country: true,
-      city: true,
-    },
+export async function getAllCircuits() {
+  return prisma.circuit.findMany({
+    orderBy: { name: 'asc' },
   });
-
-  return circuits;
 }
 
-/**
- * Get circuits with races in a specific season
- */
-export async function getSeasonCircuits(
-  season?: number
-): Promise<CircuitListItem[]> {
-  const targetSeason = season || new Date().getFullYear();
+// Alias for route compatibility
+export const getCircuits = getAllCircuits;
 
-  const circuits = await prisma.circuit.findMany({
+// Get circuits for a specific season
+export async function getSeasonCircuits(season?: number) {
+  const targetSeason = season || new Date().getFullYear();
+  
+  const races = await prisma.race.findMany({
+    where: { season: targetSeason },
+    select: { circuitId: true },
+  });
+  
+  const circuitIds = races.map(r => r.circuitId);
+  
+  return prisma.circuit.findMany({
+    where: { id: { in: circuitIds } },
+    orderBy: { name: 'asc' },
+  });
+}
+
+// Search circuits by name or country
+export async function searchCircuits(query: string) {
+  const lowerQuery = query.toLowerCase();
+  return prisma.circuit.findMany({
     where: {
+      OR: [
+        { name: { contains: lowerQuery } },
+        { country: { contains: lowerQuery } },
+        { city: { contains: lowerQuery } },
+      ],
+    },
+    orderBy: { name: 'asc' },
+  });
+}
+
+export async function getCircuitById(circuitId: string) {
+  return (prisma.circuit.findUnique as Function)({
+    where: { id: circuitId },
+    include: {
       races: {
-        some: {
-          season: targetSeason,
+        orderBy: { season: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          season: true,
+          round: true,
+          name: true,
+          date: true,
+        },
+      },
+      results: {
+        orderBy: { season: 'desc' },
+        take: 5,
+        include: {
+          winner: {
+            select: { id: true, code: true, firstName: true, lastName: true },
+          },
+          pole: {
+            select: { id: true, code: true, firstName: true, lastName: true },
+          },
+          fastestLap: {
+            select: { id: true, code: true, firstName: true, lastName: true },
+          },
         },
       },
     },
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      country: true,
-      city: true,
-    },
   });
-
-  return circuits;
 }
 
-/**
- * Get circuit by ID
- */
-export async function getCircuitById(
-  circuitId: string
-): Promise<CircuitDetail | null> {
-  const circuit = await prisma.circuit.findUnique({
-    where: { id: circuitId },
+export async function getCircuitByErgastId(ergastId: string) {
+  return prisma.circuit.findUnique({
+    where: { ergastId },
   });
-
-  if (!circuit) return null;
-
-  const now = new Date();
-
-  // Get upcoming race at this circuit
-  const upcomingRace = await prisma.race.findFirst({
-    where: {
-      circuitId,
-      date: { gte: now },
-    },
-    orderBy: { date: "asc" },
-    select: {
-      id: true,
-      name: true,
-      date: true,
-      round: true,
-      season: true,
-    },
-  });
-
-  // Get recent races at this circuit
-  const recentRaces = await prisma.race.findMany({
-    where: {
-      circuitId,
-      date: { lt: now },
-      resultsJson: { not: null },
-    },
-    orderBy: { date: "desc" },
-    take: 5,
-    select: {
-      id: true,
-      name: true,
-      season: true,
-      round: true,
-      date: true,
-      resultsJson: true,
-    },
-  });
-
-  // Get driver info for winners and pole sitters
-  const raceInfos: CircuitRaceInfo[] = [];
-
-  for (const race of recentRaces) {
-    const results = race.resultsJson as {
-      positions?: string[];
-      pole?: string;
-    };
-
-    let winner = null;
-    let polePosition = null;
-
-    if (results.positions && results.positions.length > 0) {
-      const winnerDriver = await prisma.driver.findUnique({
-        where: { ergastId: results.positions[0] },
-        select: {
-          id: true,
-          code: true,
-          firstName: true,
-          lastName: true,
-        },
-      });
-      winner = winnerDriver;
-    }
-
-    if (results.pole) {
-      const poleDriver = await prisma.driver.findUnique({
-        where: { ergastId: results.pole },
-        select: {
-          id: true,
-          code: true,
-          firstName: true,
-          lastName: true,
-        },
-      });
-      polePosition = poleDriver;
-    }
-
-    raceInfos.push({
-      raceId: race.id,
-      name: race.name,
-      season: race.season,
-      round: race.round,
-      date: race.date,
-      winner,
-      polePosition,
-    });
-  }
-
-  return {
-    id: circuit.id,
-    ergastId: circuit.ergastId,
-    name: circuit.name,
-    country: circuit.country,
-    city: circuit.city,
-    upcomingRace,
-    recentRaces: raceInfos,
-  };
 }
-
-/**
- * Search circuits by name or country
- */
-export async function searchCircuits(query: string): Promise<CircuitListItem[]> {
-  const circuits = await prisma.circuit.findMany({
-    where: {
-      OR: [
-        { name: { contains: query, mode: "insensitive" } },
-        { country: { contains: query, mode: "insensitive" } },
-        { city: { contains: query, mode: "insensitive" } },
-      ],
-    },
-    select: {
-      id: true,
-      name: true,
-      country: true,
-      city: true,
-    },
-    take: 10,
-  });
-
-  return circuits;
-}
-
-export default {
-  getCircuits,
-  getSeasonCircuits,
-  getCircuitById,
-  searchCircuits,
-};
