@@ -39,13 +39,68 @@ async function fetchAPI<T>(endpoint: string, extractKey?: string): Promise<T> {
 }
 
 // ============================================
+// Data Transformers
+// ============================================
+
+// Transform API driver response to match expected Driver type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function transformDriver(apiDriver: any): Driver {
+  return {
+    id: apiDriver.id,
+    code: apiDriver.code || '',
+    firstName: apiDriver.firstName,
+    lastName: apiDriver.lastName,
+    number: apiDriver.number || 0,
+    nationality: apiDriver.nationality || '',
+    dateOfBirth: apiDriver.dateOfBirth ? new Date(apiDriver.dateOfBirth) : new Date(),
+    constructorId: apiDriver.constructorId || '',
+    photo: apiDriver.photo,
+    stats: {
+      gp: apiDriver.totalRaces || 0,
+      wins: apiDriver.totalWins || 0,
+      podiums: apiDriver.totalPodiums || 0,
+      poles: apiDriver.totalPoles || 0,
+      fastestLaps: apiDriver.totalFastestLaps || 0,
+      points: apiDriver.totalPoints || 0,
+      titles: apiDriver.championships || 0,
+    },
+  };
+}
+
+// Transform API constructor response to match expected Constructor type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function transformConstructor(apiConstructor: any): Constructor {
+  return {
+    id: apiConstructor.id,
+    name: apiConstructor.name,
+    nationality: apiConstructor.nationality || '',
+    base: apiConstructor.base || '',
+    teamPrincipal: apiConstructor.teamPrincipal || '',
+    technicalDirector: apiConstructor.technicalChief || apiConstructor.technicalDirector || '',
+    engine: apiConstructor.powerUnit || apiConstructor.engine || '',
+    color: apiConstructor.color || '#000000',
+    logo: apiConstructor.logo,
+    stats: {
+      wins: apiConstructor.totalWins || 0,
+      podiums: apiConstructor.totalPodiums || 0,
+      poles: apiConstructor.totalPoles || 0,
+      titles: apiConstructor.championships || 0,
+    },
+  };
+}
+
+// ============================================
 // Driver Hooks
 // ============================================
 
 export function useDrivers() {
   return useQuery<Driver[]>({
     queryKey: queryKeys.drivers,
-    queryFn: () => fetchAPI<Driver[]>("/api/drivers", "drivers"),
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawDrivers = await fetchAPI<any[]>("/api/drivers", "drivers");
+      return rawDrivers.map(transformDriver);
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
@@ -53,7 +108,11 @@ export function useDrivers() {
 export function useDriver(id: string) {
   return useQuery<Driver>({
     queryKey: queryKeys.driver(id),
-    queryFn: () => fetchAPI<Driver>(`/api/drivers/${id}`),
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawDriver = await fetchAPI<any>(`/api/drivers/${id}`);
+      return transformDriver(rawDriver);
+    },
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
   });
@@ -66,7 +125,11 @@ export function useDriver(id: string) {
 export function useConstructors() {
   return useQuery<Constructor[]>({
     queryKey: queryKeys.constructors,
-    queryFn: () => fetchAPI<Constructor[]>("/api/constructors", "constructors"),
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawConstructors = await fetchAPI<any[]>("/api/constructors", "constructors");
+      return rawConstructors.map(transformConstructor);
+    },
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -74,7 +137,11 @@ export function useConstructors() {
 export function useConstructor(id: string) {
   return useQuery<Constructor>({
     queryKey: queryKeys.constructor(id),
-    queryFn: () => fetchAPI<Constructor>(`/api/constructors/${id}`),
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawConstructor = await fetchAPI<any>(`/api/constructors/${id}`);
+      return transformConstructor(rawConstructor);
+    },
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
   });
