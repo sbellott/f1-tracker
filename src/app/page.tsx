@@ -239,13 +239,17 @@ export default function HomePage() {
 
   const handleRegister = async (firstName: string, lastName: string, email: string, password: string) => {
     try {
+      // Create pseudo without spaces (validation only allows letters, numbers, underscores, hyphens)
+      const pseudo = `${firstName}_${lastName}`.replace(/\s+/g, '_').toLowerCase();
+      
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
           password,
-          pseudo: `${firstName} ${lastName}`.trim(),
+          confirmPassword: password,
+          pseudo,
         }),
       });
       
