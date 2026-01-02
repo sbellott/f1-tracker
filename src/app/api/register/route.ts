@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
     return successResponse(user, 201);
   } catch (error) {
     console.error('Registration error:', error);
-    return serverErrorResponse('Erreur lors de l\'inscription');
+    // Include more details in production for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return serverErrorResponse(`Erreur lors de l'inscription: ${errorMessage}`);
   }
 }
