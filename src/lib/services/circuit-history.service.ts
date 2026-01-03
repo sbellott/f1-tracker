@@ -50,6 +50,46 @@ export interface CircuitHistoryData {
   error: string | null;
 }
 
+// NEW: Full race result for a driver
+export interface RaceResult {
+  position: number;
+  positionText: string;
+  points: number;
+  driver: {
+    driverId: string;
+    code: string;
+    firstName: string;
+    lastName: string;
+    nationality: string;
+    number?: string;
+  };
+  constructor: {
+    constructorId: string;
+    name: string;
+    nationality: string;
+  };
+  grid: number;
+  laps: number;
+  status: string;
+  time?: string;
+  fastestLap?: {
+    rank: number;
+    lap: number;
+    time: string;
+    avgSpeed: string;
+  };
+}
+
+// NEW: Complete race with all results
+export interface FullRaceResult {
+  season: number;
+  round: number;
+  raceName: string;
+  circuitName: string;
+  date: string;
+  results: RaceResult[];
+}
+
 // Fetch race winners for a specific circuit
 export async function getCircuitWinners(circuitId: string, limit: number = 10): Promise<HistoricalWinner[]> {
   try {
@@ -220,15 +260,103 @@ export async function getCircuitFastestLaps(circuitId: string, limit: number = 5
   }
 }
 
-// Combined function to get all circuit history data
+// NEW: Fetch full race results for a circuit (last N races with complete classification)
+export async function getCircuitFullResults(circuitId: string, numberOfRaces: number = 5): Promise<FullRaceResult[]> {
+  try {
+    // First get the list of races at this circuit to find recent seasons
+    const seasonsResponse = await fetch(
+      `${ERGAST_BASE_URL}/circuits/${circuitId}/seasons.json?limit=100`
+    );
+    
+    if (!seasonsResponse.ok) {
+      throw new Error(`API error: ${seasonsResponse.status}`);
+    }
+    
+    const seasonsData = await seasonsResponse.json();
+    const seasons = (seasonsData.MRData?.SeasonTable?.Seasons || [])
+      .map((s: any) => parseInt(s.season))
+      .sort((a: number, b: number) => b - a) // Most recent first
+      .slice(0, numberOfRaces);
+    
+    if (seasons.length === 0) {
+      return [];
+    }
+    
+    // Fetch full results for each season in parallel
+    const racePromises = seasons.map(async (season: number) => {
+      const response = await fetch(
+        `${ERGAST_BASE_URL}/${season}/circuits/${circuitId}/results.json`
+      );
+      
+      if (!response.ok) {
+        return null;
+      }
+      
+      const data = await response.json();
+      const race = data.MRData?.RaceTable?.Races?.[0];
+      
+      if (!race) {
+        return null;
+      }
+      
+      const results: RaceResult[] = (race.Results || []).map((r: any) => ({
+        position: parseInt(r.position) || 0,
+        positionText: r.positionText || r.position,
+        points: parseFloat(r.points) || 0,
+        driver: {
+          driverId: r.Driver.driverId,
+          code: r.Driver.code || r.Driver.driverId.substring(0, 3).toUpperCase(),
+          firstName: r.Driver.givenName,
+          lastName: r.Driver.familyName,
+          nationality: r.Driver.nationality,
+          number: r.Driver.permanentNumber,
+        },
+        constructor: {
+          constructorId: r.Constructor.constructorId,
+          name: r.Constructor.name,
+          nationality: r.Constructor.nationality,
+        },
+        grid: parseInt(r.grid) || 0,
+        laps: parseInt(r.laps) || 0,
+        status: r.status || 'Unknown',
+        time: r.Time?.time,
+        fastestLap: r.FastestLap ? {
+          rank: parseInt(r.FastestLap.rank) || 0,
+          lap: parseInt(r.FastestLap.lap) || 0,
+          time: r.FastestLap.Time?.time || '',
+          avgSpeed: r.FastestLap.AverageSpeed?.speed || '',
+        } : undefined,
+      }));
+      
+      return {
+        season: parseInt(race.season),
+        round: parseInt(race.round),
+        raceName: race.raceName,
+        circuitName: race.Circuit?.circuitName || '',
+        date: race.date,
+        results,
+      } as FullRaceResult;
+    });
+    
+    const races = await Promise.all(racePromises);
+    return races.filter((r): r is FullRaceResult => r !== null);
+  } catch (error) {
+    console.error('Error fetching circuit full results:', error);
+    return [];
+  }
+}
+
+// Updated combined function
 export async function getCircuitHistory(circuitId: string): Promise<{
   winners: HistoricalWinner[];
   stats: CircuitStats;
+  fullResults: FullRaceResult[];
 }> {
-  const [winners, stats] = await Promise.all([
+  const [winners, stats, fullResults] = await Promise.all([
     getCircuitWinners(circuitId, 10),
     getCircuitStats(circuitId),
+    getCircuitFullResults(circuitId, 5),
   ]);
   
-  return { winners, stats };
+  return { winners, stats, fullResults };
 }

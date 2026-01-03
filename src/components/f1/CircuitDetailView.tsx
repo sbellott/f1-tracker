@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useCircuitHistory } from '@/lib/hooks/useF1Data';
+import type { FullRaceResult } from '@/lib/services/circuit-history.service';
 
 interface CircuitDetailViewProps {
   circuit: Circuit;
@@ -300,8 +301,7 @@ function CircuitRacesSection({
                                 </p>
                               </div>
                             </div>
-                            <Badge className="bg-green-500/10 text-green-500 border-green-500/20 gap-1">
-                              <ListOrdered className="w-3 h-3" />
+                            <Badge className="bg-green-500/10 text-green-500 border-green-500/20 text-xs">
                               Voir
                             </Badge>
                           </div>
@@ -326,6 +326,208 @@ function CircuitRacesSection({
           )}
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// Full Race Results Accordion Component
+function FullRaceResultsAccordion({ results }: { results: FullRaceResult[] }) {
+  const [expandedYear, setExpandedYear] = useState<number | null>(results[0]?.season || null);
+
+  const getPositionStyle = (position: number) => {
+    switch (position) {
+      case 1:
+        return 'bg-gradient-to-br from-amber-500 to-amber-600 text-white';
+      case 2:
+        return 'bg-gradient-to-br from-gray-400 to-gray-500 text-white';
+      case 3:
+        return 'bg-gradient-to-br from-amber-700 to-amber-800 text-white';
+      default:
+        return 'bg-muted text-foreground';
+    }
+  };
+
+  const getStatusDisplay = (status: string) => {
+    if (status === 'Finished' || status === '+1 Lap' || status.includes('Lap')) {
+      return null; // Don't show for normal finishes
+    }
+    return status;
+  };
+
+  return (
+    <div className="space-y-4">
+      {results.map((race) => {
+        const isExpanded = expandedYear === race.season;
+        const winner = race.results[0];
+
+        return (
+          <div 
+            key={race.season}
+            className="border border-border/50 rounded-xl overflow-hidden"
+          >
+            {/* Race Header - Clickable */}
+            <div
+              className="p-4 cursor-pointer hover:bg-muted/30 transition-colors flex items-center justify-between"
+              onClick={() => setExpandedYear(isExpanded ? null : race.season)}
+            >
+              <div className="flex items-center gap-4">
+                <Badge 
+                  className="w-16 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary to-primary/80 text-white border-0 text-lg font-bold"
+                >
+                  {race.season}
+                </Badge>
+                <div>
+                  <div className="font-bold">{race.raceName}</div>
+                  <div className="text-sm text-muted-foreground flex items-center gap-2">
+                    <Trophy className="w-3 h-3 text-amber-500" />
+                    {winner?.driver.firstName} {winner?.driver.lastName}
+                    <span className="text-muted-foreground/50">•</span>
+                    {winner?.constructor.name}
+                    {winner?.time && (
+                      <>
+                        <span className="text-muted-foreground/50">•</span>
+                        <Clock className="w-3 h-3" />
+                        {winner.time}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {race.results.length} pilotes
+                </Badge>
+                {isExpanded ? (
+                  <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                )}
+              </div>
+            </div>
+
+            {/* Expanded Results */}
+            {isExpanded && (
+              <div className="border-t border-border/50 bg-muted/20">
+                {/* Table Header */}
+                <div className="grid grid-cols-12 gap-2 p-3 text-xs font-semibold text-muted-foreground border-b border-border/30 bg-muted/30">
+                  <div className="col-span-1 text-center">POS</div>
+                  <div className="col-span-4">PILOTE</div>
+                  <div className="col-span-3">ÉCURIE</div>
+                  <div className="col-span-1 text-center">GRILLE</div>
+                  <div className="col-span-2 text-right">TEMPS</div>
+                  <div className="col-span-1 text-right">PTS</div>
+                </div>
+
+                {/* Results Rows */}
+                <div className="divide-y divide-border/20">
+                  {race.results.map((result) => {
+                    const statusDisplay = getStatusDisplay(result.status);
+                    const hasFastestLap = result.fastestLap?.rank === 1;
+
+                    return (
+                      <div 
+                        key={result.driver.driverId}
+                        className={`grid grid-cols-12 gap-2 p-3 items-center hover:bg-muted/30 transition-colors ${
+                          result.position <= 3 ? 'bg-muted/10' : ''
+                        }`}
+                      >
+                        {/* Position */}
+                        <div className="col-span-1 flex justify-center">
+                          <Badge className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${getPositionStyle(result.position)}`}>
+                            {result.positionText}
+                          </Badge>
+                        </div>
+
+                        {/* Driver */}
+                        <div className="col-span-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs text-muted-foreground w-6">
+                              {result.driver.number || '-'}
+                            </span>
+                            <div>
+                              <span className="font-semibold">
+                                {result.driver.firstName.charAt(0)}. {result.driver.lastName}
+                              </span>
+                              {hasFastestLap && (
+                                <Badge className="ml-2 bg-purple-500/10 text-purple-500 border-purple-500/20 text-[10px] px-1">
+                                  <Zap className="w-2 h-2 mr-0.5" />
+                                  FL
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Constructor */}
+                        <div className="col-span-3 text-sm text-muted-foreground truncate">
+                          {result.constructor.name}
+                        </div>
+
+                        {/* Grid Position */}
+                        <div className="col-span-1 text-center">
+                          <span className={`text-sm ${
+                            result.grid < result.position 
+                              ? 'text-red-500' 
+                              : result.grid > result.position 
+                                ? 'text-green-500' 
+                                : 'text-muted-foreground'
+                          }`}>
+                            {result.grid || '-'}
+                          </span>
+                        </div>
+
+                        {/* Time/Status */}
+                        <div className="col-span-2 text-right">
+                          {statusDisplay ? (
+                            <Badge variant="outline" className="text-xs text-orange-500 border-orange-500/30">
+                              {statusDisplay}
+                            </Badge>
+                          ) : result.position === 1 ? (
+                            <span className="font-mono text-sm font-semibold text-chart-3">
+                              {result.time}
+                            </span>
+                          ) : result.time ? (
+                            <span className="font-mono text-sm text-muted-foreground">
+                              +{result.time}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              {result.status}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Points */}
+                        <div className="col-span-1 text-right">
+                          <span className={`font-bold ${result.points > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                            {result.points > 0 ? result.points : '-'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Race Summary Footer */}
+                <div className="p-3 bg-muted/30 border-t border-border/30 flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-4">
+                    <span>{format(new Date(race.date), 'd MMMM yyyy', { locale: fr })}</span>
+                    <span>•</span>
+                    <span>Round {race.round}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {race.results.filter(r => r.status !== 'Finished' && !r.status.includes('Lap')).length > 0 && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {race.results.filter(r => r.status !== 'Finished' && !r.status.includes('Lap')).length} abandons
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -714,14 +916,14 @@ export function CircuitDetailView({ circuit, drivers, constructors, races, onBac
         </CardContent>
       </Card>
 
-      {/* Recent Winners */}
+      {/* Full Race Results - Last 5 Years */}
       <Card className="border-border/50 shadow-lg">
         <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
           <CardTitle className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-chart-5 to-chart-5/80 flex items-center justify-center">
               <Trophy className="w-4 h-4 text-white" />
             </div>
-            Derniers vainqueurs
+            Classements complets - 5 dernières années
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
@@ -729,50 +931,13 @@ export function CircuitDetailView({ circuit, drivers, constructors, races, onBac
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
-          ) : recentWinners.length === 0 ? (
+          ) : !historyData?.fullResults || historyData.fullResults.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>Aucune donnée historique disponible</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {recentWinners.slice(0, 5).map((winner, index) => (
-                <div 
-                  key={`${winner.season}-${index}`}
-                  className="flex items-center justify-between p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors group"
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    <Badge 
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        index === 0 
-                          ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0'
-                          : 'bg-muted text-foreground'
-                      }`}
-                    >
-                      {winner.season}
-                    </Badge>
-                    
-                    <div className="flex-1">
-                      <div className="font-semibold">
-                        {winner.driver.firstName} {winner.driver.lastName}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-muted-foreground">{winner.constructor.name}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    {winner.time && (
-                      <div className="flex items-center gap-2 text-chart-3">
-                        <Clock className="w-4 h-4" />
-                        <span className="font-mono font-semibold">{winner.time}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <FullRaceResultsAccordion results={historyData.fullResults} />
           )}
         </CardContent>
       </Card>

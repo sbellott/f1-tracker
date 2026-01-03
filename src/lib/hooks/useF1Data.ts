@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import type { Driver, Constructor, Circuit, Race, Session, SessionResults, SessionType } from "@/types";
-import { getCircuitHistory, type HistoricalWinner, type CircuitStats } from "@/lib/services/circuit-history.service";
+import { getCircuitHistory, type HistoricalWinner, type CircuitStats, type FullRaceResult } from "@/lib/services/circuit-history.service";
 
 // ============================================
 // Query Keys
@@ -237,7 +237,7 @@ export function useCircuit(id: string) {
 // ============================================
 
 export function useCircuitHistory(circuitErgastId: string) {
-  return useQuery<{ winners: HistoricalWinner[]; stats: CircuitStats }>({
+  return useQuery<{ winners: HistoricalWinner[]; stats: CircuitStats; fullResults: FullRaceResult[] }>({
     queryKey: queryKeys.circuitHistory(circuitErgastId),
     queryFn: () => getCircuitHistory(circuitErgastId),
     enabled: !!circuitErgastId,
