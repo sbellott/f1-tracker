@@ -71,6 +71,61 @@ interface ErgastRace {
 }
 
 // ============================================
+// Types - Add result types
+// ============================================
+
+interface ErgastResult {
+  number: string;
+  position: string;
+  positionText: string;
+  points: string;
+  Driver: ErgastDriver;
+  Constructor: ErgastConstructor;
+  grid: string;
+  laps: string;
+  status: string;
+  Time?: { millis?: string; time?: string };
+  FastestLap?: {
+    rank: string;
+    lap: string;
+    Time: { time: string };
+  };
+}
+
+interface ErgastQualifyingResult {
+  number: string;
+  position: string;
+  Driver: ErgastDriver;
+  Constructor: ErgastConstructor;
+  Q1?: string;
+  Q2?: string;
+  Q3?: string;
+}
+
+interface ErgastRaceResults {
+  season: string;
+  round: string;
+  raceName: string;
+  Circuit: ErgastCircuit;
+  date: string;
+  Results: ErgastResult[];
+}
+
+interface ErgastQualifyingResults {
+  season: string;
+  round: string;
+  raceName: string;
+  QualifyingResults: ErgastQualifyingResult[];
+}
+
+interface ErgastSprintResults {
+  season: string;
+  round: string;
+  raceName: string;
+  SprintResults: ErgastResult[];
+}
+
+// ============================================
 // API Helpers
 // ============================================
 
@@ -181,18 +236,14 @@ async function syncCircuits(targetSeason: number): Promise<number> {
       where: { ergastId: circuit.circuitId },
       update: {
         name: circuit.circuitName,
-        location: circuit.Location.locality,
+        city: circuit.Location.locality,
         country: circuit.Location.country,
-        latitude: parseFloat(circuit.Location.lat),
-        longitude: parseFloat(circuit.Location.long),
       },
       create: {
         ergastId: circuit.circuitId,
         name: circuit.circuitName,
-        location: circuit.Location.locality,
+        city: circuit.Location.locality,
         country: circuit.Location.country,
-        latitude: parseFloat(circuit.Location.lat),
-        longitude: parseFloat(circuit.Location.long),
       },
     });
     count++;
@@ -320,11 +371,11 @@ async function syncRaceSessions(
   });
 
   // Delete existing sessions
-  await prisma.session.deleteMany({ where: { raceId } });
+  await prisma.raceSession.deleteMany({ where: { raceId } });
 
   // Create new sessions
   for (const session of sessions) {
-    await prisma.session.create({
+    await prisma.raceSession.create({
       data: {
         raceId,
         type: session.type as
@@ -342,7 +393,228 @@ async function syncRaceSessions(
 }
 
 // ============================================
-// Main
+// Sync Session Results
+// ============================================
+
+async function syncRaceResults(targetSeason: number): Promise<number> {
+  console.log(`\n🏆 Syncing race results for ${targetSeason}...`);
+  
+  let count = 0;
+  
+  // Get all races for the season
+  const races = await prisma.race.findMany({
+    where: { season: targetSeason },
+    include: { sessions: true },
+    orderBy: { round: 'asc' }
+  });
+  
+  for (const race of races) {
+    // Only sync if race date is in the past
+    if (new Date(race.date) > new Date()) {
+      console.log(`  ⏭️ Skipping future race: ${race.name}`);
+      continue;
+    }
+    
+    try {
+      // Sync race results
+      const raceSession = race.sessions.find(s => s.type === 'RACE');
+      if (raceSession) {
+        const raceData = await fetchFromErgast<{
+          RaceTable: { Races: ErgastRaceResults[] };
+        }>(`${targetSeason}/${race.round}/results`);
+        
+        if (raceData.RaceTable.Races.length > 0) {
+          const results = raceData.RaceTable.Races[0].Results;
+          const resultsJson = formatRaceResults(results);
+          
+          await prisma.raceSession.update({
+            where: { id: raceSession.id },
+            data: { 
+              completed: true,
+              resultsJson 
+            }
+          });
+          count++;
+          console.log(`  ✅ Race results synced for ${race.name}`);
+        }
+      }
+      
+      // Sync qualifying results
+      const qualifyingSession = race.sessions.find(s => s.type === 'QUALIFYING');
+      if (qualifyingSession) {
+        const qualifyingData = await fetchFromErgast<{
+          RaceTable: { Races: ErgastQualifyingResults[] };
+        }>(`${targetSeason}/${race.round}/qualifying`);
+        
+        if (qualifyingData.RaceTable.Races.length > 0 && qualifyingData.RaceTable.Races[0].QualifyingResults) {
+          const results = qualifyingData.RaceTable.Races[0].QualifyingResults;
+          const resultsJson = formatQualifyingResults(results);
+          
+          await prisma.raceSession.update({
+            where: { id: qualifyingSession.id },
+            data: { 
+              completed: true,
+              resultsJson 
+            }
+          });
+          count++;
+          console.log(`  ✅ Qualifying results synced for ${race.name}`);
+        }
+      }
+      
+      // Sync sprint results if exists
+      if (race.hasSprint) {
+        const sprintSession = race.sessions.find(s => s.type === 'SPRINT');
+        if (sprintSession) {
+          const sprintData = await fetchFromErgast<{
+            RaceTable: { Races: ErgastSprintResults[] };
+          }>(`${targetSeason}/${race.round}/sprint`);
+          
+          if (sprintData.RaceTable.Races.length > 0 && sprintData.RaceTable.Races[0].SprintResults) {
+            const results = sprintData.RaceTable.Races[0].SprintResults;
+            const resultsJson = formatRaceResults(results);
+            
+            await prisma.raceSession.update({
+              where: { id: sprintSession.id },
+              data: { 
+                completed: true,
+                resultsJson 
+              }
+            });
+            count++;
+            console.log(`  ✅ Sprint results synced for ${race.name}`);
+          }
+        }
+      }
+      
+      // Add small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+    } catch (error) {
+      console.log(`  ⚠️ Could not sync results for ${race.name}: ${error}`);
+    }
+  }
+  
+  console.log(`  ✅ Synced ${count} session results`);
+  return count;
+}
+
+function formatRaceResults(results: ErgastResult[]): object {
+  return {
+    sessionType: 'RACE',
+    positions: results.map(r => ({
+      position: parseInt(r.position),
+      driverId: r.Driver.driverId,
+      driverCode: r.Driver.code || r.Driver.driverId.substring(0, 3).toUpperCase(),
+      driverName: `${r.Driver.givenName} ${r.Driver.familyName}`,
+      constructorId: r.Constructor.constructorId,
+      constructorName: r.Constructor.name,
+      time: r.position === '1' ? r.Time?.time : (r.status === 'Finished' ? `+${r.Time?.time}` : null),
+      laps: parseInt(r.laps),
+      points: parseFloat(r.points),
+      status: r.status !== 'Finished' ? r.status : undefined,
+      fastestLap: r.FastestLap?.rank === '1',
+      gridPosition: parseInt(r.grid)
+    })),
+    fastestLap: results.find(r => r.FastestLap?.rank === '1') ? {
+      driverId: results.find(r => r.FastestLap?.rank === '1')!.Driver.driverId,
+      time: results.find(r => r.FastestLap?.rank === '1')!.FastestLap!.Time.time,
+      lap: parseInt(results.find(r => r.FastestLap?.rank === '1')!.FastestLap!.lap)
+    } : undefined
+  };
+}
+
+function formatQualifyingResults(results: ErgastQualifyingResult[]): object {
+  return {
+    sessionType: 'QUALIFYING',
+    positions: results.map(r => ({
+      position: parseInt(r.position),
+      driverId: r.Driver.driverId,
+      driverCode: r.Driver.code || r.Driver.driverId.substring(0, 3).toUpperCase(),
+      driverName: `${r.Driver.givenName} ${r.Driver.familyName}`,
+      constructorId: r.Constructor.constructorId,
+      constructorName: r.Constructor.name,
+      time: r.Q3 || r.Q2 || r.Q1 || '-',
+      q1: r.Q1,
+      q2: r.Q2,
+      q3: r.Q3
+    })),
+    polePosition: results.length > 0 ? results[0].Driver.driverId : undefined
+  };
+}
+
+// ============================================
+// Sync Circuit History (winners per year)
+// ============================================
+
+async function syncCircuitHistory(targetSeason: number): Promise<number> {
+  console.log(`\n📜 Syncing circuit history...`);
+  
+  let count = 0;
+  
+  // Get all circuits
+  const circuits = await prisma.circuit.findMany();
+  
+  for (const circuit of circuits) {
+    try {
+      // Get past 10 years of winners for this circuit
+      for (let year = targetSeason - 1; year >= targetSeason - 10 && year >= 2014; year--) {
+        const raceData = await fetchFromErgast<{
+          RaceTable: { Races: ErgastRaceResults[] };
+        }>(`${year}/circuits/${circuit.ergastId}/results`);
+        
+        if (raceData.RaceTable.Races.length > 0) {
+          const race = raceData.RaceTable.Races[0];
+          if (race.Results && race.Results.length > 0) {
+            const winner = race.Results[0];
+            const pole = race.Results.find(r => r.grid === '1');
+            const fastestLap = race.Results.find(r => r.FastestLap?.rank === '1');
+            
+            // Find or get driver IDs from our database
+            const winnerDriver = await prisma.driver.findUnique({ where: { ergastId: winner.Driver.driverId } });
+            const poleDriver = pole ? await prisma.driver.findUnique({ where: { ergastId: pole.Driver.driverId } }) : null;
+            const fastestLapDriver = fastestLap ? await prisma.driver.findUnique({ where: { ergastId: fastestLap.Driver.driverId } }) : null;
+            
+            await prisma.circuitHistory.upsert({
+              where: {
+                circuitId_season: {
+                  circuitId: circuit.id,
+                  season: year
+                }
+              },
+              update: {
+                winnerId: winnerDriver?.id || null,
+                poleId: poleDriver?.id || null,
+                fastestLapId: fastestLapDriver?.id || null,
+                winnerTime: winner.Time?.time || null
+              },
+              create: {
+                circuitId: circuit.id,
+                season: year,
+                winnerId: winnerDriver?.id || null,
+                poleId: poleDriver?.id || null,
+                fastestLapId: fastestLapDriver?.id || null,
+                winnerTime: winner.Time?.time || null
+              }
+            });
+            count++;
+          }
+        }
+        
+        // Add delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 150));
+      }
+    } catch (error) {
+      console.log(`  ⚠️ Could not sync history for ${circuit.name}: ${error}`);
+    }
+  }
+  
+  console.log(`  ✅ Synced ${count} circuit history entries`);
+  return count;
+}
+
+// ============================================
+// Main - Updated to include results sync
 // ============================================
 
 async function main(): Promise<void> {
@@ -360,14 +632,21 @@ async function main(): Promise<void> {
     totalSynced += await syncConstructors(season);
     totalSynced += await syncCircuits(season);
     totalSynced += await syncRaces(season);
+    
+    // Sync session results
+    totalSynced += await syncRaceResults(season);
 
-    // Optionally sync previous season
+    // Optionally sync previous season and circuit history
     if (fullSync && season > 2020) {
       console.log(`\n📅 Also syncing ${season - 1}...`);
       totalSynced += await syncDrivers(season - 1);
       totalSynced += await syncConstructors(season - 1);
       totalSynced += await syncCircuits(season - 1);
       totalSynced += await syncRaces(season - 1);
+      totalSynced += await syncRaceResults(season - 1);
+      
+      // Sync circuit history
+      totalSynced += await syncCircuitHistory(season);
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);

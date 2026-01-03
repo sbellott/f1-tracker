@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { Driver, Constructor, Circuit, Race } from "@/types";
+import type { Driver, Constructor, Circuit, Race, Session, SessionResults, SessionType } from "@/types";
 
 // ============================================
 // Query Keys
@@ -86,6 +86,67 @@ function transformConstructor(apiConstructor: any): Constructor {
       poles: apiConstructor.totalPoles || 0,
       titles: apiConstructor.championships || 0,
     },
+  };
+}
+
+// Transform API session response to match expected Session type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function transformSession(apiSession: any): Session {
+  return {
+    id: apiSession.id,
+    raceId: apiSession.raceId || '',
+    type: apiSession.type as SessionType,
+    dateTime: new Date(apiSession.dateTime),
+    channel: apiSession.canalPlusChannel || undefined,
+    isLive: apiSession.isLive ?? true,
+    completed: apiSession.completed || false,
+    results: apiSession.resultsJson ? transformSessionResults(apiSession.resultsJson, apiSession.type) : undefined,
+  };
+}
+
+// Transform resultsJson to SessionResults
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function transformSessionResults(resultsJson: any, sessionType: string): SessionResults | undefined {
+  if (!resultsJson || !resultsJson.positions || !Array.isArray(resultsJson.positions)) {
+    return undefined;
+  }
+
+  return {
+    sessionType: sessionType as SessionType,
+    positions: resultsJson.positions.map((pos: any) => ({
+      position: pos.position,
+      driverId: pos.driverId || '',
+      driverCode: pos.driverCode || '',
+      driverName: pos.driverName || '',
+      constructorId: pos.constructorId || '',
+      constructorName: pos.constructorName || '',
+      time: pos.time,
+      laps: pos.laps,
+      points: pos.points,
+      status: pos.status,
+      fastestLap: pos.fastestLap || false,
+      gridPosition: pos.gridPosition,
+    })),
+    polePosition: resultsJson.polePosition,
+    fastestLap: resultsJson.fastestLap,
+    weather: resultsJson.weather,
+    trackStatus: resultsJson.trackStatus,
+  };
+}
+
+// Transform API race response to match expected Race type
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function transformRace(apiRace: any): Race {
+  return {
+    id: apiRace.id,
+    season: apiRace.season,
+    round: apiRace.round,
+    name: apiRace.name,
+    circuitId: apiRace.circuit?.id || apiRace.circuitId || '',
+    date: new Date(apiRace.date),
+    hasSprint: apiRace.hasSprint || false,
+    country: apiRace.circuit?.country || '',
+    sessions: (apiRace.sessions || []).map(transformSession),
   };
 }
 
@@ -174,12 +235,16 @@ export function useCircuit(id: string) {
 // ============================================
 
 export function useCalendar(season?: number) {
-  // Default to 2025 season (our seeded data)
-  const targetSeason = season || 2025;
+  // Default to 2026 season (current season)
+  const targetSeason = season || 2026;
 
   return useQuery<Race[]>({
     queryKey: [...queryKeys.calendar, targetSeason],
-    queryFn: () => fetchAPI<Race[]>(`/api/calendar?season=${targetSeason}`, "races"),
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawRaces = await fetchAPI<any[]>(`/api/calendar?season=${targetSeason}`, "races");
+      return rawRaces.map(transformRace);
+    },
     staleTime: 10 * 60 * 1000,
   });
 }
@@ -187,7 +252,12 @@ export function useCalendar(season?: number) {
 export function useNextRace() {
   return useQuery<Race | null>({
     queryKey: queryKeys.nextRace,
-    queryFn: () => fetchAPI<Race | null>("/api/calendar/next"),
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawData = await fetchAPI<any>("/api/calendar/next");
+      if (!rawData || !rawData.race) return null;
+      return transformRace(rawData.race);
+    },
     staleTime: 60 * 1000, // 1 minute - next race info can change
   });
 }
@@ -207,8 +277,8 @@ interface Standing {
 }
 
 export function useDriverStandings(season?: number) {
-  // Default to 2025 season (our seeded data)
-  const targetSeason = season || 2025;
+  // Default to 2026 season (current season)
+  const targetSeason = season || 2026;
 
   return useQuery<Standing[]>({
     queryKey: [...queryKeys.driverStandings, targetSeason],
@@ -218,8 +288,8 @@ export function useDriverStandings(season?: number) {
 }
 
 export function useConstructorStandings(season?: number) {
-  // Default to 2025 season (our seeded data)
-  const targetSeason = season || 2025;
+  // Default to 2026 season (current season)
+  const targetSeason = season || 2026;
 
   return useQuery<Standing[]>({
     queryKey: [...queryKeys.constructorStandings, targetSeason],

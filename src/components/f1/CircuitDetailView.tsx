@@ -1,20 +1,335 @@
-import { Circuit, Driver, Constructor } from '@/types';
+import { Circuit, Driver, Constructor, Race, Session, SessionType } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, MapPin, Route, Gauge, Clock, Trophy, Zap, Calendar, ThermometerSun, Users, Flag, TrendingUp, Award, Play, Map as MapIcon } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, MapPin, Route, Gauge, Clock, Trophy, Zap, Calendar, ThermometerSun, Users, Flag, TrendingUp, Award, Play, Map as MapIcon, CheckCircle2, ChevronDown, ChevronUp, ListOrdered, Tv } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { SessionResultsView } from './SessionResultsView';
 import { useState } from 'react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface CircuitDetailViewProps {
   circuit: Circuit;
   drivers: Driver[];
   constructors: Constructor[];
+  races: Race[];
   onBack: () => void;
   circuitImage: string;
 }
 
-export function CircuitDetailView({ circuit, drivers, constructors, onBack, circuitImage }: CircuitDetailViewProps) {
+// Session type labels
+const sessionTypeLabels: Record<string, { label: string; shortLabel: string; color: string }> = {
+  FP1: { label: 'Essais Libres 1', shortLabel: 'EL1', color: 'text-muted-foreground' },
+  FP2: { label: 'Essais Libres 2', shortLabel: 'EL2', color: 'text-muted-foreground' },
+  FP3: { label: 'Essais Libres 3', shortLabel: 'EL3', color: 'text-muted-foreground' },
+  SPRINT_QUALIFYING: { label: 'Qualifications Sprint', shortLabel: 'QS', color: 'text-chart-2' },
+  SPRINT: { label: 'Sprint', shortLabel: 'SPR', color: 'text-chart-2' },
+  QUALIFYING: { label: 'Qualifications', shortLabel: 'Q', color: 'text-chart-3' },
+  RACE: { label: 'Course', shortLabel: 'GP', color: 'text-primary' },
+};
+
+// Component to display races and sessions for a circuit
+function CircuitRacesSection({ 
+  races, 
+  drivers, 
+  constructors 
+}: { 
+  races: Race[]; 
+  drivers: Driver[]; 
+  constructors: Constructor[];
+}) {
+  const [expandedRaceId, setExpandedRaceId] = useState<string | null>(null);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [activeTab, setActiveTab] = useState<'schedule' | 'results'>('schedule');
+
+  // Sort races by season (descending) and round
+  const sortedRaces = [...races].sort((a, b) => {
+    if (a.season !== b.season) return b.season - a.season;
+    return b.round - a.round;
+  });
+
+  // Group races by season
+  const racesBySeason = sortedRaces.reduce((acc, race) => {
+    if (!acc[race.season]) acc[race.season] = [];
+    acc[race.season].push(race);
+    return acc;
+  }, {} as Record<number, Race[]>);
+
+  const seasons = Object.keys(racesBySeason).map(Number).sort((a, b) => b - a);
+
+  if (races.length === 0) {
+    return (
+      <Card className="bg-muted/30">
+        <CardContent className="p-8 text-center">
+          <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h4 className="font-semibold mb-2">Aucune course disponible</h4>
+          <p className="text-sm text-muted-foreground">
+            Les données des courses sur ce circuit seront bientôt ajoutées
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const handleSessionClick = (session: Session) => {
+    if (session.completed && session.results) {
+      setSelectedSession(session);
+      setActiveTab('results');
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="schedule" className="gap-2">
+            <Calendar className="w-4 h-4" />
+            Programme
+          </TabsTrigger>
+          <TabsTrigger value="results" className="gap-2">
+            <ListOrdered className="w-4 h-4" />
+            Résultats
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="schedule" className="space-y-6">
+          {seasons.map(season => (
+            <div key={season} className="space-y-3">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <Badge variant="outline" className="text-base px-3 py-1">
+                  {season}
+                </Badge>
+                <span className="text-muted-foreground text-sm font-normal">
+                  {racesBySeason[season].length} course{racesBySeason[season].length > 1 ? 's' : ''}
+                </span>
+              </h3>
+              
+              {racesBySeason[season].map(race => {
+                const isExpanded = expandedRaceId === race.id;
+                const completedSessions = race.sessions.filter(s => s.completed).length;
+                const totalSessions = race.sessions.length;
+                const raceSession = race.sessions.find(s => s.type === 'RACE');
+                const hasResults = race.sessions.some(s => s.completed && s.results);
+
+                return (
+                  <Card 
+                    key={race.id}
+                    className="overflow-hidden border-border/50 hover:shadow-md transition-all"
+                  >
+                    <CardContent className="p-0">
+                      {/* Race Header */}
+                      <div 
+                        className="p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => setExpandedRaceId(isExpanded ? null : race.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                              completedSessions === totalSessions 
+                                ? 'bg-green-500/10' 
+                                : 'bg-primary/10'
+                            }`}>
+                              {completedSessions === totalSessions ? (
+                                <CheckCircle2 className="w-6 h-6 text-green-500" />
+                              ) : (
+                                <Flag className="w-6 h-6 text-primary" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold">{race.name}</h4>
+                                {race.hasSprint && (
+                                  <Badge className="bg-chart-2/10 text-chart-2 border-chart-2/20 text-xs gap-1">
+                                    <Zap className="w-3 h-3" />
+                                    Sprint
+                                  </Badge>
+                                )}
+                                {hasResults && (
+                                  <Badge className="bg-green-500/10 text-green-500 border-green-500/20 text-xs">
+                                    Résultats
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                                <span>Round {race.round}</span>
+                                <span>•</span>
+                                <span>{format(new Date(race.date), 'd MMMM yyyy', { locale: fr })}</span>
+                                <span>•</span>
+                                <span>{completedSessions}/{totalSessions} sessions</span>
+                              </div>
+                            </div>
+                          </div>
+                          {isExpanded ? (
+                            <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Expanded Sessions */}
+                      {isExpanded && (
+                        <div className="border-t border-border/50 bg-muted/20 p-4 space-y-2">
+                          {race.sessions.map((session, idx) => {
+                            const info = sessionTypeLabels[session.type] || { 
+                              label: session.type, 
+                              shortLabel: session.type,
+                              color: 'text-muted-foreground' 
+                            };
+                            const hasSessionResults = session.completed && session.results;
+
+                            return (
+                              <div 
+                                key={idx}
+                                className={`flex items-center justify-between p-3 rounded-xl transition-colors ${
+                                  hasSessionResults 
+                                    ? 'bg-background hover:bg-muted/50 cursor-pointer' 
+                                    : 'bg-background/50'
+                                }`}
+                                onClick={() => hasSessionResults && handleSessionClick(session)}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                    session.completed ? 'bg-green-500/10' : 'bg-muted'
+                                  }`}>
+                                    {session.completed ? (
+                                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                    ) : (
+                                      <Clock className="w-4 h-4 text-muted-foreground" />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <div className="font-medium text-sm">{info.label}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {format(new Date(session.dateTime), 'EEE d MMM - HH:mm', { locale: fr })}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {session.channel && (
+                                    <Badge variant="outline" className="text-xs gap-1">
+                                      <Tv className="w-3 h-3" />
+                                      {session.channel}
+                                    </Badge>
+                                  )}
+                                  {hasSessionResults && (
+                                    <Badge className="bg-green-500/10 text-green-500 border-green-500/20 text-xs">
+                                      Voir
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ))}
+        </TabsContent>
+
+        <TabsContent value="results" className="space-y-4">
+          {selectedSession ? (
+            <div className="space-y-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setSelectedSession(null);
+                  setActiveTab('schedule');
+                }}
+                className="gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Retour au programme
+              </Button>
+              
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10`}>
+                  <Flag className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">
+                    {sessionTypeLabels[selectedSession.type]?.label || selectedSession.type}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {format(new Date(selectedSession.dateTime), 'EEEE d MMMM yyyy', { locale: fr })}
+                  </p>
+                </div>
+              </div>
+
+              <SessionResultsView 
+                session={selectedSession}
+                drivers={drivers}
+                constructors={constructors}
+              />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground mb-4">
+                Sélectionnez une session terminée pour voir les résultats
+              </p>
+              
+              {sortedRaces.flatMap(race => 
+                race.sessions
+                  .filter(s => s.completed && s.results)
+                  .map(session => {
+                    const info = sessionTypeLabels[session.type];
+                    return (
+                      <Card 
+                        key={session.id}
+                        className="cursor-pointer transition-all hover:shadow-md hover:bg-muted/50"
+                        onClick={() => setSelectedSession(session)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                                <Flag className={`w-5 h-5 ${info?.color || 'text-primary'}`} />
+                              </div>
+                              <div>
+                                <h4 className="font-bold">{info?.label || session.type}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {race.name} • {format(new Date(session.dateTime), 'd MMM yyyy', { locale: fr })}
+                                </p>
+                              </div>
+                            </div>
+                            <Badge className="bg-green-500/10 text-green-500 border-green-500/20 gap-1">
+                              <ListOrdered className="w-3 h-3" />
+                              Voir
+                            </Badge>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+              )}
+              
+              {sortedRaces.every(race => !race.sessions.some(s => s.completed && s.results)) && (
+                <Card className="bg-muted/30">
+                  <CardContent className="p-8 text-center">
+                    <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h4 className="font-semibold mb-2">Aucun résultat disponible</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Les résultats seront affichés une fois les sessions terminées
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+export function CircuitDetailView({ circuit, drivers, constructors, races, onBack, circuitImage }: CircuitDetailViewProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   
   // Mock data for circuit details
@@ -487,6 +802,25 @@ export function CircuitDetailView({ circuit, drivers, constructors, onBack, circ
               <div className="text-sm text-muted-foreground">Capacité spectateurs</div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Circuit Races & Sessions Section */}
+      <Card className="border-border/50 shadow-lg">
+        <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
+          <CardTitle className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-white" />
+            </div>
+            Courses & Sessions
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <CircuitRacesSection
+            races={races}
+            drivers={drivers}
+            constructors={constructors}
+          />
         </CardContent>
       </Card>
     </div>

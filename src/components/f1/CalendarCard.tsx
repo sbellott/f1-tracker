@@ -1,4 +1,4 @@
-import { Race, Circuit } from '@/types';
+import { Race, Circuit, Driver, Constructor } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -11,9 +11,11 @@ import { useState } from 'react';
 interface CalendarCardProps {
   race: Race;
   circuit: Circuit;
+  drivers: Driver[];
+  constructors: Constructor[];
 }
 
-export function CalendarCard({ race, circuit }: CalendarCardProps) {
+export function CalendarCard({ race, circuit, drivers, constructors }: CalendarCardProps) {
   const [showDetail, setShowDetail] = useState(false);
   const nextSession = race.sessions.find(s => !s.completed);
   const isUpcoming = nextSession !== undefined;
@@ -112,6 +114,8 @@ export function CalendarCard({ race, circuit }: CalendarCardProps) {
         circuit={circuit}
         open={showDetail}
         onOpenChange={setShowDetail}
+        drivers={drivers}
+        constructors={constructors}
       />
     </>
   );

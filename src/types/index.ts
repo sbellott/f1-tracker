@@ -85,6 +85,36 @@ export interface Circuit {
 
 export type SessionType = 'FP1' | 'FP2' | 'FP3' | 'SPRINT_QUALIFYING' | 'SPRINT' | 'QUALIFYING' | 'RACE';
 
+// Résultat d'une position dans une session
+export interface SessionResultPosition {
+  position: number;
+  driverId: string;
+  driverCode: string;
+  driverName: string;
+  constructorId: string;
+  constructorName: string;
+  time?: string;        // Temps ou écart
+  laps?: number;        // Nombre de tours (pour la course)
+  points?: number;      // Points gagnés
+  status?: string;      // DNF, DSQ, etc.
+  fastestLap?: boolean; // Si meilleur tour en course
+  gridPosition?: number; // Position de départ (pour la course)
+}
+
+// Résultats complets d'une session
+export interface SessionResults {
+  sessionType: SessionType;
+  positions: SessionResultPosition[];
+  polePosition?: string;     // ID du pilote en pole
+  fastestLap?: {
+    driverId: string;
+    time: string;
+    lap: number;
+  };
+  weather?: string;
+  trackStatus?: string;
+}
+
 export interface Session {
   id: string;
   raceId: string;
@@ -93,6 +123,7 @@ export interface Session {
   channel?: string;
   isLive?: boolean;
   completed: boolean;
+  results?: SessionResults; // Résultats de la session
 }
 
 export interface Race {

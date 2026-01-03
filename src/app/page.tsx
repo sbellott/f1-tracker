@@ -489,7 +489,7 @@ export default function HomePage() {
                 <div className="relative z-10 max-w-2xl">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-white mb-4 text-sm">
                     <Zap className="w-3.5 h-3.5" />
-                    <span>Live - Saison 2025</span>
+                    <span>Live - Saison 2026</span>
                   </div>
                   <h2 className="text-3xl lg:text-5xl font-bold text-white mb-3">
                     Suivez la Formule 1
@@ -606,11 +606,15 @@ export default function HomePage() {
                   ];
                   const circuitImage = circuitImages[circuitIndex % circuitImages.length];
 
+                  // Filter races for this circuit
+                  const circuitRaces = races.filter(r => r.circuitId === selectedCircuitId);
+
                   return selectedCircuit ? (
                     <CircuitDetailView
                       circuit={selectedCircuit}
                       drivers={drivers}
                       constructors={constructors}
+                      races={circuitRaces}
                       onBack={() => setSelectedCircuitId(null)}
                       circuitImage={circuitImage}
                     />
@@ -620,7 +624,7 @@ export default function HomePage() {
                 <>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-3xl font-bold mb-2">Calendrier 2025</h2>
+                      <h2 className="text-3xl font-bold mb-2">Calendrier 2026</h2>
                       <p className="text-muted-foreground text-lg">
                         {races.length} courses - {races.filter(r => r.hasSprint).length} weekends Sprint
                       </p>
@@ -631,7 +635,12 @@ export default function HomePage() {
                       const circuit = circuits.find(c => c.id === race.circuitId);
                       return circuit ? (
                         <div key={race.id} onClick={() => setSelectedCircuitId(circuit.id)}>
-                          <CalendarCard race={race} circuit={circuit} />
+                          <CalendarCard 
+                            race={race} 
+                            circuit={circuit}
+                            drivers={drivers}
+                            constructors={constructors}
+                          />
                         </div>
                       ) : null;
                     })}
@@ -643,7 +652,7 @@ export default function HomePage() {
             {/* Standings Tab */}
             <TabsContent value="standings" className="space-y-8 fade-in">
               <div>
-                <h2 className="text-3xl font-bold mb-2">Classements 2025</h2>
+                <h2 className="text-3xl font-bold mb-2">Classements 2026</h2>
                 <p className="text-muted-foreground text-lg">Après {races[0]?.round || 0} course(s)</p>
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
@@ -782,7 +791,7 @@ export default function HomePage() {
               <span className="font-bold text-lg">F1 Tracker</span>
             </div>
             <p className="text-muted-foreground">
-              Données réelles F1 2025 - Propulsé par Supabase
+              Données réelles F1 2026 - Propulsé par Supabase
             </p>
           </div>
 

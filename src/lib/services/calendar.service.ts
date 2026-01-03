@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db/prisma';
+import type { Prisma } from '@prisma/client';
 
 export interface CalendarRace {
   id: string;
@@ -20,6 +21,8 @@ export interface CalendarRace {
     dateTime: Date;
     completed: boolean;
     canalPlusChannel: string | null;
+    isLive: boolean;
+    resultsJson: Prisma.JsonValue | null;
   }[];
 }
 
@@ -63,6 +66,15 @@ export async function getCalendar(season: number = new Date().getFullYear()): Pr
         },
       },
       sessions: {
+        select: {
+          id: true,
+          type: true,
+          dateTime: true,
+          completed: true,
+          canalPlusChannel: true,
+          isLive: true,
+          resultsJson: true,
+        },
         orderBy: { dateTime: 'asc' },
       },
     },
@@ -94,6 +106,15 @@ export async function getSeasonCalendar(options: GetSeasonCalendarOptions = {}):
         },
       },
       sessions: {
+        select: {
+          id: true,
+          type: true,
+          dateTime: true,
+          completed: true,
+          canalPlusChannel: true,
+          isLive: true,
+          resultsJson: true,
+        },
         orderBy: { dateTime: 'asc' },
       },
     },
@@ -121,6 +142,15 @@ export async function getUpcomingRaces(limit = 5): Promise<CalendarRace[]> {
         },
       },
       sessions: {
+        select: {
+          id: true,
+          type: true,
+          dateTime: true,
+          completed: true,
+          canalPlusChannel: true,
+          isLive: true,
+          resultsJson: true,
+        },
         orderBy: { dateTime: 'asc' },
       },
     },
