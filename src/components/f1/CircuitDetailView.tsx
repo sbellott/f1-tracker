@@ -3,12 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, MapPin, Route, Gauge, Clock, Trophy, Zap, Calendar, ThermometerSun, Users, Flag, TrendingUp, Award, Play, Map as MapIcon, CheckCircle2, ChevronDown, ChevronUp, ListOrdered, Tv } from 'lucide-react';
+import { ArrowLeft, MapPin, Route, Gauge, Clock, Trophy, Zap, Calendar, ThermometerSun, Users, Flag, TrendingUp, Award, Play, Map as MapIcon, CheckCircle2, ChevronDown, ChevronUp, ListOrdered, Tv, Loader2 } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { SessionResultsView } from './SessionResultsView';
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useCircuitHistory } from '@/lib/hooks/useF1Data';
 
 interface CircuitDetailViewProps {
   circuit: Circuit;
@@ -332,26 +333,23 @@ function CircuitRacesSection({
 export function CircuitDetailView({ circuit, drivers, constructors, races, onBack, circuitImage }: CircuitDetailViewProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   
-  // Mock data for circuit details
+  // Fetch real historical data from Ergast API
+  const { data: historyData, isLoading: historyLoading } = useCircuitHistory(circuit.ergastId || circuit.id);
+  
+  // Circuit stats from real data or defaults
   const circuitStats = {
-    maxSpeed: 340,
+    maxSpeed: 340, // Would need separate data source
     elevation: 45,
     straights: 3,
-    drsZones: 2,
+    drsZones: circuit.drsZones || 2,
     difficulty: 8.5,
     capacity: 150000,
-    avgLapTime: '1:32.090',
-    totalRaces: new Date().getFullYear() - circuit.firstGP,
+    avgLapTime: circuit.lapRecord?.time || '1:32.090',
+    totalRaces: historyData?.stats?.totalRaces || (new Date().getFullYear() - circuit.firstGP),
   };
 
-  // Mock recent winners
-  const recentWinners = [
-    { year: 2026, driver: drivers[0], position: 1, lapTime: '1:31.447' },
-    { year: 2025, driver: drivers[1], position: 1, lapTime: '1:32.012' },
-    { year: 2022, driver: drivers[0], position: 1, lapTime: '1:31.895' },
-    { year: 2021, driver: drivers[2], position: 1, lapTime: '1:32.344' },
-    { year: 2020, driver: drivers[1], position: 1, lapTime: '1:31.998' },
-  ];
+  // Real winners from Ergast API
+  const recentWinners = historyData?.winners || [];
 
   // Key corners
   const keyCorners = [
@@ -727,12 +725,20 @@ export function CircuitDetailView({ circuit, drivers, constructors, races, onBac
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="space-y-3">
-            {recentWinners.map((winner, index) => {
-              const constructor = constructors.find(c => c.id === winner.driver.constructorId);
-              return (
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : recentWinners.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Aucune donnée historique disponible</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentWinners.slice(0, 5).map((winner, index) => (
                 <div 
-                  key={index}
+                  key={`${winner.season}-${index}`}
                   className="flex items-center justify-between p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors group"
                 >
                   <div className="flex items-center gap-4 flex-1">
@@ -743,7 +749,7 @@ export function CircuitDetailView({ circuit, drivers, constructors, races, onBac
                           : 'bg-muted text-foreground'
                       }`}
                     >
-                      {winner.year}
+                      {winner.season}
                     </Badge>
                     
                     <div className="flex-1">
@@ -751,25 +757,23 @@ export function CircuitDetailView({ circuit, drivers, constructors, races, onBac
                         {winner.driver.firstName} {winner.driver.lastName}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <div 
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: constructor?.color || '#gray' }}
-                        />
-                        <span className="text-sm text-muted-foreground">{constructor?.name}</span>
+                        <span className="text-sm text-muted-foreground">{winner.constructor.name}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <div className="flex items-center gap-2 text-chart-3">
-                      <Clock className="w-4 h-4" />
-                      <span className="font-mono font-semibold">{winner.lapTime}</span>
-                    </div>
+                    {winner.time && (
+                      <div className="flex items-center gap-2 text-chart-3">
+                        <Clock className="w-4 h-4" />
+                        <span className="font-mono font-semibold">{winner.time}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -784,24 +788,56 @@ export function CircuitDetailView({ circuit, drivers, constructors, races, onBac
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="text-center p-4 rounded-xl bg-muted/30">
-              <div className="text-3xl font-bold mb-1">{circuit.firstGP}</div>
-              <div className="text-sm text-muted-foreground">Premier Grand Prix</div>
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
-            <div className="text-center p-4 rounded-xl bg-muted/30">
-              <div className="text-3xl font-bold mb-1">{circuitStats.totalRaces}</div>
-              <div className="text-sm text-muted-foreground">Courses disputées</div>
+          ) : (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="text-center p-4 rounded-xl bg-muted/30">
+                  <div className="text-3xl font-bold mb-1">{historyData?.stats?.firstRace || circuit.firstGP}</div>
+                  <div className="text-sm text-muted-foreground">Premier Grand Prix</div>
+                </div>
+                <div className="text-center p-4 rounded-xl bg-muted/30">
+                  <div className="text-3xl font-bold mb-1">{historyData?.stats?.totalRaces || circuitStats.totalRaces}</div>
+                  <div className="text-sm text-muted-foreground">Courses disputées</div>
+                </div>
+                <div className="text-center p-4 rounded-xl bg-muted/30">
+                  <div className="text-3xl font-bold mb-1">{circuitStats.straights}</div>
+                  <div className="text-sm text-muted-foreground">Lignes droites</div>
+                </div>
+                <div className="text-center p-4 rounded-xl bg-muted/30">
+                  <div className="text-3xl font-bold mb-1">{circuitStats.capacity.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">Capacité spectateurs</div>
+                </div>
+              </div>
+
+              {/* Most Wins */}
+              {(historyData?.stats?.mostWinsDriver || historyData?.stats?.mostWinsConstructor) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4 border-t border-border/50">
+                  {historyData?.stats?.mostWinsDriver && (
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20">
+                      <div className="text-sm text-muted-foreground mb-1">Pilote le plus victorieux</div>
+                      <div className="font-bold text-lg">{historyData.stats.mostWinsDriver.driver}</div>
+                      <div className="text-amber-600 dark:text-amber-400 font-semibold">
+                        {historyData.stats.mostWinsDriver.wins} victoire{historyData.stats.mostWinsDriver.wins > 1 ? 's' : ''}
+                      </div>
+                    </div>
+                  )}
+                  {historyData?.stats?.mostWinsConstructor && (
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+                      <div className="text-sm text-muted-foreground mb-1">Écurie la plus victorieuse</div>
+                      <div className="font-bold text-lg">{historyData.stats.mostWinsConstructor.constructor}</div>
+                      <div className="text-primary font-semibold">
+                        {historyData.stats.mostWinsConstructor.wins} victoire{historyData.stats.mostWinsConstructor.wins > 1 ? 's' : ''}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="text-center p-4 rounded-xl bg-muted/30">
-              <div className="text-3xl font-bold mb-1">{circuitStats.straights}</div>
-              <div className="text-sm text-muted-foreground">Lignes droites</div>
-            </div>
-            <div className="text-center p-4 rounded-xl bg-muted/30">
-              <div className="text-3xl font-bold mb-1">{circuitStats.capacity.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">Capacité spectateurs</div>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

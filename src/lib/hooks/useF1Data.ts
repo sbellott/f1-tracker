@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import type { Driver, Constructor, Circuit, Race, Session, SessionResults, SessionType } from "@/types";
+import { getCircuitHistory, type HistoricalWinner, type CircuitStats } from "@/lib/services/circuit-history.service";
 
 // ============================================
 // Query Keys
@@ -14,6 +15,7 @@ export const queryKeys = {
   constructor: (id: string) => ["constructors", id] as const,
   circuits: ["circuits"] as const,
   circuit: (id: string) => ["circuits", id] as const,
+  circuitHistory: (id: string) => ["circuits", id, "history"] as const,
   calendar: ["calendar"] as const,
   nextRace: ["calendar", "next"] as const,
   driverStandings: ["standings", "drivers"] as const,
@@ -227,6 +229,19 @@ export function useCircuit(id: string) {
     queryFn: () => fetchAPI<Circuit>(`/api/circuits/${id}`),
     enabled: !!id,
     staleTime: 10 * 60 * 1000,
+  });
+}
+
+// ============================================
+// Circuit History Hook (Real Ergast Data)
+// ============================================
+
+export function useCircuitHistory(circuitErgastId: string) {
+  return useQuery<{ winners: HistoricalWinner[]; stats: CircuitStats }>({
+    queryKey: queryKeys.circuitHistory(circuitErgastId),
+    queryFn: () => getCircuitHistory(circuitErgastId),
+    enabled: !!circuitErgastId,
+    staleTime: 60 * 60 * 1000, // 1 hour - historical data doesn't change
   });
 }
 

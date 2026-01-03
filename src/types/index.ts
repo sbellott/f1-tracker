@@ -59,6 +59,7 @@ export interface Constructor {
 
 export interface Circuit {
   id: string;
+  ergastId?: string; // For Ergast API lookups
   name: string;
   country: string;
   city: string;
