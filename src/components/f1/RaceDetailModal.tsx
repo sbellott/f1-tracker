@@ -26,6 +26,8 @@ import {
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { SessionResultsView } from './SessionResultsView';
 import { useState } from 'react';
+import { getF1HeroImageUrl } from '@/lib/utils/circuit-images';
+import { WeatherWidget } from './WeatherWidget';
 
 interface RaceDetailModalProps {
   race: Race;
@@ -40,11 +42,8 @@ export function RaceDetailModal({ race, circuit, drivers, constructors, open, on
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [activeTab, setActiveTab] = useState<'sessions' | 'results' | 'history'>('sessions');
 
-  const circuitImages = [
-    "https://images.unsplash.com/photo-1634417176270-27f83740daa7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmb3JtdWxhJTIwMSUyMHJhY2luZyUyMHRyYWNrfGVufDF8fHx8MTc2NzA2MTI3NXww&ixlib=rb-4.1.0&q=80&w=1080",
-    "https://images.unsplash.com/photo-1716402008418-8c03c882c59d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyYWNpbmclMjBjaXJjdWl0JTIwbmlnaHR8ZW58MXx8fHwxNzY3MTE2NzM1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-  ];
-  const circuitImage = circuitImages[race.round % circuitImages.length];
+  // Use official F1 hero image based on race country
+  const circuitImage = getF1HeroImageUrl(race.country);
 
   const sessionTypeLabels: Record<string, { label: string; icon: any; color: string }> = {
     FP1: { label: 'Essais Libres 1', icon: Play, color: 'text-muted-foreground' },
@@ -158,6 +157,11 @@ export function RaceDetailModal({ race, circuit, drivers, constructors, open, on
               <div className="text-xl font-bold">{completedSessions.length}/{totalSessions}</div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Weather Widget */}
+        <div className="mb-4">
+          <WeatherWidget city={circuit.city} compact />
         </div>
 
         {/* Tabs for Sessions / Results / History */}
@@ -414,12 +418,12 @@ export function RaceDetailModal({ race, circuit, drivers, constructors, open, on
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm text-muted-foreground mb-1">Record du tour</div>
-                  <div className="text-xl font-bold">{circuit.lapRecord.time}</div>
+                  <div className="text-xl font-bold">{circuit.lapRecord}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-sm text-muted-foreground mb-1">Détenteur</div>
-                  <div className="font-semibold">{circuit.lapRecord.driver}</div>
-                  <div className="text-sm text-muted-foreground">{circuit.lapRecord.year}</div>
+                  <div className="font-semibold">{circuit.lapRecordHolder || '-'}</div>
+                  <div className="text-sm text-muted-foreground">{circuit.lapRecordYear || '-'}</div>
                 </div>
               </div>
             </CardContent>

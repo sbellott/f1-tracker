@@ -61,22 +61,22 @@ export interface Circuit {
   id: string;
   ergastId?: string; // For Ergast API lookups
   name: string;
+  officialName?: string;
   country: string;
   city: string;
   length: number;
   turns: number;
-  totalDistance: number;
-  lapRecord?: {
-    time: string;
-    driver: string;
-    year: number;
-  };
+  lapRecord?: string; // Time string like "1:19.813"
+  lapRecordHolder?: string;
+  lapRecordYear?: number;
   firstGP: number;
   trackImage?: string;
+  trackImageUrl?: string;
   direction?: 'clockwise' | 'anticlockwise';
   drsZones?: number;
-  history?: string; // Faits marquants historiques
-  winners?: { // Palmarès 10 dernières années
+  facts?: string;
+  history?: string;
+  winners?: {
     year: number;
     winner: string;
     pole: string;
@@ -168,31 +168,12 @@ export interface Prediction {
 export interface UserPrediction {
   id: string;
   userId: string;
-  groupId: string;
   raceId: string;
   sessionType: 'RACE' | 'SPRINT';
   predictions: Prediction;
   points?: number;
   createdAt: Date;
   lockedAt?: Date;
-}
-
-export interface Group {
-  id: string;
-  name: string;
-  inviteCode: string;
-  createdBy: string;
-  createdAt: Date;
-  members: GroupMember[];
-}
-
-export interface GroupMember {
-  id: string;
-  userId: string;
-  groupId: string;
-  joinedAt: Date;
-  totalPoints: number;
-  user?: User;
 }
 
 export interface Badge {
@@ -267,15 +248,4 @@ export interface PointsBreakdown {
     podiumBonus: number;
   };
   totalPoints: number;
-}
-
-export interface GroupStats {
-  groupId: string;
-  memberCount: number;
-  totalPredictions: number;
-  avgPointsPerRace: number;
-  topScorer?: {
-    userId: string;
-    points: number;
-  };
 }

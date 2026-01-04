@@ -44,13 +44,10 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
       country: '',
       length: 0,
       turns: 0,
-      totalDistance: 0,
       firstGP: new Date().getFullYear(),
-      lapRecord: {
-        time: '',
-        driver: '',
-        year: new Date().getFullYear(),
-      },
+      lapRecord: '',
+      lapRecordHolder: '',
+      lapRecordYear: new Date().getFullYear(),
     });
   };
 
@@ -182,27 +179,27 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <Input
                     placeholder="Temps (ex: 1:14.260)"
-                    value={formData.lapRecord?.time || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      lapRecord: { ...formData.lapRecord!, time: e.target.value }
+                    value={formData.lapRecord || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      lapRecord: e.target.value
                     })}
                   />
                   <Input
                     placeholder="Pilote"
-                    value={formData.lapRecord?.driver || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      lapRecord: { ...formData.lapRecord!, driver: e.target.value }
+                    value={formData.lapRecordHolder || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      lapRecordHolder: e.target.value
                     })}
                   />
                   <Input
                     type="number"
                     placeholder="Année"
-                    value={formData.lapRecord?.year || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      lapRecord: { ...formData.lapRecord!, year: parseInt(e.target.value) }
+                    value={formData.lapRecordYear || ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      lapRecordYear: parseInt(e.target.value) || undefined
                     })}
                   />
                 </div>
@@ -276,7 +273,7 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
                   <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
                     <div className="text-xs text-muted-foreground mb-1">Record du tour</div>
                     <div className="font-semibold text-sm">
-                      {circuit.lapRecord.time} · {circuit.lapRecord.driver} ({circuit.lapRecord.year})
+                      {circuit.lapRecord} · {circuit.lapRecordHolder} ({circuit.lapRecordYear})
                     </div>
                   </div>
                 )}

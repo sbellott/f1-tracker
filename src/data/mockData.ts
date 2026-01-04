@@ -1,4 +1,4 @@
-import { Driver, Constructor, Circuit, Race, Standing, Session, User, Group, UserPrediction, Badge } from '@/types';
+import { Driver, Constructor, Circuit, Race, Standing, User, UserPrediction, Badge } from '@/types';
 
 // Pilotes 2024
 export const mockDrivers: Driver[] = [
@@ -182,8 +182,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Sakhir',
     length: 5.412,
     turns: 15,
-    totalDistance: 308.238,
-    lapRecord: { time: '1:31.447', driver: 'Pedro de la Rosa', year: 2005 },
+    
+    lapRecord: '1:31.447', lapRecordHolder: 'Pedro de la Rosa', lapRecordYear: 2005,
     firstGP: 2004,
   },
   {
@@ -193,8 +193,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Djeddah',
     length: 6.174,
     turns: 27,
-    totalDistance: 308.450,
-    lapRecord: { time: '1:30.734', driver: 'Lewis Hamilton', year: 2021 },
+    
+    lapRecord: '1:30.734', lapRecordHolder: 'Lewis Hamilton', lapRecordYear: 2021,
     firstGP: 2021,
   },
   {
@@ -204,8 +204,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Melbourne',
     length: 5.278,
     turns: 14,
-    totalDistance: 306.124,
-    lapRecord: { time: '1:20.260', driver: 'Charles Leclerc', year: 2024 },
+    
+    lapRecord: '1:20.260', lapRecordHolder: 'Charles Leclerc', lapRecordYear: 2024,
     firstGP: 1996,
   },
   {
@@ -215,8 +215,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Suzuka',
     length: 5.807,
     turns: 18,
-    totalDistance: 307.471,
-    lapRecord: { time: '1:30.983', driver: 'Lewis Hamilton', year: 2019 },
+    
+    lapRecord: '1:30.983', lapRecordHolder: 'Lewis Hamilton', lapRecordYear: 2019,
     firstGP: 1987,
   },
   {
@@ -226,8 +226,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Shanghai',
     length: 5.451,
     turns: 16,
-    totalDistance: 305.066,
-    lapRecord: { time: '1:32.238', driver: 'Michael Schumacher', year: 2004 },
+    
+    lapRecord: '1:32.238', lapRecordHolder: 'Michael Schumacher', lapRecordYear: 2004,
     firstGP: 2004,
   },
   {
@@ -237,8 +237,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Miami',
     length: 5.412,
     turns: 19,
-    totalDistance: 308.326,
-    lapRecord: { time: '1:29.708', driver: 'Max Verstappen', year: 2023 },
+    
+    lapRecord: '1:29.708', lapRecordHolder: 'Max Verstappen', lapRecordYear: 2023,
     firstGP: 2022,
   },
   {
@@ -248,8 +248,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Imola',
     length: 4.909,
     turns: 19,
-    totalDistance: 309.049,
-    lapRecord: { time: '1:15.484', driver: 'Lewis Hamilton', year: 2020 },
+    
+    lapRecord: '1:15.484', lapRecordHolder: 'Lewis Hamilton', lapRecordYear: 2020,
     firstGP: 1980,
   },
   {
@@ -259,8 +259,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Monte-Carlo',
     length: 3.337,
     turns: 19,
-    totalDistance: 260.286,
-    lapRecord: { time: '1:12.909', driver: 'Lewis Hamilton', year: 2021 },
+    
+    lapRecord: '1:12.909', lapRecordHolder: 'Lewis Hamilton', lapRecordYear: 2021,
     firstGP: 1950,
   },
   {
@@ -270,8 +270,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Montréal',
     length: 4.361,
     turns: 14,
-    totalDistance: 305.270,
-    lapRecord: { time: '1:13.078', driver: 'Valtteri Bottas', year: 2019 },
+    
+    lapRecord: '1:13.078', lapRecordHolder: 'Valtteri Bottas', lapRecordYear: 2019,
     firstGP: 1978,
   },
   {
@@ -281,8 +281,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Montmeló',
     length: 4.657,
     turns: 16,
-    totalDistance: 307.236,
-    lapRecord: { time: '1:18.149', driver: 'Max Verstappen', year: 2023 },
+    
+    lapRecord: '1:18.149', lapRecordHolder: 'Max Verstappen', lapRecordYear: 2023,
     firstGP: 1991,
   },
   {
@@ -292,8 +292,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Spielberg',
     length: 4.318,
     turns: 10,
-    totalDistance: 306.452,
-    lapRecord: { time: '1:05.619', driver: 'Carlos Sainz', year: 2020 },
+    
+    lapRecord: '1:05.619', lapRecordHolder: 'Carlos Sainz', lapRecordYear: 2020,
     firstGP: 1970,
   },
   {
@@ -303,8 +303,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Silverstone',
     length: 5.891,
     turns: 18,
-    totalDistance: 306.198,
-    lapRecord: { time: '1:27.097', driver: 'Max Verstappen', year: 2020 },
+    
+    lapRecord: '1:27.097', lapRecordHolder: 'Max Verstappen', lapRecordYear: 2020,
     firstGP: 1950,
   },
   {
@@ -314,8 +314,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Budapest',
     length: 4.381,
     turns: 14,
-    totalDistance: 306.630,
-    lapRecord: { time: '1:16.627', driver: 'Lewis Hamilton', year: 2020 },
+    
+    lapRecord: '1:16.627', lapRecordHolder: 'Lewis Hamilton', lapRecordYear: 2020,
     firstGP: 1986,
   },
   {
@@ -325,8 +325,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Spa',
     length: 7.004,
     turns: 19,
-    totalDistance: 308.052,
-    lapRecord: { time: '1:46.286', driver: 'Valtteri Bottas', year: 2018 },
+    
+    lapRecord: '1:46.286', lapRecordHolder: 'Valtteri Bottas', lapRecordYear: 2018,
     firstGP: 1950,
   },
   {
@@ -336,8 +336,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Zandvoort',
     length: 4.259,
     turns: 14,
-    totalDistance: 306.587,
-    lapRecord: { time: '1:11.097', driver: 'Lewis Hamilton', year: 2021 },
+    
+    lapRecord: '1:11.097', lapRecordHolder: 'Lewis Hamilton', lapRecordYear: 2021,
     firstGP: 1952,
   },
   {
@@ -347,8 +347,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Monza',
     length: 5.793,
     turns: 11,
-    totalDistance: 306.720,
-    lapRecord: { time: '1:21.046', driver: 'Rubens Barrichello', year: 2004 },
+    
+    lapRecord: '1:21.046', lapRecordHolder: 'Rubens Barrichello', lapRecordYear: 2004,
     firstGP: 1950,
   },
   {
@@ -358,8 +358,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Bakou',
     length: 6.003,
     turns: 20,
-    totalDistance: 306.049,
-    lapRecord: { time: '1:43.009', driver: 'Charles Leclerc', year: 2019 },
+    
+    lapRecord: '1:43.009', lapRecordHolder: 'Charles Leclerc', lapRecordYear: 2019,
     firstGP: 2016,
   },
   {
@@ -369,8 +369,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Singapour',
     length: 4.940,
     turns: 19,
-    totalDistance: 306.143,
-    lapRecord: { time: '1:35.867', driver: 'Lewis Hamilton', year: 2023 },
+    
+    lapRecord: '1:35.867', lapRecordHolder: 'Lewis Hamilton', lapRecordYear: 2023,
     firstGP: 2008,
   },
   {
@@ -380,8 +380,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Austin',
     length: 5.513,
     turns: 20,
-    totalDistance: 308.405,
-    lapRecord: { time: '1:36.169', driver: 'Charles Leclerc', year: 2019 },
+    
+    lapRecord: '1:36.169', lapRecordHolder: 'Charles Leclerc', lapRecordYear: 2019,
     firstGP: 2012,
   },
   {
@@ -391,8 +391,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Mexico',
     length: 4.304,
     turns: 17,
-    totalDistance: 305.354,
-    lapRecord: { time: '1:17.774', driver: 'Valtteri Bottas', year: 2021 },
+    
+    lapRecord: '1:17.774', lapRecordHolder: 'Valtteri Bottas', lapRecordYear: 2021,
     firstGP: 1963,
   },
   {
@@ -402,8 +402,8 @@ export const mockCircuits: Circuit[] = [
     city: 'São Paulo',
     length: 4.309,
     turns: 15,
-    totalDistance: 305.879,
-    lapRecord: { time: '1:10.540', driver: 'Valtteri Bottas', year: 2018 },
+    
+    lapRecord: '1:10.540', lapRecordHolder: 'Valtteri Bottas', lapRecordYear: 2018,
     firstGP: 1973,
   },
   {
@@ -413,8 +413,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Las Vegas',
     length: 6.120,
     turns: 17,
-    totalDistance: 309.958,
-    lapRecord: { time: '1:35.490', driver: 'Oscar Piastri', year: 2023 },
+    
+    lapRecord: '1:35.490', lapRecordHolder: 'Oscar Piastri', lapRecordYear: 2023,
     firstGP: 2023,
   },
   {
@@ -424,8 +424,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Lusail',
     length: 5.380,
     turns: 16,
-    totalDistance: 308.611,
-    lapRecord: { time: '1:24.319', driver: 'Max Verstappen', year: 2023 },
+    
+    lapRecord: '1:24.319', lapRecordHolder: 'Max Verstappen', lapRecordYear: 2023,
     firstGP: 2021,
   },
   {
@@ -435,8 +435,8 @@ export const mockCircuits: Circuit[] = [
     city: 'Abu Dhabi',
     length: 5.281,
     turns: 16,
-    totalDistance: 306.183,
-    lapRecord: { time: '1:26.103', driver: 'Max Verstappen', year: 2021 },
+    
+    lapRecord: '1:26.103', lapRecordHolder: 'Max Verstappen', lapRecordYear: 2021,
     firstGP: 2009,
   },
 ];
@@ -931,67 +931,6 @@ export const mockUsers: User[] = [
   },
 ];
 
-// Groupes de pronostics
-export const mockGroups: Group[] = [
-  {
-    id: 'group1',
-    name: 'Les Fous du Volant 🏎️',
-    inviteCode: 'ABCD1234',
-    createdBy: 'user1',
-    createdAt: new Date('2024-02-01'),
-    members: [
-      {
-        id: 'member1',
-        userId: 'user1',
-        groupId: 'group1',
-        joinedAt: new Date('2024-02-01'),
-        totalPoints: 145,
-      },
-      {
-        id: 'member2',
-        userId: 'user2',
-        groupId: 'group1',
-        joinedAt: new Date('2024-02-02'),
-        totalPoints: 132,
-      },
-    ],
-  },
-  {
-    id: 'group2',
-    name: 'Team Verstappen',
-    inviteCode: 'EFGH5678',
-    createdBy: 'user1',
-    createdAt: new Date('2024-02-05'),
-    members: [
-      {
-        id: 'member3',
-        userId: 'user1',
-        groupId: 'group2',
-        joinedAt: new Date('2024-02-05'),
-        totalPoints: 98,
-      },
-      {
-        id: 'member4',
-        userId: 'user3',
-        groupId: 'group2',
-        joinedAt: new Date('2024-02-06'),
-        totalPoints: 87,
-      },
-    ],
-  },
-];
-
-// Helper function pour enrichir les groupes avec les données utilisateur
-export const getEnrichedGroups = (): Group[] => {
-  return mockGroups.map(group => ({
-    ...group,
-    members: group.members.map(member => ({
-      ...member,
-      user: mockUsers.find(u => u.id === member.userId),
-    })),
-  }));
-};
-
 // Badges système selon le brief
 export const mockBadges: Badge[] = [
   {
@@ -1052,12 +991,11 @@ export const mockBadges: Badge[] = [
   },
 ];
 
-// Pronostics utilisateurs
+// Pronostics utilisateurs (without groupId)
 export const mockUserPredictions: UserPrediction[] = [
   {
     id: 'pred1',
     userId: 'user1',
-    groupId: 'group1',
     raceId: 'bahrain_2024',
     sessionType: 'RACE',
     predictions: {
@@ -1081,7 +1019,6 @@ export const mockUserPredictions: UserPrediction[] = [
   {
     id: 'pred2',
     userId: 'user2',
-    groupId: 'group1',
     raceId: 'bahrain_2024',
     sessionType: 'RACE',
     predictions: {

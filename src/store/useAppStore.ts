@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Driver, Constructor, Circuit, Race, Prediction, UserPrediction, Group, User } from '@/types';
+import { Driver, Constructor, Circuit, Race, Prediction, UserPrediction, User } from '@/types';
 
 interface Favorites {
   drivers: string[];
@@ -19,7 +19,6 @@ interface AppState {
   currentUser: User | null;
   predictions: Record<string, Prediction>;
   userPredictions: UserPrediction[];
-  groups: Group[];
   
   // UI state
   selectedDriverId: string | null;
@@ -41,8 +40,6 @@ interface AppState {
   setCurrentUser: (user: User | null) => void;
   setPrediction: (raceId: string, prediction: Prediction) => void;
   addUserPrediction: (prediction: UserPrediction) => void;
-  setGroups: (groups: Group[]) => void;
-  addGroup: (group: Group) => void;
   
   setSelectedDriverId: (id: string | null) => void;
   setSelectedConstructorId: (id: string | null) => void;
@@ -73,7 +70,6 @@ export const useAppStore = create<AppState>()(
       currentUser: null,
       predictions: {},
       userPredictions: [],
-      groups: [],
       
       selectedDriverId: null,
       selectedConstructorId: null,
@@ -102,11 +98,6 @@ export const useAppStore = create<AppState>()(
       addUserPrediction: (prediction) =>
         set((state) => ({
           userPredictions: [...state.userPredictions, prediction],
-        })),
-      setGroups: (groups) => set({ groups }),
-      addGroup: (group) =>
-        set((state) => ({
-          groups: [...state.groups, group],
         })),
       
       // UI actions

@@ -65,7 +65,7 @@ export const PUT = withErrorHandler(
     // Verify ownership
     const existing = await prisma.prediction.findUnique({
       where: { id: predictionId },
-      select: { userId: true, raceId: true, groupId: true },
+      select: { userId: true, raceId: true },
     });
 
     if (!existing) {
@@ -79,13 +79,11 @@ export const PUT = withErrorHandler(
     const data = predictionSchema.parse({
       ...body,
       raceId: existing.raceId,
-      groupId: existing.groupId,
     });
 
     const prediction = await upsertPrediction({
       userId: user.id,
       raceId: existing.raceId,
-      groupId: existing.groupId,
       topTen: data.topTen,
       polePosition: data.polePosition ?? null,
       fastestLap: data.fastestLap ?? null,

@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Calendar, MapPin, CheckCircle2, Circle, Zap, Clock, Tv } from 'lucide-react';
+import { Calendar, MapPin, CheckCircle2, Circle, Zap } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { RaceDetailModal } from './RaceDetailModal';
 import { useState } from 'react';
+import { getF1TrackMapUrl } from '@/lib/utils/circuit-images';
 
 interface CalendarCardProps {
   race: Race;
@@ -21,11 +22,8 @@ export function CalendarCard({ race, circuit, drivers, constructors }: CalendarC
   const isUpcoming = nextSession !== undefined;
   const isCompleted = race.sessions.every(s => s.completed);
 
-  const circuitImages = [
-    "https://images.unsplash.com/photo-1634417176270-27f83740daa7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmb3JtdWxhJTIwMSUyMHJhY2luZyUyMHRyYWNrfGVufDF8fHx8MTc2NzA2MTI3NXww&ixlib=rb-4.1.0&q=80&w=1080",
-    "https://images.unsplash.com/photo-1716402008418-8c03c882c59d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyYWNpbmclMjBjaXJjdWl0JTIwbmlnaHR8ZW58MXx8fHwxNzY3MTE2NzM1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-  ];
-  const circuitImage = circuitImages[race.round % circuitImages.length];
+  // Use official F1 track map based on circuit city
+  const circuitImage = getF1TrackMapUrl(circuit.city);
 
   return (
     <>

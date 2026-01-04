@@ -1,65 +1,65 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Modern Clean Color System */
+  /* F1.com Official Color System */
   --font-size: 16px;
   
-  /* Light Mode - Clean & Minimal */
-  --background: #FAFAFA;
-  --foreground: #0F172A;
+  /* Light Mode - F1 Official Style */
+  --background: #f5f1eb;
+  --foreground: #15151e;
   --card: #FFFFFF;
-  --card-foreground: #0F172A;
+  --card-foreground: #15151e;
   --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
+  --popover-foreground: #15151e;
   
-  /* F1 Red - refined */
-  --primary: #DC0000;
+  /* F1 Red - Official */
+  --primary: #e10600;
   --primary-foreground: #FFFFFF;
   
-  /* Secondary - Soft gray */
-  --secondary: #F8FAFC;
-  --secondary-foreground: #0F172A;
+  /* Secondary - F1 Cream/Beige */
+  --secondary: #f5f1eb;
+  --secondary-foreground: #15151e;
   
-  /* Muted - Ultra subtle */
-  --muted: #F1F5F9;
-  --muted-foreground: #64748B;
+  /* Muted - Subtle */
+  --muted: #e8e3dd;
+  --muted-foreground: #67676d;
   
-  /* Accent - Modern blue */
-  --accent: #0EA5E9;
+  /* Accent - F1 Blue */
+  --accent: #0090d0;
   --accent-foreground: #FFFFFF;
   
-  --destructive: #DC0000;
+  --destructive: #e10600;
   --destructive-foreground: #FFFFFF;
   
-  --border: rgba(15, 23, 42, 0.06);
-  --input: rgba(15, 23, 42, 0.06);
-  --input-background: #F8FAFC;
-  --switch-background: #E2E8F0;
-  --ring: #DC0000;
+  --border: rgba(21, 21, 30, 0.12);
+  --input: rgba(21, 21, 30, 0.08);
+  --input-background: #FFFFFF;
+  --switch-background: #d8d3cc;
+  --ring: #e10600;
   
-  /* Modern Typography - lighter weights */
+  /* F1 Typography weights */
   --font-weight-bold: 700;
   --font-weight-medium: 600;
   --font-weight-normal: 400;
   
-  /* Charts - refined palette */
-  --chart-1: #DC0000;
-  --chart-2: #0EA5E9;
-  --chart-3: #F97316;
-  --chart-4: #10B981;
-  --chart-5: #F59E0B;
+  /* F1 Charts palette */
+  --chart-1: #e10600;
+  --chart-2: #0090d0;
+  --chart-3: #f58020;
+  --chart-4: #00a651;
+  --chart-5: #ffcc00;
   
-  /* Rounded for modern feel */
-  --radius: 1rem;
+  /* Rounded corners - more subtle */
+  --radius: 0.5rem;
   
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #0F172A;
-  --sidebar-primary: #DC0000;
+  --sidebar-foreground: #15151e;
+  --sidebar-primary: #e10600;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F8FAFC;
-  --sidebar-accent-foreground: #0F172A;
-  --sidebar-border: rgba(15, 23, 42, 0.06);
-  --sidebar-ring: #DC0000;
+  --sidebar-accent: #f5f1eb;
+  --sidebar-accent-foreground: #15151e;
+  --sidebar-border: rgba(21, 21, 30, 0.12);
+  --sidebar-ring: #e10600;
 }
 
 .dark {
@@ -150,6 +150,132 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* F1 Section Styles */
+.f1-section-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  position: relative;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.f1-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--primary);
+}
+
+.f1-card {
+  background: var(--card);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.f1-stat-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.f1-stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+
+.f1-session-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.f1-session-item:last-child {
+  border-bottom: none;
+}
+
+.f1-date-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.5rem;
+  padding: 0.5rem;
+  background: var(--muted);
+  border-radius: 0.25rem;
+}
+
+.f1-date-badge-day {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.f1-date-badge-month {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted-foreground);
+}
+
+.f1-accordion-item {
+  border-bottom: 1px solid var(--border);
+}
+
+.f1-accordion-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 1.25rem 0;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.f1-accordion-trigger:hover {
+  color: var(--primary);
+}
+
+.f1-accordion-content {
+  padding-bottom: 1.25rem;
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+
+/* F1 Hero styles */
+.f1-hero {
+  position: relative;
+  background: linear-gradient(135deg, #15151e 0%, #2d2d3a 100%);
+  overflow: hidden;
+}
+
+.f1-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--primary);
 }
 
 @layer base {

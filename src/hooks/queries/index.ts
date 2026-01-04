@@ -24,20 +24,6 @@ export {
 } from "./use-predictions";
 
 // ============================================
-// Groups Hooks
-// ============================================
-export {
-  useGroups,
-  useGroup,
-  useGroupLeaderboard,
-  useCreateGroup,
-  useJoinGroup,
-  useUpdateGroup,
-  useLeaveGroup,
-  useDeleteGroup,
-} from "./use-groups";
-
-// ============================================
 // Drivers Hooks
 // ============================================
 export { useDrivers, useDriver } from "./use-drivers";

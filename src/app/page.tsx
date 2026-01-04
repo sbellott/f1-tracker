@@ -11,7 +11,7 @@ import { CalendarCard } from '@/components/f1/CalendarCard';
 import { StandingsTable } from '@/components/f1/StandingsTable';
 import { PredictionsModule } from '@/components/f1/PredictionsModule';
 import { SessionsTimeline } from '@/components/f1/SessionsTimeline';
-import { useF1Data } from '@/lib/hooks/useF1Data';
+import { useF1Data, useDriverStandings, useConstructorStandings } from '@/lib/hooks/useF1Data';
 import type { Prediction, UserPrediction, User } from '@/types';
 import { toast } from 'sonner';
 import { LoginModal } from '@/components/f1/LoginModal';
@@ -23,6 +23,7 @@ import { StatsPanel } from '@/components/f1/StatsPanel';
 import { useTheme } from 'next-themes';
 import { News } from '@/components/f1/News';
 import { Explorer } from '@/components/f1/Explorer';
+import { getF1HeroImageUrl } from '@/lib/utils/circuit-images';
 import { DriverDetailView } from '@/components/f1/DriverDetailView';
 import { ConstructorDetailView } from '@/components/f1/ConstructorDetailView';
 import { CircuitDetailView } from '@/components/f1/CircuitDetailView';
@@ -79,12 +80,63 @@ export default function HomePage() {
   // ============================================
   const [predictions, setPredictions] = useState<Record<string, Prediction>>({});
   const [userPredictions, setUserPredictions] = useState<UserPrediction[]>([]);
-  const [groups, setGroups] = useState<any[]>([]);
+  const [opponentPredictions, setOpponentPredictions] = useState<UserPrediction[]>([]);
+  const [opponent, setOpponent] = useState<User | null>(null);
   const [currentTab, setCurrentTab] = useState('home');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [standingsSeason, setStandingsSeason] = useState(2026);
   const { theme, setTheme } = useTheme();
+
+  // ============================================
+  // Fetch opponent and predictions when logged in
+  // ============================================
+  useEffect(() => {
+    const fetchDuelData = async () => {
+      if (!isLoggedIn || !session?.user?.id) {
+        setOpponent(null);
+        setUserPredictions([]);
+        setOpponentPredictions([]);
+        return;
+      }
+
+      try {
+        // Fetch all duel data in one call
+        const res = await fetch('/api/duel');
+        if (res.ok) {
+          const data = await res.json();
+
+          // Set opponent
+          if (data.data?.opponent) {
+            const opp = data.data.opponent;
+            setOpponent({
+              id: opp.id,
+              email: opp.email,
+              pseudo: opp.pseudo || opp.email?.split('@')[0],
+              firstName: opp.pseudo?.split('_')[0] || '',
+              lastName: opp.pseudo?.split('_')[1] || '',
+              avatar: opp.avatar,
+              createdAt: new Date(opp.createdAt),
+              stats: { totalPoints: 0, predictions: 0, rank: 0, badges: 0, streak: 0, bestRank: 0 },
+            });
+          }
+
+          // Set predictions
+          setUserPredictions(data.data?.userPredictions || []);
+          setOpponentPredictions(data.data?.opponentPredictions || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch duel data:', error);
+      }
+    };
+
+    fetchDuelData();
+  }, [isLoggedIn, session?.user?.id]);
+
+  // Historical standings queries
+  const { data: historicalDriverStandings, isLoading: isDriverStandingsLoading } = useDriverStandings(standingsSeason);
+  const { data: historicalConstructorStandings, isLoading: isConstructorStandingsLoading } = useConstructorStandings(standingsSeason);
 
   // Create user object from session
   const currentUser: User | null = session?.user ? {
@@ -112,70 +164,7 @@ export default function HomePage() {
     console.log('Prediction submitted for race:', raceId, prediction);
   };
 
-  const handleCreateGroup = async (name: string) => {
-    if (!currentUser) {
-      toast.error('Connexion requise', {
-        description: 'Vous devez être connecté pour créer un groupe.',
-      });
-      setShowLoginModal(true);
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/groups', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
-      
-      if (!res.ok) throw new Error('Failed to create group');
-      
-      const data = await res.json();
-      setGroups([...groups, data.data]);
-      toast.success('Groupe créé !', {
-        description: `"${name}" a été créé avec succès. Code: ${data.data.inviteCode}`,
-      });
-    } catch (error) {
-      toast.error('Erreur', {
-        description: 'Impossible de créer le groupe.',
-      });
-    }
-  };
-
-  const handleJoinGroup = async (inviteCode: string) => {
-    if (!currentUser) {
-      toast.error('Connexion requise', {
-        description: 'Vous devez être connecté pour rejoindre un groupe.',
-      });
-      setShowLoginModal(true);
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/groups/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inviteCode }),
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to join group');
-      }
-      
-      const data = await res.json();
-      setGroups([...groups, data.data]);
-      toast.success('Groupe rejoint !', {
-        description: `Vous avez rejoint "${data.data.name}".`,
-      });
-    } catch (error: any) {
-      toast.error('Erreur', {
-        description: error.message || "Ce code d'invitation n'existe pas.",
-      });
-    }
-  };
-
-  const handleSubmitPrediction = async (groupId: string, raceId: string, sessionType: 'RACE' | 'SPRINT', prediction: any) => {
+  const handleSubmitPrediction = async (raceId: string, sessionType: 'RACE' | 'SPRINT', prediction: Prediction) => {
     if (!currentUser) {
       toast.error('Connexion requise');
       setShowLoginModal(true);
@@ -183,13 +172,18 @@ export default function HomePage() {
     }
 
     try {
+      // Convert Prediction type to API format
+      const topTen = [
+        prediction.p1, prediction.p2, prediction.p3, prediction.p4, prediction.p5,
+        prediction.p6, prediction.p7, prediction.p8, prediction.p9, prediction.p10
+      ].filter(Boolean);
+
       const res = await fetch('/api/predictions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          groupId,
           raceId,
-          topTen: prediction.topTen || prediction.positions,
+          topTen,
           polePosition: prediction.pole,
           fastestLap: prediction.fastestLap,
         }),
@@ -198,7 +192,16 @@ export default function HomePage() {
       if (!res.ok) throw new Error('Failed to submit prediction');
       
       const data = await res.json();
-      setUserPredictions([...userPredictions, data.data]);
+      setUserPredictions(prev => {
+        // Replace existing prediction for this race or add new one
+        const existing = prev.findIndex(p => p.raceId === raceId);
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = data.data;
+          return updated;
+        }
+        return [...prev, data.data];
+      });
       
       const race = races.find(r => r.id === raceId);
       toast.success('Pronostic enregistré !', {
@@ -598,13 +601,8 @@ export default function HomePage() {
               {selectedCircuitId ? (
                 (() => {
                   const selectedCircuit = circuits.find(c => c.id === selectedCircuitId);
-                  const circuitIndex = circuits.findIndex(c => c.id === selectedCircuitId);
-                  const circuitImages = [
-                    "https://images.unsplash.com/photo-1540747913346-19e32778e8e5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyYWNlJTIwdHJhY2slMjBhZXJpYWx8ZW58MXx8fHwxNzY3MTU0NTM5fDA&ixlib=rb-4.1.0&q=80&w=1080",
-                    "https://images.unsplash.com/photo-1599420186946-7b6fb4e297f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb3RvcnNwb3J0JTIwdHJhY2t8ZW58MXx8fHwxNzY3MTU0NTQwfDA&ixlib=rb-4.1.0&q=80&w=1080",
-                    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyYWNpbmclMjBjaXJjdWl0fGVufDF8fHx8MTc2NzE1NDU0MHww&ixlib=rb-4.1.0&q=80&w=1080"
-                  ];
-                  const circuitImage = circuitImages[circuitIndex % circuitImages.length];
+                  // Use official F1 hero image based on circuit country
+                  const circuitImage = selectedCircuit ? getF1HeroImageUrl(selectedCircuit.country) : '';
 
                   // Filter races for this circuit
                   const circuitRaces = races.filter(r => r.circuitId === selectedCircuitId);
@@ -651,30 +649,57 @@ export default function HomePage() {
 
             {/* Standings Tab */}
             <TabsContent value="standings" className="space-y-8 fade-in">
-              <div>
-                <h2 className="text-3xl font-bold mb-2">Classements 2026</h2>
-                <p className="text-muted-foreground text-lg">Après {races[0]?.round || 0} course(s)</p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">Classements {standingsSeason}</h2>
+                  <p className="text-muted-foreground text-lg">
+                    {standingsSeason === 2026 
+                      ? `Après ${races[0]?.round || 0} course(s)` 
+                      : 'Classement final de la saison'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[2026, 2025, 2024, 2023, 2022, 2021].map((year) => (
+                    <Button
+                      key={year}
+                      variant={standingsSeason === year ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setStandingsSeason(year)}
+                      className={standingsSeason === year ? "bg-red-600 hover:bg-red-700" : ""}
+                    >
+                      {year}
+                    </Button>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-                <StandingsTable
-                  standings={driverStandings}
-                  drivers={drivers}
-                  constructors={constructors}
-                  type="drivers"
-                />
-                <StandingsTable
-                  standings={constructorStandings}
-                  constructors={constructors}
-                  type="constructors"
-                />
-              </div>
+              
+              {(isDriverStandingsLoading || isConstructorStandingsLoading) ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-red-500" />
+                  <span className="ml-3 text-muted-foreground">Chargement des classements...</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                  <StandingsTable
+                    standings={historicalDriverStandings || []}
+                    drivers={drivers}
+                    constructors={constructors}
+                    type="drivers"
+                  />
+                  <StandingsTable
+                    standings={historicalConstructorStandings || []}
+                    constructors={constructors}
+                    type="constructors"
+                  />
+                </div>
+              )}
             </TabsContent>
 
             {/* Predictions Tab */}
             <TabsContent value="predictions" className="space-y-8 fade-in">
               <div>
-                <h2 className="text-3xl font-bold mb-2">Mes pronostics</h2>
-                <p className="text-muted-foreground text-lg">Faites vos prédictions pour la prochaine course</p>
+                <h2 className="text-3xl font-bold mb-2">Duel Pronostics</h2>
+                <p className="text-muted-foreground text-lg">Affrontez votre adversaire sur chaque course</p>
               </div>
 
               {!isLoggedIn && (
@@ -687,7 +712,7 @@ export default function HomePage() {
                           Connexion requise
                         </h4>
                         <p className="text-amber-800 dark:text-amber-200 mb-4">
-                          Connectez-vous pour créer des groupes et soumettre vos pronostics.
+                          Connectez-vous pour accéder au duel et soumettre vos pronostics.
                         </p>
                         <Button onClick={() => setShowLoginModal(true)} className="bg-primary">
                           Se connecter
@@ -698,15 +723,32 @@ export default function HomePage() {
                 </Card>
               )}
 
-              {currentUser && (
+              {currentUser && !opponent && (
+                <Card className="border-blue-200 dark:border-blue-900/30 bg-gradient-to-br from-blue-50 to-blue-50/50 dark:from-blue-950/20 dark:to-blue-950/10">
+                  <CardContent className="p-6">
+                    <div className="flex gap-4">
+                      <div className="text-3xl">👤</div>
+                      <div>
+                        <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-lg">
+                          En attente d'un adversaire
+                        </h4>
+                        <p className="text-blue-800 dark:text-blue-200">
+                          Le duel commencera dès qu'un second utilisateur rejoindra l'application.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {currentUser && opponent && (
                 <PredictionsModule
                   currentUser={currentUser}
-                  groups={groups}
+                  opponent={opponent}
                   races={races}
                   drivers={drivers}
                   userPredictions={userPredictions}
-                  onCreateGroup={handleCreateGroup}
-                  onJoinGroup={handleJoinGroup}
+                  opponentPredictions={opponentPredictions}
                   onSubmitPrediction={handleSubmitPrediction}
                 />
               )}

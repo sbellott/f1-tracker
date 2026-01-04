@@ -3,11 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Target, Trophy, Zap, Lock, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Group, Race, Driver, Prediction } from '@/types';
+import { Race, Driver, Prediction } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface PredictionFormProps {
-  group: Group;
   race: Race;
   drivers: Driver[];
   onBack: () => void;
@@ -16,13 +15,15 @@ interface PredictionFormProps {
 }
 
 export function PredictionForm({
-  group,
   race,
   drivers,
   onBack,
   onSubmit,
   existingPrediction,
 }: PredictionFormProps) {
+  // Filter only active drivers (those with a constructor = on the 2026 grid)
+  const activeDrivers = drivers.filter(d => d.constructorId);
+
   const [prediction, setPrediction] = useState<Prediction>(
     existingPrediction || {
       p1: '',
@@ -94,10 +95,10 @@ export function PredictionForm({
       .map(pos => prediction[pos])
       .filter(Boolean);
     
-    return drivers.filter(d => !usedDrivers.includes(d.id));
+    return activeDrivers.filter(d => !usedDrivers.includes(d.id));
   };
 
-  const getDriverById = (id: string) => drivers.find(d => d.id === id);
+  const getDriverById = (id: string) => activeDrivers.find(d => d.id === id);
 
   const isFormValid = () => {
     return Object.values(prediction).every(v => v !== '') && errors.length === 0;
@@ -151,9 +152,6 @@ export function PredictionForm({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-2xl mb-2">{race.name}</CardTitle>
-              <p className="text-muted-foreground">
-                Groupe: <span className="font-semibold">{group.name}</span>
-              </p>
             </div>
             <div className="text-right">
               <div className="text-sm text-muted-foreground mb-1">Date de la course</div>
@@ -266,7 +264,7 @@ export function PredictionForm({
                 <SelectValue placeholder="Qui décrochera la pole ?" />
               </SelectTrigger>
               <SelectContent>
-                {drivers.map(driver => (
+                {activeDrivers.map(driver => (
                   <SelectItem key={driver.id} value={driver.id}>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{driver.code}</span>
@@ -305,7 +303,7 @@ export function PredictionForm({
                 <SelectValue placeholder="Qui fera le meilleur temps ?" />
               </SelectTrigger>
               <SelectContent>
-                {drivers.map(driver => (
+                {activeDrivers.map(driver => (
                   <SelectItem key={driver.id} value={driver.id}>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{driver.code}</span>

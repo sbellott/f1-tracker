@@ -2,37 +2,42 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Trophy, Target, TrendingUp, Sword, Crown, Medal, Zap, Share2 } from 'lucide-react';
-import { Group, User, Race, Driver, UserPrediction } from '@/types';
+import { User, Race, Driver, UserPrediction } from '@/types';
+
+// Participant info for head-to-head
+interface Participant {
+  id: string;
+  name: string;
+  totalPoints: number;
+}
 
 interface DuelViewProps {
-  group: Group;
+  participants: Participant[];
   currentUser: User;
   races: Race[];
   drivers: Driver[];
   userPredictions: UserPrediction[];
   onBack: () => void;
   onMakePrediction: () => void;
-  onInvite?: () => void;
 }
 
 export function DuelView({
-  group,
+  participants,
   currentUser,
   races,
   drivers,
   userPredictions,
   onBack,
   onMakePrediction,
-  onInvite,
 }: DuelViewProps) {
-  const members = group.members.sort((a, b) => b.totalPoints - a.totalPoints);
-  const [member1, member2] = members;
+  const sortedParticipants = [...participants].sort((a, b) => b.totalPoints - a.totalPoints);
+  const [leader, challenger] = sortedParticipants;
   
-  const currentMember = members.find(m => m.userId === currentUser.id);
-  const opponentMember = members.find(m => m.userId !== currentUser.id);
+  const currentParticipant = participants.find(p => p.id === currentUser.id);
+  const opponentParticipant = participants.find(p => p.id !== currentUser.id);
 
-  const pointsDifference = Math.abs(member1.totalPoints - member2.totalPoints);
-  const isLeader = currentMember?.userId === member1.userId;
+  const pointsDifference = Math.abs(leader.totalPoints - challenger.totalPoints);
+  const isLeader = currentParticipant?.id === leader.id;
 
   // Stats des dernières courses
   const recentRaces = races
@@ -48,7 +53,7 @@ export function DuelView({
   const hasUpcomingRace = upcomingRaces.length > 0;
 
   const getRaceWinner = (raceId: string) => {
-    const predictions = userPredictions.filter(p => p.raceId === raceId && p.groupId === group.id);
+    const predictions = userPredictions.filter(p => p.raceId === raceId);
     if (predictions.length !== 2) return null;
     
     const sorted = predictions.sort((a, b) => (b.points || 0) - (a.points || 0));
@@ -57,7 +62,7 @@ export function DuelView({
   };
 
   const currentWins = recentRaces.filter(r => getRaceWinner(r.id) === currentUser.id).length;
-  const opponentWins = recentRaces.filter(r => getRaceWinner(r.id) === opponentMember?.userId).length;
+  const opponentWins = recentRaces.filter(r => getRaceWinner(r.id) === opponentParticipant?.id).length;
   const draws = recentRaces.filter(r => getRaceWinner(r.id) === 'draw').length;
 
   return (
@@ -79,7 +84,7 @@ export function DuelView({
       <Card className="border-border/50 overflow-hidden">
         <div className="h-2 bg-gradient-to-r from-primary via-accent to-chart-3" />
         <CardHeader>
-          <CardTitle className="text-center text-2xl mb-4">{group.name}</CardTitle>
+          <CardTitle className="text-center text-2xl mb-4">Saison 2026</CardTitle>
           
           <div className="grid grid-cols-3 gap-4 items-center">
             {/* Current User */}
@@ -92,9 +97,9 @@ export function DuelView({
                 <Crown className="w-6 h-6 text-amber-500 mx-auto mb-2" />
               )}
               <div className="text-sm text-muted-foreground mb-1">Vous</div>
-              <div className="font-bold text-lg mb-2">{currentMember?.user?.pseudo || 'Vous'}</div>
+              <div className="font-bold text-lg mb-2">{currentParticipant?.name || 'Vous'}</div>
               <div className="text-3xl font-bold bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-transparent">
-                {currentMember?.totalPoints || 0}
+                {currentParticipant?.totalPoints || 0}
               </div>
               <div className="text-xs text-muted-foreground mt-1">points</div>
             </div>
@@ -121,9 +126,9 @@ export function DuelView({
                 <Crown className="w-6 h-6 text-amber-500 mx-auto mb-2" />
               )}
               <div className="text-sm text-muted-foreground mb-1">Adversaire</div>
-              <div className="font-bold text-lg mb-2">{opponentMember?.user?.pseudo || 'Adversaire'}</div>
+              <div className="font-bold text-lg mb-2">{opponentParticipant?.name || 'Adversaire'}</div>
               <div className="text-3xl font-bold bg-gradient-to-br from-accent to-accent/70 bg-clip-text text-transparent">
-                {opponentMember?.totalPoints || 0}
+                {opponentParticipant?.totalPoints || 0}
               </div>
               <div className="text-xs text-muted-foreground mt-1">points</div>
             </div>
@@ -184,7 +189,7 @@ export function DuelView({
                   p => p.raceId === race.id && p.userId === currentUser.id
                 );
                 const opponentPrediction = userPredictions.find(
-                  p => p.raceId === race.id && p.userId === opponentMember?.userId
+                  p => p.raceId === race.id && p.userId === opponentParticipant?.id
                 );
 
                 const isDraw = winnerId === 'draw';
@@ -244,28 +249,16 @@ export function DuelView({
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
-      <div className="flex gap-4">
-        <Button
-          onClick={onMakePrediction}
-          disabled={!hasUpcomingRace}
-          size="lg"
-          className="flex-1 h-14 text-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Target className="w-5 h-5 mr-2" />
-          {hasUpcomingRace ? 'Faire mes pronostics' : 'Aucune course à venir'}
-        </Button>
-        {onInvite && (
-          <Button
-            onClick={onInvite}
-            variant="outline"
-            size="lg"
-            className="h-14"
-          >
-            <Share2 className="w-5 h-5" />
-          </Button>
-        )}
-      </div>
+      {/* Action Button */}
+      <Button
+        onClick={onMakePrediction}
+        disabled={!hasUpcomingRace}
+        size="lg"
+        className="w-full h-14 text-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <Target className="w-5 h-5 mr-2" />
+        {hasUpcomingRace ? 'Faire mes pronostics' : 'Aucune course à venir'}
+      </Button>
     </div>
   );
 }

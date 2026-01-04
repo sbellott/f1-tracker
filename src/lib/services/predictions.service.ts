@@ -22,7 +22,6 @@ export interface PredictionWithDetails {
   id: string;
   userId: string;
   raceId: string;
-  groupId: string | null;
   topTen: string[];
   polePosition: string | null;
   fastestLap: string | null;
@@ -52,7 +51,6 @@ export interface PredictionWithDetails {
 export interface CreatePredictionInput {
   userId: string;
   raceId: string;
-  groupId: string;
   topTen: string[];
   polePosition?: string | null;
   fastestLap?: string | null;
@@ -63,7 +61,6 @@ interface PredictionWithRace {
   id: string;
   userId: string;
   raceId: string;
-  groupId: string | null;
   topTen: string[];
   polePosition: string | null;
   fastestLap: string | null;
@@ -93,7 +90,7 @@ interface PredictionWithRace {
 export async function upsertPrediction(
   input: CreatePredictionInput
 ): Promise<PredictionWithDetails> {
-  const { userId, raceId, groupId, topTen, polePosition, fastestLap } = input;
+  const { userId, raceId, topTen, polePosition, fastestLap } = input;
 
   // Verify race exists and predictions are not locked
   const race = await prisma.race.findUnique({
@@ -116,16 +113,7 @@ export async function upsertPrediction(
     throw ApiError.predictionLocked();
   }
 
-  // Verify group membership (groupId is required)
-  const membership = await prisma.groupMember.findFirst({
-    where: { groupId, userId },
-  });
-
-  if (!membership) {
-    throw ApiError.forbidden("Vous n'êtes pas membre de ce groupe");
-  }
-
-  // Verify all drivers exist - use Function casting to avoid constructor conflicts
+  // Verify all drivers exist
   const drivers = await (prisma.driver.findMany as Function)({
     where: { id: { in: topTen } },
     select: { id: true },
@@ -143,16 +131,9 @@ export async function upsertPrediction(
     );
   }
 
-  // Build the where clause for finding existing prediction
-  const existingWhere: Prisma.PredictionWhereInput = {
-    userId,
-    raceId,
-    groupId,
-  };
-
-  // Check if prediction already exists
+  // Check if prediction already exists for this user and race
   const existingPrediction = await prisma.prediction.findFirst({
-    where: existingWhere,
+    where: { userId, raceId },
   });
 
   let prediction: PredictionWithRace;
@@ -185,7 +166,6 @@ export async function upsertPrediction(
       data: {
         userId,
         raceId,
-        groupId,
         topTen,
         polePosition,
         fastestLap,
@@ -213,18 +193,10 @@ export async function upsertPrediction(
  */
 export async function getUserPrediction(
   userId: string,
-  raceId: string,
-  groupId?: string
+  raceId: string
 ): Promise<PredictionWithDetails | null> {
-  // Build where clause
-  const where: Prisma.PredictionWhereInput = {
-    userId,
-    raceId,
-    ...(groupId && { groupId }),
-  };
-
   const prediction = await prisma.prediction.findFirst({
-    where,
+    where: { userId, raceId },
     include: {
       race: {
         include: {
@@ -285,11 +257,10 @@ export async function getUserPredictions(
 }
 
 /**
- * Get predictions for a race (all users in a group)
+ * Get predictions for a race (all users)
  */
 export async function getRacePredictions(
-  raceId: string,
-  groupId: string
+  raceId: string
 ): Promise<PredictionWithDetails[]> {
   const race = await prisma.race.findUnique({
     where: { id: raceId },
@@ -314,10 +285,7 @@ export async function getRacePredictions(
   }
 
   const predictions = await prisma.prediction.findMany({
-    where: {
-      raceId,
-      groupId,
-    },
+    where: { raceId },
     include: {
       race: {
         include: {
@@ -518,7 +486,6 @@ async function formatPredictionResponse(
     id: prediction.id,
     userId: prediction.userId,
     raceId: prediction.raceId,
-    groupId: prediction.groupId,
     topTen: prediction.topTen,
     polePosition: prediction.polePosition,
     fastestLap: prediction.fastestLap,

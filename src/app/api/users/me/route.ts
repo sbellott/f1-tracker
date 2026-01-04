@@ -30,7 +30,6 @@ export async function GET() {
         darkMode: true,
         _count: {
           select: {
-            groups: true,
             predictions: true,
             badges: true,
           },
@@ -54,7 +53,6 @@ export async function GET() {
         darkMode: user.darkMode,
       },
       stats: {
-        groupsCount: user._count.groups,
         predictionsCount: user._count.predictions,
         badgesCount: user._count.badges,
       },

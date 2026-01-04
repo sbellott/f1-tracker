@@ -37,10 +37,74 @@ export interface StandingsMetadata {
   lastUpdated: Date;
 }
 
+const ERGAST_BASE_URL = 'https://api.jolpi.ca/ergast/f1';
+
+// Fetch driver standings from Ergast API
+async function fetchDriverStandingsFromErgast(season: number): Promise<DriverStanding[]> {
+  try {
+    const response = await fetch(`${ERGAST_BASE_URL}/${season}/driverStandings.json`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const standings = data.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings || [];
+    
+    return standings.map((s: any) => ({
+      position: parseInt(s.position),
+      driver: {
+        id: s.Driver.driverId,
+        code: s.Driver.code || s.Driver.driverId.substring(0, 3).toUpperCase(),
+        firstName: s.Driver.givenName,
+        lastName: s.Driver.familyName,
+        photoUrl: null,
+        constructor: s.Constructors?.[0] ? {
+          id: s.Constructors[0].constructorId,
+          name: s.Constructors[0].name,
+          color: null,
+        } : null,
+      },
+      points: parseFloat(s.points),
+      wins: parseInt(s.wins),
+    }));
+  } catch (error) {
+    console.error('Error fetching driver standings from Ergast:', error);
+    return [];
+  }
+}
+
+// Fetch constructor standings from Ergast API
+async function fetchConstructorStandingsFromErgast(season: number): Promise<ConstructorStanding[]> {
+  try {
+    const response = await fetch(`${ERGAST_BASE_URL}/${season}/constructorStandings.json`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const standings = data.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings || [];
+    
+    return standings.map((s: any) => ({
+      position: parseInt(s.position),
+      constructor: {
+        id: s.Constructor.constructorId,
+        name: s.Constructor.name,
+        color: null,
+        logoUrl: null,
+      },
+      points: parseFloat(s.points),
+      wins: parseInt(s.wins),
+    }));
+  } catch (error) {
+    console.error('Error fetching constructor standings from Ergast:', error);
+    return [];
+  }
+}
+
 export async function getDriverStandings(
   season: number = new Date().getFullYear()
 ): Promise<DriverStanding[]> {
-  // Get latest round for the season
+  // Get latest round for the season from database
   const latestStanding = await prisma.standing.findFirst({
     where: {
       season,
@@ -49,8 +113,9 @@ export async function getDriverStandings(
     orderBy: { round: 'desc' },
   });
 
+  // If no data in database, try to fetch from Ergast (for historical seasons)
   if (!latestStanding) {
-    return [];
+    return fetchDriverStandingsFromErgast(season);
   }
 
   const standings = await (prisma.standing.findMany as Function)({
@@ -76,6 +141,13 @@ export async function getDriverStandings(
     orderBy: { position: 'asc' },
   });
 
+  // Check if database data has meaningful points (not just placeholder data)
+  const totalPoints = standings.reduce((sum: number, s: any) => sum + s.points, 0);
+  if (totalPoints === 0 && season < new Date().getFullYear()) {
+    // Database has placeholder data, fetch real data from Ergast
+    return fetchDriverStandingsFromErgast(season);
+  }
+
   return standings.map((s: any) => ({
     position: s.position,
     driver: {
@@ -94,7 +166,7 @@ export async function getDriverStandings(
 export async function getConstructorStandings(
   season: number = new Date().getFullYear()
 ): Promise<ConstructorStanding[]> {
-  // Get latest round for the season
+  // Get latest round for the season from database
   const latestStanding = await prisma.standing.findFirst({
     where: {
       season,
@@ -103,8 +175,9 @@ export async function getConstructorStandings(
     orderBy: { round: 'desc' },
   });
 
+  // If no data in database, try to fetch from Ergast (for historical seasons)
   if (!latestStanding) {
-    return [];
+    return fetchConstructorStandingsFromErgast(season);
   }
 
   const standings = await (prisma.standing.findMany as Function)({
@@ -126,6 +199,13 @@ export async function getConstructorStandings(
     },
     orderBy: { position: 'asc' },
   });
+
+  // Check if database data has meaningful points (not just placeholder data)
+  const totalPoints = standings.reduce((sum: number, s: any) => sum + s.points, 0);
+  if (totalPoints === 0 && season < new Date().getFullYear()) {
+    // Database has placeholder data, fetch real data from Ergast
+    return fetchConstructorStandingsFromErgast(season);
+  }
 
   return standings.map((s: any) => ({
     position: s.position,

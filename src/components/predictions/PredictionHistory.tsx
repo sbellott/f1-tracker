@@ -1,11 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, History, CheckCircle2, Trophy, Zap, Target } from 'lucide-react';
-import { Group, User, Race, Driver, UserPrediction } from '@/types';
+import { ArrowLeft, History, Trophy, Zap, Target } from 'lucide-react';
+import { User, Race, Driver, UserPrediction } from '@/types';
 
 interface PredictionHistoryProps {
-  group: Group;
   currentUser: User;
   races: Race[];
   drivers: Driver[];
@@ -14,7 +13,6 @@ interface PredictionHistoryProps {
 }
 
 export function PredictionHistory({
-  group,
   currentUser,
   races,
   drivers,

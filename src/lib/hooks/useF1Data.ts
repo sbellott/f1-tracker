@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import type { Driver, Constructor, Circuit, Race, Session, SessionResults, SessionType } from "@/types";
-import { getCircuitHistory, type HistoricalWinner, type CircuitStats, type FullRaceResult } from "@/lib/services/circuit-history.service";
+import type { HistoricalWinner, CircuitStats, FullRaceResult } from "@/lib/services/circuit-history.service";
 
 // ============================================
 // Query Keys
@@ -233,15 +233,23 @@ export function useCircuit(id: string) {
 }
 
 // ============================================
-// Circuit History Hook (Real Ergast Data)
+// Circuit History Hook (Database Cached)
 // ============================================
 
-export function useCircuitHistory(circuitErgastId: string) {
-  return useQuery<{ winners: HistoricalWinner[]; stats: CircuitStats; fullResults: FullRaceResult[] }>({
-    queryKey: queryKeys.circuitHistory(circuitErgastId),
-    queryFn: () => getCircuitHistory(circuitErgastId),
-    enabled: !!circuitErgastId,
-    staleTime: 60 * 60 * 1000, // 1 hour - historical data doesn't change
+export function useCircuitHistory(circuitId: string) {
+  return useQuery<{ winners: HistoricalWinner[]; stats: CircuitStats; fullResults: FullRaceResult[]; fromCache?: boolean }>({
+    queryKey: queryKeys.circuitHistory(circuitId),
+    queryFn: async () => {
+      // Use our API endpoint which handles DB caching
+      const res = await fetch(`/api/circuits/${circuitId}/history`);
+      if (!res.ok) {
+        throw new Error(`API Error: ${res.status}`);
+      }
+      const json = await res.json();
+      return json.data ?? json;
+    },
+    enabled: !!circuitId,
+    staleTime: 60 * 60 * 1000, // 1 hour - API handles deeper caching
   });
 }
 
@@ -281,14 +289,37 @@ export function useNextRace() {
 // Standings Hooks
 // ============================================
 
-interface Standing {
+// Types matching API response for standings
+interface StandingDriver {
+  id: string;
+  code: string;
+  firstName: string;
+  lastName: string;
+  photoUrl?: string | null;
+  constructor?: {
+    id: string;
+    name: string;
+    color?: string | null;
+  } | null;
+}
+
+interface StandingConstructor {
+  id: string;
+  name: string;
+  color?: string | null;
+  logoUrl?: string | null;
+}
+
+export interface Standing {
   position: number;
+  previousPosition?: number;
   driverId?: string;
   constructorId?: string;
   points: number;
   wins: number;
-  driver?: Driver;
-  constructor?: Constructor;
+  poles?: number;
+  driver?: StandingDriver;
+  constructor?: StandingConstructor;
 }
 
 export function useDriverStandings(season?: number) {

@@ -70,7 +70,9 @@ export function CircuitDetail({ circuitId, onClose }: CircuitDetailProps) {
             </div>
             <div className="bg-carbon-light p-4 rounded-xl border-l-4 border-racing-red">
               <div className="text-sm text-gray-400 mb-1">Distance totale</div>
-              <div className="text-2xl text-white">{circuit.totalDistance} km</div>
+              <div className="text-2xl text-white">
+                {circuit.length ? `${(circuit.length * Math.ceil(305 / circuit.length)).toFixed(1)} km` : '-'}
+              </div>
             </div>
             {circuit.drsZones && (
               <div className="bg-carbon-light p-4 rounded-xl border-l-4 border-cyan-bright">
@@ -91,15 +93,15 @@ export function CircuitDetail({ circuitId, onClose }: CircuitDetailProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <div className="text-sm text-gray-400 mb-1">Temps</div>
-                    <div className="text-3xl text-white">{circuit.lapRecord.time}</div>
+                    <div className="text-3xl text-white">{circuit.lapRecord}</div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-400 mb-1">Pilote</div>
-                    <div className="text-xl text-white">{circuit.lapRecord.driver}</div>
+                    <div className="text-xl text-white">{circuit.lapRecordHolder || '-'}</div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-400 mb-1">Année</div>
-                    <div className="text-xl text-white">{circuit.lapRecord.year}</div>
+                    <div className="text-xl text-white">{circuit.lapRecordYear || '-'}</div>
                   </div>
                 </div>
               </div>

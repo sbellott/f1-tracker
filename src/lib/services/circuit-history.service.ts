@@ -260,45 +260,35 @@ export async function getCircuitFastestLaps(circuitId: string, limit: number = 5
   }
 }
 
-// NEW: Fetch full race results for a circuit (last N races with complete classification)
-export async function getCircuitFullResults(circuitId: string, numberOfRaces: number = 5): Promise<FullRaceResult[]> {
-  try {
-    // First get the list of races at this circuit to find recent seasons
-    const seasonsResponse = await fetch(
-      `${ERGAST_BASE_URL}/circuits/${circuitId}/seasons.json?limit=100`
-    );
-    
-    if (!seasonsResponse.ok) {
-      throw new Error(`API error: ${seasonsResponse.status}`);
-    }
-    
-    const seasonsData = await seasonsResponse.json();
-    const seasons = (seasonsData.MRData?.SeasonTable?.Seasons || [])
-      .map((s: any) => parseInt(s.season))
-      .sort((a: number, b: number) => b - a) // Most recent first
-      .slice(0, numberOfRaces);
-    
-    if (seasons.length === 0) {
-      return [];
-    }
-    
-    // Fetch full results for each season in parallel
-    const racePromises = seasons.map(async (season: number) => {
+// Helper to delay between requests to avoid rate limiting
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper to fetch a single season's results with retry
+async function fetchSeasonResults(circuitId: string, season: number, retries: number = 2): Promise<FullRaceResult | null> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
       const response = await fetch(
         `${ERGAST_BASE_URL}/${season}/circuits/${circuitId}/results.json`
       );
-      
+
+      if (response.status === 429) {
+        // Rate limited - wait longer and retry
+        console.log(`Rate limited for season ${season}, waiting before retry...`);
+        await delay(1000 * (attempt + 1));
+        continue;
+      }
+
       if (!response.ok) {
         return null;
       }
-      
+
       const data = await response.json();
       const race = data.MRData?.RaceTable?.Races?.[0];
-      
+
       if (!race) {
         return null;
       }
-      
+
       const results: RaceResult[] = (race.Results || []).map((r: any) => ({
         position: parseInt(r.position) || 0,
         positionText: r.positionText || r.position,
@@ -327,7 +317,7 @@ export async function getCircuitFullResults(circuitId: string, numberOfRaces: nu
           avgSpeed: r.FastestLap.AverageSpeed?.speed || '',
         } : undefined,
       }));
-      
+
       return {
         season: parseInt(race.season),
         round: parseInt(race.round),
@@ -336,10 +326,51 @@ export async function getCircuitFullResults(circuitId: string, numberOfRaces: nu
         date: race.date,
         results,
       } as FullRaceResult;
-    });
-    
-    const races = await Promise.all(racePromises);
-    return races.filter((r): r is FullRaceResult => r !== null);
+    } catch (error) {
+      if (attempt === retries) {
+        console.error(`Failed to fetch season ${season} after ${retries + 1} attempts`);
+        return null;
+      }
+      await delay(500);
+    }
+  }
+  return null;
+}
+
+// NEW: Fetch full race results for a circuit (last N races with complete classification)
+export async function getCircuitFullResults(circuitId: string, numberOfRaces: number = 5): Promise<FullRaceResult[]> {
+  try {
+    // First get the list of races at this circuit to find recent seasons
+    const seasonsResponse = await fetch(
+      `${ERGAST_BASE_URL}/circuits/${circuitId}/seasons.json?limit=100`
+    );
+
+    if (!seasonsResponse.ok) {
+      throw new Error(`API error: ${seasonsResponse.status}`);
+    }
+
+    const seasonsData = await seasonsResponse.json();
+    const seasons = (seasonsData.MRData?.SeasonTable?.Seasons || [])
+      .map((s: any) => parseInt(s.season))
+      .sort((a: number, b: number) => b - a) // Most recent first
+      .slice(0, numberOfRaces);
+
+    if (seasons.length === 0) {
+      return [];
+    }
+
+    // Fetch results sequentially with delay to avoid rate limiting
+    const races: FullRaceResult[] = [];
+    for (const season of seasons) {
+      const result = await fetchSeasonResults(circuitId, season);
+      if (result) {
+        races.push(result);
+      }
+      // Add delay between requests to respect rate limits
+      await delay(250);
+    }
+
+    return races;
   } catch (error) {
     console.error('Error fetching circuit full results:', error);
     return [];

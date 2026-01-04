@@ -25,11 +25,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   // If raceId provided, get specific prediction
   if (query.raceId) {
-    const prediction = await getUserPrediction(
-      user.id,
-      query.raceId,
-      query.groupId
-    );
+    const prediction = await getUserPrediction(user.id, query.raceId);
 
     return apiSuccess({
       prediction,
@@ -61,7 +57,6 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   const prediction = await upsertPrediction({
     userId: user.id,
-    groupId: data.groupId,
     raceId: data.raceId,
     topTen: data.topTen,
     polePosition: data.polePosition ?? null,

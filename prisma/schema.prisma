@@ -21,8 +21,6 @@ model User {
   notifyDelayMinutes  Int           @default(30)
   darkMode            Boolean       @default(true)
   accounts            Account[]
-  groups              GroupMember[]
-  createdGroups       Group[]       @relation("GroupCreator")
   predictions         Prediction[]
   sessions            Session[]
   badges              UserBadge[]
@@ -68,37 +66,9 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-model Group {
-  id          String        @id @default(cuid())
-  name        String
-  inviteCode  String        @unique @default(cuid())
-  createdById String
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  members     GroupMember[]
-  createdBy   User          @relation("GroupCreator", fields: [createdById], references: [id])
-  predictions Prediction[]
-
-  @@map("groups")
-}
-
-model GroupMember {
-  id          String   @id @default(cuid())
-  userId      String
-  groupId     String
-  joinedAt    DateTime @default(now())
-  totalPoints Int      @default(0)
-  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, groupId])
-  @@map("group_members")
-}
-
 model Prediction {
   id              String      @id @default(cuid())
   userId          String
-  groupId         String
   raceId          String
   sessionType     SessionType @default(RACE)
   topTen          Json
@@ -108,11 +78,10 @@ model Prediction {
   pointsBreakdown Json?
   createdAt       DateTime    @default(now())
   lockedAt        DateTime?
-  group           Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
   race            Race        @relation(fields: [raceId], references: [id])
   user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, groupId, raceId, sessionType])
+  @@unique([userId, raceId, sessionType])
   @@map("predictions")
 }
 
@@ -174,17 +143,24 @@ model Circuit {
 }
 
 model CircuitHistory {
-  id           String  @id @default(cuid())
-  circuitId    String
-  season       Int
-  winnerId     String?
-  poleId       String?
-  fastestLapId String?
-  winnerTime   String?
-  circuit      Circuit @relation(fields: [circuitId], references: [id])
-  fastestLap   Driver? @relation("CircuitFastestLap", fields: [fastestLapId], references: [id])
-  pole         Driver? @relation("CircuitPole", fields: [poleId], references: [id])
-  winner       Driver? @relation("CircuitWinner", fields: [winnerId], references: [id])
+  id               String       @id @default(cuid())
+  circuitId        String
+  season           Int
+  round            Int?
+  raceName         String?
+  raceDate         DateTime?
+  winnerId         String?
+  winnerConstructorId String?
+  poleId           String?
+  fastestLapId     String?
+  winnerTime       String?
+  fullResultsJson  Json?        // Complete race classification (all positions)
+  syncedAt         DateTime     @default(now())
+  circuit          Circuit      @relation(fields: [circuitId], references: [id])
+  fastestLap       Driver?      @relation("CircuitFastestLap", fields: [fastestLapId], references: [id])
+  pole             Driver?      @relation("CircuitPole", fields: [poleId], references: [id])
+  winner           Driver?      @relation("CircuitWinner", fields: [winnerId], references: [id])
+  winnerConstructor Constructor? @relation("CircuitWinnerConstructor", fields: [winnerConstructorId], references: [id])
 
   @@unique([circuitId, season])
   @@map("circuit_history")
@@ -218,8 +194,8 @@ model Driver {
 }
 
 model Constructor {
-  id                String     @id @default(cuid())
-  ergastId          String     @unique
+  id                String           @id @default(cuid())
+  ergastId          String           @unique
   name              String
   shortName         String?
   nationality       String
@@ -229,13 +205,14 @@ model Constructor {
   engine            String?
   color             String?
   logoUrl           String?
-  totalWins         Int        @default(0)
-  totalPodiums      Int        @default(0)
-  totalPoles        Int        @default(0)
-  championships     Int        @default(0)
+  totalWins         Int              @default(0)
+  totalPodiums      Int              @default(0)
+  totalPoles        Int              @default(0)
+  championships     Int              @default(0)
   firstSeason       Int?
   drivers           Driver[]
   standings         Standing[]
+  circuitWins       CircuitHistory[] @relation("CircuitWinnerConstructor")
 
   @@map("constructors")
 }

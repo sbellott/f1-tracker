@@ -1,4 +1,5 @@
-import { Driver, Constructor, Standing } from '@/types';
+import { Driver, Constructor } from '@/types';
+import { Standing } from '@/lib/hooks/useF1Data';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowUp, ArrowDown, Minus, Trophy, Target } from 'lucide-react';
@@ -32,9 +33,26 @@ export function StandingsTable({ standings, drivers, constructors, type }: Stand
       <CardContent className="p-0">
         <div className="divide-y divide-border/50">
           {standings.map((standing, index) => {
-            const driver = type === 'drivers' && standing.driverId ? getDriver(standing.driverId) : null;
-            const constructor = type === 'constructors' && standing.constructorId ? getConstructor(standing.constructorId) : null;
-            const teamColor = driver ? getConstructor(driver.constructorId)?.color : constructor?.color;
+            // Priority 1: Use embedded driver/constructor from API response
+            // Priority 2: Fallback to lookup by ID from database
+            const embeddedDriver = type === 'drivers' ? standing.driver : null;
+            const lookupDriver = type === 'drivers' && standing.driverId ? getDriver(standing.driverId) : null;
+            const driver = embeddedDriver || lookupDriver;
+
+            const embeddedConstructor = type === 'constructors' ? standing.constructor : null;
+            const lookupConstructor = type === 'constructors' && standing.constructorId ? getConstructor(standing.constructorId) : null;
+            const constructor = embeddedConstructor || lookupConstructor;
+
+            // Get team color: from embedded constructor, or lookup
+            const teamColor = type === 'drivers'
+              ? (embeddedDriver?.constructor?.color || (lookupDriver?.constructorId ? getConstructor(lookupDriver.constructorId)?.color : null))
+              : (constructor?.color || null);
+
+            // Get team name for drivers
+            const teamName = type === 'drivers'
+              ? (embeddedDriver?.constructor?.name || (lookupDriver?.constructorId ? getConstructor(lookupDriver.constructorId)?.name : null))
+              : null;
+              
             const isPodium = standing.position <= 3;
 
             return (
@@ -78,9 +96,11 @@ export function StandingsTable({ standings, drivers, constructors, type }: Stand
                       <div className="font-bold text-lg truncate leading-tight mb-1">
                         {driver.firstName} {driver.lastName}
                       </div>
-                      <div className="text-sm text-muted-foreground truncate">
-                        {getConstructor(driver.constructorId)?.name}
-                      </div>
+                      {teamName && (
+                        <div className="text-sm text-muted-foreground truncate">
+                          {teamName}
+                        </div>
+                      )}
                     </div>
                   )}
                   {type === 'constructors' && constructor && (

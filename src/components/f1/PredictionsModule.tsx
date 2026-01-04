@@ -1,45 +1,48 @@
 import { useState } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Users, Trophy, History, Target, TrendingUp, Crown, Medal } from 'lucide-react';
-import { Group, Race, Driver, UserPrediction, User } from '@/types';
-import { CreateGroupModal } from '@/components/predictions/CreateGroupModal';
-import { InviteModal } from '@/components/predictions/InviteModal';
+import { Trophy, History, Target, Crown, Swords, Calendar, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Race, Driver, UserPrediction, User } from '@/types';
 import { PredictionForm } from '@/components/predictions/PredictionForm';
-import { GroupLeaderboard } from '@/components/predictions/GroupLeaderboard';
 import { PredictionHistory } from '@/components/predictions/PredictionHistory';
-import { DuelView } from '@/components/predictions/DuelView';
+import { Prediction } from '@/types';
+
+interface Participant {
+  id: string;
+  name: string;
+  totalPoints: number;
+  predictions: UserPrediction[];
+}
 
 interface PredictionsModuleProps {
   currentUser: User;
-  groups: Group[];
+  opponent: User;
   races: Race[];
   drivers: Driver[];
   userPredictions: UserPrediction[];
-  onCreateGroup: (name: string) => void;
-  onJoinGroup: (inviteCode: string) => void;
-  onSubmitPrediction: (groupId: string, raceId: string, sessionType: 'RACE' | 'SPRINT', prediction: any) => void;
+  opponentPredictions: UserPrediction[];
+  onSubmitPrediction: (raceId: string, sessionType: 'RACE' | 'SPRINT', prediction: Prediction) => void;
 }
 
-type ViewMode = 'groups' | 'form' | 'leaderboard' | 'history' | 'duel';
+type ViewMode = 'duel' | 'form' | 'history';
 
 export function PredictionsModule({
   currentUser,
-  groups,
+  opponent,
   races,
   drivers,
   userPredictions,
-  onCreateGroup,
-  onJoinGroup,
+  opponentPredictions,
   onSubmitPrediction,
 }: PredictionsModuleProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>('groups');
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('duel');
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [groupToInvite, setGroupToInvite] = useState<Group | null>(null);
+
+  // Calculate total points for each participant
+  const myTotalPoints = userPredictions.reduce((sum, p) => sum + (p.points || 0), 0);
+  const opponentTotalPoints = opponentPredictions.reduce((sum, p) => sum + (p.points || 0), 0);
+  const pointsDiff = myTotalPoints - opponentTotalPoints;
 
   // Get next race that needs prediction
   const upcomingRaces = races.filter(race => {
@@ -49,334 +52,287 @@ export function PredictionsModule({
 
   const nextRace = upcomingRaces[0];
 
-  const handleGroupClick = (group: Group) => {
-    setSelectedGroup(group);
-    
-    // If group has 2 members, show duel view, otherwise show leaderboard
-    if (group.members.length === 2) {
-      setViewMode('duel');
-    } else {
-      setViewMode('leaderboard');
+  // Check if current user has prediction for next race
+  const hasNextRacePrediction = nextRace && userPredictions.some(p => p.raceId === nextRace.id);
+
+  // Get completed races for history comparison
+  const completedRaces = races.filter(race => {
+    const raceSession = race.sessions?.find(s => s.type === 'RACE');
+    return raceSession?.completed;
+  });
+
+  const handleMakePrediction = () => {
+    if (nextRace) {
+      setSelectedRace(nextRace);
+      setViewMode('form');
     }
   };
 
-  const handleMakePrediction = (group: Group) => {
-    setSelectedGroup(group);
-    setSelectedRace(nextRace);
-    setViewMode('form');
+  const handleSubmitPrediction = (prediction: Prediction) => {
+    if (selectedRace) {
+      onSubmitPrediction(selectedRace.id, 'RACE', prediction);
+      setViewMode('duel');
+      setSelectedRace(null);
+    }
   };
+
+  // Get status indicator
+  const getStatusIndicator = () => {
+    if (pointsDiff > 0) {
+      return { icon: TrendingUp, color: 'text-green-500', text: `+${pointsDiff} pts` };
+    } else if (pointsDiff < 0) {
+      return { icon: TrendingDown, color: 'text-red-500', text: `${pointsDiff} pts` };
+    }
+    return { icon: Minus, color: 'text-muted-foreground', text: 'Égalité' };
+  };
+
+  const status = getStatusIndicator();
 
   return (
     <div className="space-y-6">
-      {/* Header avec stats globales */}
-      {viewMode === 'groups' && (
+      {/* Main Duel View */}
+      {viewMode === 'duel' && (
         <>
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold mb-2">Mes Pronostics</h2>
-              <p className="text-muted-foreground text-lg">
-                {groups.length} groupe{groups.length > 1 ? 's' : ''} · Prochaine course: {nextRace?.name}
-              </p>
-            </div>
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              className="gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-            >
-              <Plus className="w-4 h-4" />
-              Créer un groupe
-            </Button>
+          {/* Header with competition title */}
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold mb-2">Duel F1 2026</h2>
+            <p className="text-muted-foreground text-lg">
+              Qui sera le meilleur pronostiqueur de la saison ?
+            </p>
           </div>
 
-          {/* Quick stats cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="p-6 border-border/50 bg-gradient-to-br from-primary/5 to-transparent">
+          {/* Main Score Card */}
+          <Card className="border-border/50 overflow-hidden">
+            <div className="h-2 bg-gradient-to-r from-primary via-accent to-chart-3" />
+            <CardContent className="p-0">
+              <div className="grid grid-cols-3 items-center">
+                {/* Current User */}
+                <div className={`p-6 text-center ${myTotalPoints > opponentTotalPoints ? 'bg-gradient-to-br from-amber-500/10 to-transparent' : ''}`}>
+                  <div className="relative inline-block mb-3">
+                    {myTotalPoints > opponentTotalPoints && (
+                      <Crown className="w-6 h-6 text-amber-500 absolute -top-4 left-1/2 transform -translate-x-1/2" />
+                    )}
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-2xl font-bold text-white mx-auto">
+                      {currentUser.pseudo?.[0] || currentUser.email[0]}
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-lg mb-1">{currentUser.pseudo || 'Moi'}</h3>
+                  <div className="text-4xl font-bold text-primary mb-1">
+                    {myTotalPoints}
+                  </div>
+                  <div className="text-sm text-muted-foreground">points</div>
+                </div>
+
+                {/* VS / Status */}
+                <div className="p-6 text-center border-x border-border/30">
+                  <Swords className="w-10 h-10 mx-auto mb-2 text-muted-foreground" />
+                  <div className="text-2xl font-bold text-muted-foreground mb-2">VS</div>
+                  <Badge className={`gap-1 ${pointsDiff > 0 ? 'bg-green-500/20 text-green-600' : pointsDiff < 0 ? 'bg-red-500/20 text-red-600' : 'bg-muted/50 text-muted-foreground'} border-0`}>
+                    <status.icon className="w-3 h-3" />
+                    {status.text}
+                  </Badge>
+                </div>
+
+                {/* Opponent */}
+                <div className={`p-6 text-center ${opponentTotalPoints > myTotalPoints ? 'bg-gradient-to-br from-amber-500/10 to-transparent' : ''}`}>
+                  <div className="relative inline-block mb-3">
+                    {opponentTotalPoints > myTotalPoints && (
+                      <Crown className="w-6 h-6 text-amber-500 absolute -top-4 left-1/2 transform -translate-x-1/2" />
+                    )}
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent to-accent/80 flex items-center justify-center text-2xl font-bold text-white mx-auto">
+                      {opponent.pseudo?.[0] || opponent.email[0]}
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-lg mb-1">{opponent.pseudo || 'Adversaire'}</h3>
+                  <div className="text-4xl font-bold text-accent mb-1">
+                    {opponentTotalPoints}
+                  </div>
+                  <div className="text-sm text-muted-foreground">points</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="p-4 border-border/50">
               <div className="flex items-center justify-between mb-2">
-                <Trophy className="w-5 h-5 text-primary" />
-                <Badge className="bg-primary/20 text-primary border-0">Total</Badge>
+                <Calendar className="w-4 h-4 text-primary" />
+                <Badge variant="outline" className="text-xs">Courses</Badge>
               </div>
-              <div className="text-3xl font-bold mb-1">
-                {groups.reduce((sum, g) => {
-                  const member = g.members.find(m => m.userId === currentUser.id);
-                  return sum + (member?.totalPoints || 0);
-                }, 0)}
-              </div>
-              <div className="text-sm text-muted-foreground">Points totaux</div>
+              <div className="text-2xl font-bold">{completedRaces.length}</div>
+              <div className="text-xs text-muted-foreground">terminées</div>
             </Card>
 
-            <Card className="p-6 border-border/50 bg-gradient-to-br from-accent/5 to-transparent">
+            <Card className="p-4 border-border/50">
               <div className="flex items-center justify-between mb-2">
-                <Target className="w-5 h-5 text-accent" />
-                <Badge className="bg-accent/20 text-accent border-0">Prédictions</Badge>
+                <Target className="w-4 h-4 text-accent" />
+                <Badge variant="outline" className="text-xs">Pronostics</Badge>
               </div>
-              <div className="text-3xl font-bold mb-1">{userPredictions.length}</div>
-              <div className="text-sm text-muted-foreground">Pronostics soumis</div>
+              <div className="text-2xl font-bold">{userPredictions.length}</div>
+              <div className="text-xs text-muted-foreground">soumis</div>
             </Card>
 
-            <Card className="p-6 border-border/50 bg-gradient-to-br from-chart-3/5 to-transparent">
+            <Card className="p-4 border-border/50">
               <div className="flex items-center justify-between mb-2">
-                <Crown className="w-5 h-5 text-chart-3" />
-                <Badge className="bg-chart-3/20 text-chart-3 border-0">Classement</Badge>
+                <Trophy className="w-4 h-4 text-amber-500" />
+                <Badge variant="outline" className="text-xs">Victoires</Badge>
               </div>
-              <div className="text-3xl font-bold mb-1">
-                {groups.filter(g => {
-                  const members = g.members.sort((a, b) => b.totalPoints - a.totalPoints);
-                  return members[0]?.userId === currentUser.id;
+              <div className="text-2xl font-bold">
+                {completedRaces.filter(race => {
+                  const myPred = userPredictions.find(p => p.raceId === race.id);
+                  const oppPred = opponentPredictions.find(p => p.raceId === race.id);
+                  return (myPred?.points || 0) > (oppPred?.points || 0);
                 }).length}
               </div>
-              <div className="text-sm text-muted-foreground">Groupes en tête</div>
+              <div className="text-xs text-muted-foreground">courses gagnées</div>
+            </Card>
+
+            <Card className="p-4 border-border/50">
+              <div className="flex items-center justify-between mb-2">
+                <TrendingUp className="w-4 h-4 text-green-500" />
+                <Badge variant="outline" className="text-xs">Moyenne</Badge>
+              </div>
+              <div className="text-2xl font-bold">
+                {userPredictions.length > 0 
+                  ? Math.round(myTotalPoints / userPredictions.length)
+                  : 0}
+              </div>
+              <div className="text-xs text-muted-foreground">pts/course</div>
             </Card>
           </div>
 
-          {/* Liste des groupes */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold">Mes Groupes</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowInviteModal(true)}
-                className="gap-2"
-              >
-                <Users className="w-4 h-4" />
-                Rejoindre un groupe
-              </Button>
-            </div>
-
-            {groups.length === 0 ? (
-              <Card className="p-12 text-center border-border/50 border-dashed">
-                <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-muted-foreground" />
+          {/* Next Race Card */}
+          {nextRace && (
+            <Card className="border-border/50 overflow-hidden">
+              <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-white" />
+                    </div>
+                    Prochaine course
+                  </div>
+                  {hasNextRacePrediction ? (
+                    <Badge className="bg-green-500/20 text-green-600 border-0">
+                      ✓ Pronostic soumis
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-amber-500/20 text-amber-600 border-0">
+                      En attente
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-xl font-bold">{nextRace.name}</h3>
+                    <p className="text-muted-foreground">
+                      {new Date(nextRace.date).toLocaleDateString('fr-FR', { 
+                        weekday: 'long',
+                        day: 'numeric', 
+                        month: 'long' 
+                      })}
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold mb-2">Aucun groupe pour le moment</h3>
-                <p className="text-muted-foreground mb-6">
-                  Créez votre premier groupe et invitez vos amis à faire des pronostics !
-                </p>
-                <Button
-                  onClick={() => setShowCreateModal(true)}
-                  className="gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Créer mon premier groupe
-                </Button>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {groups.map(group => {
-                  const currentMember = group.members.find(m => m.userId === currentUser.id);
-                  const sortedMembers = [...group.members].sort((a, b) => b.totalPoints - a.totalPoints);
-                  const isLeader = sortedMembers[0]?.userId === currentUser.id;
-                  
-                  return (
-                    <Card
-                      key={group.id}
-                      className="p-6 border-border/50 hover:shadow-lg transition-all cursor-pointer group relative overflow-hidden"
-                      onClick={() => handleGroupClick(group)}
-                    >
-                      {isLeader && (
-                        <div className="absolute top-0 right-0">
-                          <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-amber-600 transform rotate-45 translate-x-6 -translate-y-6">
-                            <Crown className="w-4 h-4 text-white absolute bottom-2 left-2 -rotate-45" />
-                          </div>
-                        </div>
-                      )}
+                
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleMakePrediction}
+                    className="flex-1 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                  >
+                    <Target className="w-4 h-4" />
+                    {hasNextRacePrediction ? 'Modifier mes pronostics' : 'Faire mes pronostics'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setViewMode('history')}
+                    className="gap-2"
+                  >
+                    <History className="w-4 h-4" />
+                    Historique
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-                      <div className="flex items-start justify-between mb-4">
+          {/* Race by Race Comparison */}
+          {completedRaces.length > 0 && (
+            <Card className="border-border/50">
+              <CardHeader className="border-b border-border/50">
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-amber-500" />
+                  Résultats course par course
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  {completedRaces.slice(-5).reverse().map(race => {
+                    const myPred = userPredictions.find(p => p.raceId === race.id);
+                    const oppPred = opponentPredictions.find(p => p.raceId === race.id);
+                    const myPoints = myPred?.points || 0;
+                    const oppPoints = oppPred?.points || 0;
+                    const winner = myPoints > oppPoints ? 'me' : myPoints < oppPoints ? 'opponent' : 'tie';
+                    
+                    return (
+                      <div key={race.id} className="flex items-center gap-4 p-3 rounded-xl bg-muted/30">
                         <div className="flex-1">
-                          <h4 className="font-bold text-lg mb-1 group-hover:text-primary transition-colors">
-                            {group.name}
-                          </h4>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Users className="w-3.5 h-3.5" />
-                            <span>{group.members.length} membre{group.members.length > 1 ? 's' : ''}</span>
+                          <div className="font-medium">{race.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(race.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                           </div>
                         </div>
                         
-                        {group.members.length === 2 && (
-                          <Badge className="bg-gradient-to-r from-primary to-accent text-white border-0">
-                            Duel
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="space-y-3 mb-4">
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30">
-                          <span className="text-sm text-muted-foreground">Votre position</span>
-                          <div className="flex items-center gap-2">
-                            <Medal className="w-4 h-4 text-primary" />
-                            <span className="font-bold">
-                              {sortedMembers.findIndex(m => m.userId === currentUser.id) + 1}
-                              {sortedMembers.findIndex(m => m.userId === currentUser.id) + 1 === 1 ? 'er' : 'e'}
-                            </span>
+                        <div className="flex items-center gap-4">
+                          <div className={`text-right ${winner === 'me' ? 'text-green-500 font-bold' : ''}`}>
+                            {myPoints} pts
                           </div>
-                        </div>
-
-                        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30">
-                          <span className="text-sm text-muted-foreground">Vos points</span>
-                          <span className="font-bold text-primary">{currentMember?.totalPoints || 0} pts</span>
+                          <div className="text-muted-foreground">-</div>
+                          <div className={`text-left ${winner === 'opponent' ? 'text-green-500 font-bold' : ''}`}>
+                            {oppPoints} pts
+                          </div>
+                          
+                          {winner === 'me' && <Trophy className="w-4 h-4 text-green-500" />}
+                          {winner === 'opponent' && <Trophy className="w-4 h-4 text-red-500" />}
+                          {winner === 'tie' && <Minus className="w-4 h-4 text-muted-foreground" />}
                         </div>
                       </div>
-
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMakePrediction(group);
-                            }}
-                          >
-                            <Target className="w-3.5 h-3.5 mr-2" />
-                            Pronostiquer
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedGroup(group);
-                              setViewMode('history');
-                            }}
-                          >
-                            <History className="w-3.5 h-3.5 mr-2" />
-                            Historique
-                          </Button>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setGroupToInvite(group);
-                          }}
-                        >
-                          <Users className="w-3.5 h-3.5 mr-2" />
-                          Inviter des amis
-                        </Button>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 
-      {/* Formulaire de pronostics */}
-      {viewMode === 'form' && selectedGroup && selectedRace && (
+      {/* Prediction Form */}
+      {viewMode === 'form' && selectedRace && (
         <PredictionForm
-          group={selectedGroup}
           race={selectedRace}
           drivers={drivers}
           onBack={() => {
-            setViewMode('groups');
-            setSelectedGroup(null);
+            setViewMode('duel');
             setSelectedRace(null);
           }}
-          onSubmit={(prediction) => {
-            onSubmitPrediction(selectedGroup.id, selectedRace.id, 'RACE', prediction);
-            // Retourner à la vue duel ou leaderboard selon le groupe
-            if (selectedGroup.members.length === 2) {
-              setViewMode('duel');
-            } else {
-              setViewMode('leaderboard');
-            }
-          }}
+          onSubmit={handleSubmitPrediction}
+          existingPrediction={userPredictions.find(p => p.raceId === selectedRace.id)?.predictions}
         />
       )}
 
-      {/* Leaderboard */}
-      {viewMode === 'leaderboard' && selectedGroup && (
-        <GroupLeaderboard
-          group={selectedGroup}
-          currentUser={currentUser}
-          races={races}
-          onBack={() => {
-            setViewMode('groups');
-            setSelectedGroup(null);
-          }}
-          onMakePrediction={() => {
-            if (!nextRace) {
-              // Pas de course disponible, on reste sur la vue actuelle
-              return;
-            }
-            setSelectedRace(nextRace);
-            setViewMode('form');
-          }}
-          onInvite={() => setGroupToInvite(selectedGroup)}
-        />
-      )}
-
-      {/* Duel View */}
-      {viewMode === 'duel' && selectedGroup && selectedGroup.members.length === 2 && (
-        <DuelView
-          group={selectedGroup}
+      {/* History View */}
+      {viewMode === 'history' && (
+        <PredictionHistory
           currentUser={currentUser}
           races={races}
           drivers={drivers}
           userPredictions={userPredictions}
-          onBack={() => {
-            setViewMode('groups');
-            setSelectedGroup(null);
-          }}
-          onMakePrediction={() => {
-            if (!nextRace) {
-              // Pas de course disponible, on reste sur la vue actuelle
-              return;
-            }
-            setSelectedRace(nextRace);
-            setViewMode('form');
-          }}
-          onInvite={() => setGroupToInvite(selectedGroup)}
+          onBack={() => setViewMode('duel')}
         />
       )}
-
-      {/* Historique */}
-      {viewMode === 'history' && selectedGroup && (
-        <PredictionHistory
-          group={selectedGroup}
-          currentUser={currentUser}
-          races={races}
-          drivers={drivers}
-          userPredictions={userPredictions.filter(p => p.groupId === selectedGroup.id)}
-          onBack={() => {
-            setViewMode('groups');
-            setSelectedGroup(null);
-          }}
-        />
-      )}
-
-      {/* Modals */}
-      <CreateGroupModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreate={(name) => {
-          onCreateGroup(name);
-          setShowCreateModal(false);
-        }}
-      />
-
-      <InviteModal
-        isOpen={showInviteModal}
-        onClose={() => setShowInviteModal(false)}
-        onJoin={(code) => {
-          onJoinGroup(code);
-          setShowInviteModal(false);
-        }}
-      />
-
-      {/* Modal d'invitation avec code du groupe */}
-      <InviteModal
-        isOpen={!!groupToInvite}
-        onClose={() => setGroupToInvite(null)}
-        onJoin={() => {}}
-        inviteCode={groupToInvite?.inviteCode}
-        groupName={groupToInvite?.name}
-      />
     </div>
   );
 }

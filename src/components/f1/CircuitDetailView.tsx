@@ -1,16 +1,14 @@
-import { Circuit, Driver, Constructor, Race, Session, SessionType } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Circuit, Driver, Constructor, Race, Session } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, MapPin, Route, Gauge, Clock, Trophy, Zap, Calendar, ThermometerSun, Users, Flag, TrendingUp, Award, Play, Map as MapIcon, CheckCircle2, ChevronDown, ChevronUp, ListOrdered, Tv, Loader2 } from 'lucide-react';
+import { ArrowLeft, Clock, Trophy, Zap, Calendar, ChevronDown, ChevronUp, Loader2, Plus, Flag } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { SessionResultsView } from './SessionResultsView';
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { fr, enUS } from 'date-fns/locale';
 import { useCircuitHistory } from '@/lib/hooks/useF1Data';
 import type { FullRaceResult } from '@/lib/services/circuit-history.service';
+import { WeatherWidget } from './WeatherWidget';
 
 interface CircuitDetailViewProps {
   circuit: Circuit;
@@ -22,316 +20,368 @@ interface CircuitDetailViewProps {
 }
 
 // Session type labels
-const sessionTypeLabels: Record<string, { label: string; shortLabel: string; color: string }> = {
-  FP1: { label: 'Essais Libres 1', shortLabel: 'EL1', color: 'text-muted-foreground' },
-  FP2: { label: 'Essais Libres 2', shortLabel: 'EL2', color: 'text-muted-foreground' },
-  FP3: { label: 'Essais Libres 3', shortLabel: 'EL3', color: 'text-muted-foreground' },
-  SPRINT_QUALIFYING: { label: 'Qualifications Sprint', shortLabel: 'QS', color: 'text-chart-2' },
-  SPRINT: { label: 'Sprint', shortLabel: 'SPR', color: 'text-chart-2' },
-  QUALIFYING: { label: 'Qualifications', shortLabel: 'Q', color: 'text-chart-3' },
-  RACE: { label: 'Course', shortLabel: 'GP', color: 'text-primary' },
+const sessionTypeLabels: Record<string, { label: string; shortLabel: string }> = {
+  FP1: { label: 'Practice 1', shortLabel: 'FP1' },
+  FP2: { label: 'Practice 2', shortLabel: 'FP2' },
+  FP3: { label: 'Practice 3', shortLabel: 'FP3' },
+  SPRINT_QUALIFYING: { label: 'Sprint Qualifying', shortLabel: 'SQ' },
+  SPRINT: { label: 'Sprint', shortLabel: 'SPR' },
+  QUALIFYING: { label: 'Qualifying', shortLabel: 'Q' },
+  RACE: { label: 'Race', shortLabel: 'RACE' },
 };
 
-// Component to display races and sessions for a circuit
-function CircuitRacesSection({ 
-  races, 
-  drivers, 
-  constructors 
-}: { 
-  races: Race[]; 
-  drivers: Driver[]; 
-  constructors: Constructor[];
-}) {
-  const [expandedRaceId, setExpandedRaceId] = useState<string | null>(null);
-  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [activeTab, setActiveTab] = useState<'schedule' | 'results'>('schedule');
+// ============================================
+// F1.COM OFFICIAL IMAGE URL MAPPINGS
+// ============================================
 
-  // Sort races by season (descending) and round
-  const sortedRaces = [...races].sort((a, b) => {
-    if (a.season !== b.season) return b.season - a.season;
-    return b.round - a.round;
-  });
+// Hero banner images by country name
+const F1_HERO_BASE_URL = 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Racehub%20header%20images%2016x9';
 
-  // Group races by season
-  const racesBySeason = sortedRaces.reduce((acc, race) => {
-    if (!acc[race.season]) acc[race.season] = [];
-    acc[race.season].push(race);
-    return acc;
-  }, {} as Record<number, Race[]>);
+const countryToHeroImage: Record<string, string> = {
+  'Australia': 'Australia',
+  'China': 'China',
+  'Japan': 'Japan',
+  'Bahrain': 'Bahrain',
+  'Saudi Arabia': 'Saudi%20Arabia',
+  'USA': 'United%20States',
+  'Monaco': 'Monaco',
+  'Spain': 'Spain',
+  'Canada': 'Canada',
+  'Austria': 'Austria',
+  'UK': 'Great%20Britain',
+  'United Kingdom': 'Great%20Britain',
+  'Belgium': 'Belgium',
+  'Hungary': 'Hungary',
+  'Netherlands': 'Netherlands',
+  'Italy': 'Italy',
+  'Azerbaijan': 'Azerbaijan',
+  'Singapore': 'Singapore',
+  'Mexico': 'Mexico',
+  'Brazil': 'Brazil',
+  'Qatar': 'Qatar',
+  'UAE': 'Abu%20Dhabi',
+  'United Arab Emirates': 'Abu%20Dhabi',
+};
 
-  const seasons = Object.keys(racesBySeason).map(Number).sort((a, b) => b - a);
+// Track map images by city/circuit location
+const F1_TRACK_BASE_URL = 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245035/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9';
 
-  if (races.length === 0) {
+const cityToTrackMap: Record<string, string> = {
+  'Melbourne': 'Australia_Circuit',
+  'Shanghai': 'China_Circuit',
+  'Suzuka': 'Japan_Circuit',
+  'Sakhir': 'Bahrain_Circuit',
+  'Jeddah': 'Saudi_Arabia_Circuit',
+  'Miami': 'Miami_Circuit',
+  'Monte Carlo': 'Monaco_Circuit',
+  'Barcelona': 'Spain_Circuit',
+  'Montreal': 'Canada_Circuit',
+  'Spielberg': 'Austria_Circuit',
+  'Silverstone': 'Great_Britain_Circuit',
+  'Spa': 'Belgium_Circuit',
+  'Budapest': 'Hungary_Circuit',
+  'Zandvoort': 'Netherlands_Circuit',
+  'Monza': 'Italy_Circuit',
+  'Baku': 'Azerbaijan_Circuit',
+  'Marina Bay': 'Singapore_Circuit',
+  'Austin': 'USA_Circuit',
+  'Mexico City': 'Mexico_Circuit',
+  'São Paulo': 'Brazil_Circuit',
+  'Las Vegas': 'Las_Vegas_Circuit',
+  'Lusail': 'Qatar_Circuit',
+  'Abu Dhabi': 'Abu_Dhabi_Circuit',
+  'Madrid': 'Spain_Circuit', // New Madrid circuit - fallback to Spain
+};
+
+// Helper function to get F1.com hero image URL
+function getF1HeroImageUrl(country: string): string {
+  const heroName = countryToHeroImage[country] || country.replace(/\s+/g, '%20');
+  return `${F1_HERO_BASE_URL}/${heroName}.jpg.transform/9col/image.jpg`;
+}
+
+// Helper function to get F1.com track map URL
+function getF1TrackMapUrl(city: string): string {
+  const trackName = cityToTrackMap[city] || city.replace(/\s+/g, '_') + '_Circuit';
+  return `${F1_TRACK_BASE_URL}/${trackName}.png`;
+}
+
+// ============================================
+// F1 SCHEDULE SECTION
+// ============================================
+function F1ScheduleSection({ races }: { races: Race[] }) {
+  const [timeZone, setTimeZone] = useState<'track' | 'local'>('local');
+  
+  // Get the most recent/upcoming race
+  const currentRace = races.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+  
+  if (!currentRace) {
     return (
-      <Card className="bg-muted/30">
-        <CardContent className="p-8 text-center">
-          <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h4 className="font-semibold mb-2">Aucune course disponible</h4>
-          <p className="text-sm text-muted-foreground">
-            Les données des courses sur ce circuit seront bientôt ajoutées
-          </p>
-        </CardContent>
-      </Card>
+      <div className="text-center py-8 text-muted-foreground">
+        <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+        <p>No schedule available</p>
+      </div>
     );
   }
 
-  const handleSessionClick = (session: Session) => {
-    if (session.completed && session.results) {
-      setSelectedSession(session);
-      setActiveTab('results');
-    }
-  };
+  // Sort sessions by datetime
+  const sortedSessions = [...currentRace.sessions].sort(
+    (a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
+  );
 
   return (
-    <div className="space-y-4">
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="schedule" className="gap-2">
-            <Calendar className="w-4 h-4" />
-            Programme
-          </TabsTrigger>
-          <TabsTrigger value="results" className="gap-2">
-            <ListOrdered className="w-4 h-4" />
-            Résultats
-          </TabsTrigger>
-        </TabsList>
+    <section className="py-8">
+      <h2 className="f1-section-title">Schedule</h2>
+      
+      {/* Time Zone Toggle */}
+      <div className="flex items-center gap-2 mb-6">
+        <button
+          onClick={() => setTimeZone('local')}
+          className={`text-sm font-semibold px-3 py-1.5 rounded transition-colors ${
+            timeZone === 'local' 
+              ? 'bg-foreground text-background' 
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          My time
+        </button>
+        <button
+          onClick={() => setTimeZone('track')}
+          className={`text-sm font-semibold px-3 py-1.5 rounded transition-colors ${
+            timeZone === 'track' 
+              ? 'bg-foreground text-background' 
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Track time
+        </button>
+      </div>
 
-        <TabsContent value="schedule" className="space-y-6">
-          {seasons.map(season => (
-            <div key={season} className="space-y-3">
-              <h3 className="font-bold text-lg flex items-center gap-2">
-                <Badge variant="outline" className="text-base px-3 py-1">
-                  {season}
-                </Badge>
-                <span className="text-muted-foreground text-sm font-normal">
-                  {racesBySeason[season].length} course{racesBySeason[season].length > 1 ? 's' : ''}
-                </span>
-              </h3>
-              
-              {racesBySeason[season].map(race => {
-                const isExpanded = expandedRaceId === race.id;
-                const completedSessions = race.sessions.filter(s => s.completed).length;
-                const totalSessions = race.sessions.length;
-                const raceSession = race.sessions.find(s => s.type === 'RACE');
-                const hasResults = race.sessions.some(s => s.completed && s.results);
-
-                return (
-                  <Card 
-                    key={race.id}
-                    className="overflow-hidden border-border/50 hover:shadow-md transition-all"
-                  >
-                    <CardContent className="p-0">
-                      {/* Race Header */}
-                      <div 
-                        className="p-4 cursor-pointer hover:bg-muted/30 transition-colors"
-                        onClick={() => setExpandedRaceId(isExpanded ? null : race.id)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                              completedSessions === totalSessions 
-                                ? 'bg-green-500/10' 
-                                : 'bg-primary/10'
-                            }`}>
-                              {completedSessions === totalSessions ? (
-                                <CheckCircle2 className="w-6 h-6 text-green-500" />
-                              ) : (
-                                <Flag className="w-6 h-6 text-primary" />
-                              )}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h4 className="font-bold">{race.name}</h4>
-                                {race.hasSprint && (
-                                  <Badge className="bg-chart-2/10 text-chart-2 border-chart-2/20 text-xs gap-1">
-                                    <Zap className="w-3 h-3" />
-                                    Sprint
-                                  </Badge>
-                                )}
-                                {hasResults && (
-                                  <Badge className="bg-green-500/10 text-green-500 border-green-500/20 text-xs">
-                                    Résultats
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                                <span>Round {race.round}</span>
-                                <span>•</span>
-                                <span>{format(new Date(race.date), 'd MMMM yyyy', { locale: fr })}</span>
-                                <span>•</span>
-                                <span>{completedSessions}/{totalSessions} sessions</span>
-                              </div>
-                            </div>
-                          </div>
-                          {isExpanded ? (
-                            <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                          ) : (
-                            <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Expanded Sessions */}
-                      {isExpanded && (
-                        <div className="border-t border-border/50 bg-muted/20 p-4 space-y-2">
-                          {race.sessions.map((session, idx) => {
-                            const info = sessionTypeLabels[session.type] || { 
-                              label: session.type, 
-                              shortLabel: session.type,
-                              color: 'text-muted-foreground' 
-                            };
-                            const hasSessionResults = session.completed && session.results;
-
-                            return (
-                              <div 
-                                key={idx}
-                                className={`flex items-center justify-between p-3 rounded-xl transition-colors ${
-                                  hasSessionResults 
-                                    ? 'bg-background hover:bg-muted/50 cursor-pointer' 
-                                    : 'bg-background/50'
-                                }`}
-                                onClick={() => hasSessionResults && handleSessionClick(session)}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                    session.completed ? 'bg-green-500/10' : 'bg-muted'
-                                  }`}>
-                                    {session.completed ? (
-                                      <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                    ) : (
-                                      <Clock className="w-4 h-4 text-muted-foreground" />
-                                    )}
-                                  </div>
-                                  <div>
-                                    <div className="font-medium text-sm">{info.label}</div>
-                                    <div className="text-xs text-muted-foreground">
-                                      {format(new Date(session.dateTime), 'EEE d MMM - HH:mm', { locale: fr })}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {session.channel && (
-                                    <Badge variant="outline" className="text-xs gap-1">
-                                      <Tv className="w-3 h-3" />
-                                      {session.channel}
-                                    </Badge>
-                                  )}
-                                  {hasSessionResults && (
-                                    <Badge className="bg-green-500/10 text-green-500 border-green-500/20 text-xs">
-                                      Voir
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          ))}
-        </TabsContent>
-
-        <TabsContent value="results" className="space-y-4">
-          {selectedSession ? (
-            <div className="space-y-4">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => {
-                  setSelectedSession(null);
-                  setActiveTab('schedule');
-                }}
-                className="gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Retour au programme
-              </Button>
-              
-              <div className="flex items-center gap-3 mb-4">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10`}>
-                  <Flag className="w-5 h-5 text-primary" />
+      {/* Sessions List */}
+      <div className="bg-card">
+        {sortedSessions.map((session, idx) => {
+          const sessionDate = new Date(session.dateTime);
+          const info = sessionTypeLabels[session.type] || { label: session.type, shortLabel: session.type };
+          const isRace = session.type === 'RACE';
+          
+          return (
+            <div 
+              key={idx} 
+              className={`f1-session-item ${isRace ? 'bg-muted/30' : ''}`}
+            >
+              <div className="flex items-center gap-4">
+                {/* Date Badge */}
+                <div className="f1-date-badge">
+                  <span className="f1-date-badge-day">
+                    {format(sessionDate, 'd')}
+                  </span>
+                  <span className="f1-date-badge-month">
+                    {format(sessionDate, 'MMM', { locale: enUS })}
+                  </span>
                 </div>
+                
+                {/* Session Name */}
                 <div>
-                  <h3 className="font-bold text-lg">
-                    {sessionTypeLabels[selectedSession.type]?.label || selectedSession.type}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {format(new Date(selectedSession.dateTime), 'EEEE d MMMM yyyy', { locale: fr })}
-                  </p>
+                  <div className={`font-semibold uppercase tracking-wide ${isRace ? 'text-primary' : ''}`}>
+                    {info.label}
+                  </div>
+                  {session.completed && (
+                    <span className="text-xs text-green-600 font-medium">Completed</span>
+                  )}
                 </div>
               </div>
+              
+              {/* Time */}
+              <div className="text-right">
+                <div className="font-semibold">
+                  {format(sessionDate, 'HH:mm')}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-              <SessionResultsView 
-                session={selectedSession}
-                drivers={drivers}
-                constructors={constructors}
-              />
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground mb-4">
-                Sélectionnez une session terminée pour voir les résultats
-              </p>
-              
-              {sortedRaces.flatMap(race => 
-                race.sessions
-                  .filter(s => s.completed && s.results)
-                  .map(session => {
-                    const info = sessionTypeLabels[session.type];
-                    return (
-                      <Card 
-                        key={session.id}
-                        className="cursor-pointer transition-all hover:shadow-md hover:bg-muted/50"
-                        onClick={() => setSelectedSession(session)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
-                                <Flag className={`w-5 h-5 ${info?.color || 'text-primary'}`} />
-                              </div>
-                              <div>
-                                <h4 className="font-bold">{info?.label || session.type}</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  {race.name} • {format(new Date(session.dateTime), 'd MMM yyyy', { locale: fr })}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge className="bg-green-500/10 text-green-500 border-green-500/20 text-xs">
-                              Voir
-                            </Badge>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-              )}
-              
-              {sortedRaces.every(race => !race.sessions.some(s => s.completed && s.results)) && (
-                <Card className="bg-muted/30">
-                  <CardContent className="p-8 text-center">
-                    <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h4 className="font-semibold mb-2">Aucun résultat disponible</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Les résultats seront affichés une fois les sessions terminées
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+      {/* Add to Calendar Button */}
+      <Button 
+        className="w-full mt-4 bg-primary hover:bg-primary/90 text-white gap-2 rounded-none"
+      >
+        <Plus className="w-4 h-4" />
+        Add F1 calendar
+      </Button>
+    </section>
   );
 }
 
-// Full Race Results Accordion Component
-function FullRaceResultsAccordion({ results }: { results: FullRaceResult[] }) {
+// ============================================
+// F1 WEATHER SECTION
+// ============================================
+function F1WeatherSection({ city }: { city: string }) {
+  return (
+    <section className="py-8">
+      <h2 className="f1-section-title">Weather</h2>
+      <WeatherWidget city={city} showForecast />
+    </section>
+  );
+}
+
+// ============================================
+// F1 CIRCUIT SECTION
+// ============================================
+function F1CircuitSection({ circuit }: { circuit: Circuit }) {
+  // Calculate laps from circuit length (F1 races are minimum 305km, Monaco 260km exception)
+  const F1_RACE_DISTANCE_KM = 305;
+  const laps = circuit.length
+    ? Math.ceil(F1_RACE_DISTANCE_KM / circuit.length)
+    : null;
+
+  // Calculate race distance
+  const raceDistance = circuit.length && laps
+    ? (circuit.length * laps).toFixed(3)
+    : null;
+
+  // Use F1.com official track map URL
+  const trackMapUrl = getF1TrackMapUrl(circuit.city);
+
+  return (
+    <section className="py-8">
+      <h2 className="f1-section-title">Circuit</h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Track Map */}
+        <div className="bg-card p-6">
+          <div className="aspect-square relative flex items-center justify-center">
+            {trackMapUrl ? (
+              <ImageWithFallback
+                src={trackMapUrl}
+                alt={`${circuit.name} Track Layout`}
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <div className="text-muted-foreground text-center">
+                <div className="text-6xl mb-4">🏎️</div>
+                <p>Track layout not available</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="bg-card p-6">
+          {/* Hero Stat */}
+          <div className="border-b border-border pb-6 mb-6">
+            <div className="f1-stat-label mb-2">Circuit Length</div>
+            <div className="f1-stat-value">
+              {circuit.length || '-'}
+              {circuit.length && <span className="text-lg ml-1">km</span>}
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <div className="f1-stat-label mb-2">First Grand Prix</div>
+              <div className="f1-stat-value">{circuit.firstGP || '-'}</div>
+            </div>
+            <div>
+              <div className="f1-stat-label mb-2">Number of Laps</div>
+              <div className="f1-stat-value">{laps || '-'}</div>
+            </div>
+            <div>
+              <div className="f1-stat-label mb-2">Race Distance</div>
+              <div className="f1-stat-value">
+                {raceDistance || '-'}
+                {raceDistance && <span className="text-lg ml-1">km</span>}
+              </div>
+            </div>
+            <div>
+              <div className="f1-stat-label mb-2">Lap Record</div>
+              {circuit.lapRecord ? (
+                <>
+                  <div className="f1-stat-value text-xl">{circuit.lapRecord}</div>
+                  {circuit.lapRecordHolder && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {circuit.lapRecordHolder} ({circuit.lapRecordYear})
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="f1-stat-value">-</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================
+// F1 ABOUT SECTION (Accordion FAQ)
+// ============================================
+function F1AboutSection({ circuit }: { circuit: Circuit }) {
+  const [openItems, setOpenItems] = useState<number[]>([]);
+
+  const toggleItem = (index: number) => {
+    setOpenItems(prev => 
+      prev.includes(index) 
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    );
+  };
+
+  const faqs = [
+    {
+      question: `What makes ${circuit.city} unique?`,
+      answer: `The ${circuit.name} in ${circuit.city}, ${circuit.country} is one of the most iconic circuits on the Formula 1 calendar. First hosting a Grand Prix in ${circuit.firstGP}, this ${circuit.length}km circuit features ${circuit.turns} corners and provides excellent racing action. The track's unique characteristics have produced many memorable moments in F1 history.`
+    },
+    {
+      question: 'What are the key overtaking opportunities?',
+      answer: `The circuit offers several overtaking opportunities, particularly in the DRS zones. With ${circuit.turns} corners and a mix of high-speed and technical sections, drivers must find the right balance between attacking and defending.`
+    },
+    {
+      question: 'What is the track history?',
+      answer: `Since its first Grand Prix in ${circuit.firstGP}, this circuit has been a regular fixture on the F1 calendar. The track has undergone various modifications over the years to improve racing and safety, while maintaining its essential character and challenge.`
+    },
+    {
+      question: 'What weather conditions are typical?',
+      answer: `Racing conditions at ${circuit.city} can vary significantly. Teams and drivers must be prepared for changing weather patterns, which can add an extra strategic dimension to the race weekend.`
+    }
+  ];
+
+  return (
+    <section className="py-8">
+      <h2 className="f1-section-title">About</h2>
+      
+      <div className="bg-card">
+        {faqs.map((faq, index) => (
+          <div key={index} className="f1-accordion-item">
+            <button
+              onClick={() => toggleItem(index)}
+              className="f1-accordion-trigger"
+            >
+              <span>{faq.question}</span>
+              {openItems.includes(index) ? (
+                <ChevronUp className="w-5 h-5 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              )}
+            </button>
+            {openItems.includes(index) && (
+              <div className="f1-accordion-content">
+                {faq.answer}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ============================================
+// F1 RESULTS SECTION (Race Classifications)
+// ============================================
+function F1ResultsSection({ results, isLoading }: { results: FullRaceResult[]; isLoading: boolean }) {
   const [expandedYear, setExpandedYear] = useState<number | null>(results[0]?.season || null);
 
   const getPositionStyle = (position: number) => {
@@ -347,683 +397,324 @@ function FullRaceResultsAccordion({ results }: { results: FullRaceResult[] }) {
     }
   };
 
-  const getStatusDisplay = (status: string) => {
-    if (status === 'Finished' || status === '+1 Lap' || status.includes('Lap')) {
-      return null; // Don't show for normal finishes
-    }
-    return status;
-  };
+  if (isLoading) {
+    return (
+      <section className="py-8">
+        <h2 className="f1-section-title">Results</h2>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </section>
+    );
+  }
+
+  if (!results || results.length === 0) {
+    return (
+      <section className="py-8">
+        <h2 className="f1-section-title">Results</h2>
+        <div className="bg-card p-8 text-center text-muted-foreground">
+          <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
+          <p>No historical results available</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {results.map((race) => {
-        const isExpanded = expandedYear === race.season;
-        const winner = race.results[0];
+    <section className="py-8">
+      <h2 className="f1-section-title">Results</h2>
+      
+      <div className="space-y-3">
+        {results.map((race) => {
+          const isExpanded = expandedYear === race.season;
+          const winner = race.results[0];
 
-        return (
-          <div 
-            key={race.season}
-            className="border border-border/50 rounded-xl overflow-hidden"
-          >
-            {/* Race Header - Clickable */}
-            <div
-              className="p-4 cursor-pointer hover:bg-muted/30 transition-colors flex items-center justify-between"
-              onClick={() => setExpandedYear(isExpanded ? null : race.season)}
-            >
-              <div className="flex items-center gap-4">
-                <Badge 
-                  className="w-16 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary to-primary/80 text-white border-0 text-lg font-bold"
-                >
-                  {race.season}
-                </Badge>
-                <div>
-                  <div className="font-bold">{race.raceName}</div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Trophy className="w-3 h-3 text-amber-500" />
-                    {winner?.driver.firstName} {winner?.driver.lastName}
-                    <span className="text-muted-foreground/50">•</span>
-                    {winner?.constructor.name}
-                    {winner?.time && (
-                      <>
-                        <span className="text-muted-foreground/50">•</span>
-                        <Clock className="w-3 h-3" />
-                        {winner.time}
-                      </>
-                    )}
+          return (
+            <div key={race.season} className="bg-card overflow-hidden">
+              {/* Year Header */}
+              <button
+                className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                onClick={() => setExpandedYear(isExpanded ? null : race.season)}
+              >
+                <div className="flex items-center gap-4">
+                  <Badge className="bg-primary text-white border-0 text-lg font-bold px-4 py-2 rounded">
+                    {race.season}
+                  </Badge>
+                  <div className="text-left">
+                    <div className="font-bold">{race.raceName}</div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Trophy className="w-3 h-3 text-amber-500" />
+                      {winner?.driver.firstName} {winner?.driver.lastName}
+                      <span className="opacity-50">•</span>
+                      {winner?.constructor.name}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">
-                  {race.results.length} pilotes
-                </Badge>
                 {isExpanded ? (
                   <ChevronUp className="w-5 h-5 text-muted-foreground" />
                 ) : (
                   <ChevronDown className="w-5 h-5 text-muted-foreground" />
                 )}
-              </div>
-            </div>
+              </button>
 
-            {/* Expanded Results */}
-            {isExpanded && (
-              <div className="border-t border-border/50 bg-muted/20">
-                {/* Table Header */}
-                <div className="grid grid-cols-12 gap-2 p-3 text-xs font-semibold text-muted-foreground border-b border-border/30 bg-muted/30">
-                  <div className="col-span-1 text-center">POS</div>
-                  <div className="col-span-4">PILOTE</div>
-                  <div className="col-span-3">ÉCURIE</div>
-                  <div className="col-span-1 text-center">GRILLE</div>
-                  <div className="col-span-2 text-right">TEMPS</div>
-                  <div className="col-span-1 text-right">PTS</div>
-                </div>
+              {/* Expanded Results Table */}
+              {isExpanded && (
+                <div className="border-t border-border">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-12 gap-2 p-3 text-xs font-semibold text-muted-foreground bg-muted/50 uppercase tracking-wide">
+                    <div className="col-span-1 text-center">Pos</div>
+                    <div className="col-span-4">Driver</div>
+                    <div className="col-span-3">Team</div>
+                    <div className="col-span-1 text-center">Grid</div>
+                    <div className="col-span-2 text-right">Time</div>
+                    <div className="col-span-1 text-right">Pts</div>
+                  </div>
 
-                {/* Results Rows */}
-                <div className="divide-y divide-border/20">
-                  {race.results.map((result) => {
-                    const statusDisplay = getStatusDisplay(result.status);
-                    const hasFastestLap = result.fastestLap?.rank === 1;
+                  {/* Results Rows */}
+                  <div className="divide-y divide-border/50">
+                    {race.results.map((result) => {
+                      const hasFastestLap = result.fastestLap?.rank === 1;
+                      const statusDisplay = result.status !== 'Finished' && !result.status.includes('Lap') 
+                        ? result.status 
+                        : null;
 
-                    return (
-                      <div 
-                        key={result.driver.driverId}
-                        className={`grid grid-cols-12 gap-2 p-3 items-center hover:bg-muted/30 transition-colors ${
-                          result.position <= 3 ? 'bg-muted/10' : ''
-                        }`}
-                      >
-                        {/* Position */}
-                        <div className="col-span-1 flex justify-center">
-                          <Badge className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${getPositionStyle(result.position)}`}>
-                            {result.positionText}
-                          </Badge>
-                        </div>
-
-                        {/* Driver */}
-                        <div className="col-span-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs text-muted-foreground w-6">
-                              {result.driver.number || '-'}
+                      return (
+                        <div 
+                          key={result.driver.driverId}
+                          className="grid grid-cols-12 gap-2 p-3 items-center hover:bg-muted/20 transition-colors"
+                        >
+                          <div className="col-span-1 flex justify-center">
+                            <Badge className={`w-7 h-7 rounded flex items-center justify-center text-sm font-bold ${getPositionStyle(result.position)}`}>
+                              {result.positionText}
+                            </Badge>
+                          </div>
+                          <div className="col-span-4">
+                            <span className="font-semibold">
+                              {result.driver.firstName.charAt(0)}. {result.driver.lastName}
                             </span>
-                            <div>
-                              <span className="font-semibold">
-                                {result.driver.firstName.charAt(0)}. {result.driver.lastName}
+                            {hasFastestLap && (
+                              <Badge className="ml-2 bg-purple-500/10 text-purple-500 border-purple-500/20 text-[10px] px-1">
+                                FL
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="col-span-3 text-sm text-muted-foreground truncate">
+                            {result.constructor.name}
+                          </div>
+                          <div className="col-span-1 text-center text-sm">
+                            {result.grid || '-'}
+                          </div>
+                          <div className="col-span-2 text-right">
+                            {statusDisplay ? (
+                              <Badge variant="outline" className="text-xs text-orange-500 border-orange-500/30">
+                                {statusDisplay}
+                              </Badge>
+                            ) : result.position === 1 ? (
+                              <span className="font-mono text-sm font-semibold">{result.time}</span>
+                            ) : (
+                              <span className="font-mono text-sm text-muted-foreground">
+                                {result.time ? `+${result.time}` : result.status}
                               </span>
-                              {hasFastestLap && (
-                                <Badge className="ml-2 bg-purple-500/10 text-purple-500 border-purple-500/20 text-[10px] px-1">
-                                  <Zap className="w-2 h-2 mr-0.5" />
-                                  FL
-                                </Badge>
-                              )}
-                            </div>
+                            )}
+                          </div>
+                          <div className="col-span-1 text-right">
+                            <span className={`font-bold ${result.points > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                              {result.points > 0 ? result.points : '-'}
+                            </span>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
 
-                        {/* Constructor */}
-                        <div className="col-span-3 text-sm text-muted-foreground truncate">
-                          {result.constructor.name}
-                        </div>
-
-                        {/* Grid Position */}
-                        <div className="col-span-1 text-center">
-                          <span className={`text-sm ${
-                            result.grid < result.position 
-                              ? 'text-red-500' 
-                              : result.grid > result.position 
-                                ? 'text-green-500' 
-                                : 'text-muted-foreground'
-                          }`}>
-                            {result.grid || '-'}
-                          </span>
-                        </div>
-
-                        {/* Time/Status */}
-                        <div className="col-span-2 text-right">
-                          {statusDisplay ? (
-                            <Badge variant="outline" className="text-xs text-orange-500 border-orange-500/30">
-                              {statusDisplay}
-                            </Badge>
-                          ) : result.position === 1 ? (
-                            <span className="font-mono text-sm font-semibold text-chart-3">
-                              {result.time}
-                            </span>
-                          ) : result.time ? (
-                            <span className="font-mono text-sm text-muted-foreground">
-                              +{result.time}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">
-                              {result.status}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Points */}
-                        <div className="col-span-1 text-right">
-                          <span className={`font-bold ${result.points > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
-                            {result.points > 0 ? result.points : '-'}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Race Summary Footer */}
-                <div className="p-3 bg-muted/30 border-t border-border/30 flex items-center justify-between text-xs text-muted-foreground">
-                  <div className="flex items-center gap-4">
+                  {/* Footer */}
+                  <div className="p-3 bg-muted/30 border-t border-border text-xs text-muted-foreground flex items-center justify-between">
                     <span>{format(new Date(race.date), 'd MMMM yyyy', { locale: fr })}</span>
-                    <span>•</span>
                     <span>Round {race.round}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {race.results.filter(r => r.status !== 'Finished' && !r.status.includes('Lap')).length > 0 && (
-                      <Badge variant="outline" className="text-[10px]">
-                        {race.results.filter(r => r.status !== 'Finished' && !r.status.includes('Lap')).length} abandons
-                      </Badge>
-                    )}
-                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// ============================================
+// F1 STATS SECTION (Historical Statistics)
+// ============================================
+function F1StatsSection({ 
+  circuit, 
+  historyData, 
+  isLoading 
+}: { 
+  circuit: Circuit; 
+  historyData: any; 
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <section className="py-8">
+        <h2 className="f1-section-title">Statistics</h2>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="py-8">
+      <h2 className="f1-section-title">Statistics</h2>
+      
+      <div className="bg-card p-6">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="text-center p-4 bg-muted/30 rounded">
+            <div className="f1-stat-value">{historyData?.stats?.firstRace || circuit.firstGP}</div>
+            <div className="f1-stat-label mt-2">First Grand Prix</div>
+          </div>
+          <div className="text-center p-4 bg-muted/30 rounded">
+            <div className="f1-stat-value">{historyData?.stats?.totalRaces || '-'}</div>
+            <div className="f1-stat-label mt-2">Total Races</div>
+          </div>
+          <div className="text-center p-4 bg-muted/30 rounded">
+            <div className="f1-stat-value">{circuit.turns}</div>
+            <div className="f1-stat-label mt-2">Corners</div>
+          </div>
+          <div className="text-center p-4 bg-muted/30 rounded">
+            <div className="f1-stat-value">{circuit.length}</div>
+            <div className="f1-stat-label mt-2">Circuit Length (km)</div>
+          </div>
+        </div>
+
+        {/* Most Wins */}
+        {(historyData?.stats?.mostWinsDriver || historyData?.stats?.mostWinsConstructor) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-6 border-t border-border">
+            {historyData?.stats?.mostWinsDriver && (
+              <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded">
+                <div className="f1-stat-label mb-2">Most Wins - Driver</div>
+                <div className="font-bold text-lg">{historyData.stats.mostWinsDriver.driver}</div>
+                <div className="text-amber-600 font-semibold">
+                  {historyData.stats.mostWinsDriver.wins} win{historyData.stats.mostWinsDriver.wins > 1 ? 's' : ''}
+                </div>
+              </div>
+            )}
+            {historyData?.stats?.mostWinsConstructor && (
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded">
+                <div className="f1-stat-label mb-2">Most Wins - Constructor</div>
+                <div className="font-bold text-lg">{historyData.stats.mostWinsConstructor.constructor}</div>
+                <div className="text-primary font-semibold">
+                  {historyData.stats.mostWinsConstructor.wins} win{historyData.stats.mostWinsConstructor.wins > 1 ? 's' : ''}
                 </div>
               </div>
             )}
           </div>
-        );
-      })}
-    </div>
+        )}
+      </div>
+    </section>
   );
 }
 
-export function CircuitDetailView({ circuit, drivers, constructors, races, onBack, circuitImage }: CircuitDetailViewProps) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  
+// ============================================
+// MAIN COMPONENT
+// ============================================
+export function CircuitDetailView({ 
+  circuit, 
+  drivers, 
+  constructors, 
+  races, 
+  onBack, 
+  circuitImage 
+}: CircuitDetailViewProps) {
   // Fetch real historical data from Ergast API
   const { data: historyData, isLoading: historyLoading } = useCircuitHistory(circuit.ergastId || circuit.id);
-  
-  // Circuit stats from real data or defaults
-  const circuitStats = {
-    maxSpeed: 340, // Would need separate data source
-    elevation: 45,
-    straights: 3,
-    drsZones: circuit.drsZones || 2,
-    difficulty: 8.5,
-    capacity: 150000,
-    avgLapTime: circuit.lapRecord?.time || '1:32.090',
-    totalRaces: historyData?.stats?.totalRaces || (new Date().getFullYear() - circuit.firstGP),
-  };
-
-  // Real winners from Ergast API
-  const recentWinners = historyData?.winners || [];
-
-  // Key corners
-  const keyCorners = [
-    { name: 'Virage 1', type: 'Freinage', speed: 85, description: 'Zone de dépassement principale' },
-    { name: 'Esse rapide', type: 'Enchaînement', speed: 220, description: 'Technique et rapide' },
-    { name: 'Épingle', type: 'Lent', speed: 60, description: 'Opportunité de dépassement' },
-    { name: 'Dernière courbe', type: 'Moyen', speed: 180, description: 'Crucial pour le chronométrage' },
-  ];
-
-  // Weather info
-  const weatherInfo = {
-    avgTemp: 28,
-    rainChance: 15,
-    bestConditions: 'Ensoleillé et sec',
-    challengingConditions: 'Vent fort dans les lignes droites',
-  };
 
   return (
-    <div className="space-y-8 fade-in">
+    <div className="min-h-screen bg-background">
       {/* Back Button */}
-      <Button
-        onClick={onBack}
-        variant="ghost"
-        className="gap-2 hover:bg-muted/50 rounded-xl"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Retour au calendrier
-      </Button>
+      <div className="px-4 py-4 lg:px-8">
+        <Button
+          onClick={onBack}
+          variant="ghost"
+          className="gap-2 hover:bg-muted/50"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to calendar
+        </Button>
+      </div>
 
       {/* Hero Section */}
-      <Card className="overflow-hidden border-border/50 shadow-2xl">
-        <div className="relative">
-          {/* Background Image */}
-          <div className="relative h-80 lg:h-96 overflow-hidden">
-            <ImageWithFallback
-              src={circuitImage}
-              alt={circuit.name}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/20" />
-            
-            {/* Top accent bar */}
-            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-primary via-accent to-chart-3" />
-          </div>
-
-          {/* Circuit Info Overlay */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 lg:p-10">
-            <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between gap-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge className="gap-1 backdrop-blur-xl bg-white/90 dark:bg-black/70 text-black dark:text-white border-0 shadow-lg">
-                    <MapPin className="w-3 h-3" />
-                    {circuit.country}
-                  </Badge>
-                  <Badge className="gap-1 backdrop-blur-xl bg-primary/90 text-white border-0 shadow-lg">
-                    <Calendar className="w-3 h-3" />
-                    Depuis {circuit.firstGP}
-                  </Badge>
-                </div>
-                
-                <h1 className="text-4xl lg:text-5xl font-bold text-white drop-shadow-lg">
-                  {circuit.name}
-                </h1>
-                
-                <div className="flex items-center gap-2 text-white/90 drop-shadow">
-                  <Flag className="w-4 h-4" />
-                  <span className="font-semibold text-lg">{circuit.city}, {circuit.country}</span>
-                </div>
-              </div>
-
-              {/* Record Badge */}
-              {circuit.lapRecord && (
-                <div className="rounded-2xl bg-gradient-to-br from-chart-3/90 to-chart-3/70 backdrop-blur-xl p-6 text-white shadow-2xl">
-                  <div className="text-sm mb-1 opacity-90 flex items-center gap-1">
-                    <Zap className="w-3 h-3" />
-                    Record du tour
-                  </div>
-                  <div className="text-3xl font-bold mb-1">{circuit.lapRecord.time}</div>
-                  <div className="text-sm opacity-90">{circuit.lapRecord.driver} · {circuit.lapRecord.year}</div>
-                </div>
-              )}
+      <div className="f1-hero relative h-64 lg:h-80 mb-8">
+        <ImageWithFallback
+          src={getF1HeroImageUrl(circuit.country)}
+          alt={circuit.name}
+          className="w-full h-full object-cover opacity-60"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#15151e] via-[#15151e]/60 to-transparent" />
+        
+        {/* Hero Content */}
+        <div className="absolute bottom-0 left-0 right-0 p-6 lg:p-10">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center gap-2 mb-3">
+              <Flag className="w-4 h-4 text-white/70" />
+              <span className="text-white/70 text-sm uppercase tracking-wide">
+                {circuit.country}
+              </span>
             </div>
+            <h1 className="text-4xl lg:text-5xl font-bold text-white uppercase tracking-tight" style={{ fontStyle: 'italic' }}>
+              {circuit.name}
+            </h1>
+            <p className="text-white/80 mt-2">{circuit.city}, {circuit.country}</p>
+            
+            {/* Lap Record Badge */}
+            {circuit.lapRecord && (
+              <div className="mt-4 inline-flex items-center gap-3 bg-primary/90 text-white px-4 py-2 rounded">
+                <Zap className="w-4 h-4" />
+                <div>
+                  <div className="text-xs uppercase tracking-wide opacity-80">Lap Record</div>
+                  <div className="font-bold">{circuit.lapRecord}</div>
+                </div>
+                {circuit.lapRecordHolder && (
+                  <div className="text-sm opacity-80">
+                    {circuit.lapRecordHolder} · {circuit.lapRecordYear}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      </Card>
-
-      {/* Key Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <Card className="border-border/50 overflow-hidden group hover:shadow-lg transition-all">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-          <CardHeader className="pb-3 relative">
-            <div className="flex items-center justify-between mb-2">
-              <Route className="w-5 h-5 text-primary" />
-              <div className="text-xs text-muted-foreground">Circuit</div>
-            </div>
-            <div className="text-4xl font-bold bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-transparent">
-              {circuit.length}
-            </div>
-            <div className="text-sm text-muted-foreground">km par tour</div>
-          </CardHeader>
-        </Card>
-
-        <Card className="border-border/50 overflow-hidden group hover:shadow-lg transition-all">
-          <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-          <CardHeader className="pb-3 relative">
-            <div className="flex items-center justify-between mb-2">
-              <Flag className="w-5 h-5 text-accent" />
-              <div className="text-xs text-muted-foreground">Virages</div>
-            </div>
-            <div className="text-4xl font-bold bg-gradient-to-br from-accent to-accent/70 bg-clip-text text-transparent">
-              {circuit.turns}
-            </div>
-            <div className="text-sm text-muted-foreground">au total</div>
-          </CardHeader>
-        </Card>
-
-        <Card className="border-border/50 overflow-hidden group hover:shadow-lg transition-all">
-          <div className="absolute inset-0 bg-gradient-to-br from-chart-3/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-          <CardHeader className="pb-3 relative">
-            <div className="flex items-center justify-between mb-2">
-              <Gauge className="w-5 h-5 text-chart-3" />
-              <div className="text-xs text-muted-foreground">Vitesse max</div>
-            </div>
-            <div className="text-4xl font-bold bg-gradient-to-br from-chart-3 to-chart-3/70 bg-clip-text text-transparent">
-              {circuitStats.maxSpeed}
-            </div>
-            <div className="text-sm text-muted-foreground">km/h</div>
-          </CardHeader>
-        </Card>
-
-        <Card className="border-border/50 overflow-hidden group hover:shadow-lg transition-all">
-          <div className="absolute inset-0 bg-gradient-to-br from-chart-4/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-          <CardHeader className="pb-3 relative">
-            <div className="flex items-center justify-between mb-2">
-              <Trophy className="w-5 h-5 text-chart-4" />
-              <div className="text-xs text-muted-foreground">Éditions</div>
-            </div>
-            <div className="text-4xl font-bold bg-gradient-to-br from-chart-4 to-chart-4/70 bg-clip-text text-transparent">
-              {circuitStats.totalRaces}
-            </div>
-            <div className="text-sm text-muted-foreground">Grands Prix</div>
-          </CardHeader>
-        </Card>
       </div>
 
-      {/* Track Layout & Video Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Track Layout */}
-        <Card className="border-border/50 shadow-lg overflow-hidden">
-          <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
-            <CardTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                <MapIcon className="w-4 h-4 text-white" />
-              </div>
-              Tracé du circuit
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="relative aspect-square overflow-hidden bg-muted/30">
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1518565461527-e8c70d55cc8e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyYWNlJTIwdHJhY2slMjBsYXlvdXQlMjBtYXB8ZW58MXx8fHwxNzY3MTU1Mjc2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                alt={`Tracé ${circuit.name}`}
-                className="w-full h-full object-contain p-6 transition-transform duration-500 hover:scale-105"
-              />
-              <div className="absolute bottom-4 right-4 backdrop-blur-xl bg-black/70 text-white px-4 py-2 rounded-xl text-sm font-semibold">
-                {circuit.turns} virages · {circuit.length} km
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Video Preview */}
-        <Card className="border-border/50 shadow-lg overflow-hidden">
-          <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
-            <CardTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent to-accent/80 flex items-center justify-center">
-                <Play className="w-4 h-4 text-white" />
-              </div>
-              Présentation du circuit
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="relative aspect-square overflow-hidden bg-muted/30 group cursor-pointer">
-              {!isPlaying ? (
-                <>
-                  <ImageWithFallback
-                    src={circuitImage}
-                    alt={`Présentation ${circuit.name}`}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                  
-                  {/* Play Button Overlay */}
-                  <div 
-                    className="absolute inset-0 flex items-center justify-center"
-                    onClick={() => setIsPlaying(true)}
-                  >
-                    <div className="w-20 h-20 rounded-full bg-primary/90 backdrop-blur-xl flex items-center justify-center shadow-2xl transition-all group-hover:scale-110 group-hover:bg-primary">
-                      <Play className="w-10 h-10 text-white ml-1" />
-                    </div>
-                  </div>
-
-                  {/* Video Info */}
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <div className="backdrop-blur-xl bg-black/70 text-white p-4 rounded-xl">
-                      <div className="font-semibold mb-1">Tour embarqué</div>
-                      <div className="text-sm opacity-90">Vue pilote · 4:32</div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-black">
-                  <div className="text-center text-white p-8">
-                    <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
-                      <Play className="w-8 h-8 text-primary" />
-                    </div>
-                    <p className="text-lg font-semibold mb-2">Lecture de la vidéo</p>
-                    <p className="text-sm text-white/70 mb-4">Simulation de lecteur vidéo</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsPlaying(false)}
-                      className="gap-2"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                      Retour
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 lg:px-8 pb-12">
+        {/* Schedule Section */}
+        <F1ScheduleSection races={races} />
+        
+        {/* Weather Section */}
+        <F1WeatherSection city={circuit.city} />
+        
+        {/* Circuit Section */}
+        <F1CircuitSection circuit={circuit} />
+        
+        {/* About Section */}
+        <F1AboutSection circuit={circuit} />
+        
+        {/* Results Section */}
+        <F1ResultsSection 
+          results={historyData?.fullResults || []} 
+          isLoading={historyLoading} 
+        />
+        
+        {/* Statistics Section */}
+        <F1StatsSection 
+          circuit={circuit} 
+          historyData={historyData} 
+          isLoading={historyLoading} 
+        />
       </div>
-
-      {/* Main Info Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Circuit Characteristics */}
-        <Card className="border-border/50 shadow-lg">
-          <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
-            <CardTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-                <Route className="w-4 h-4 text-white" />
-              </div>
-              Caractéristiques
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">Distance totale</div>
-                <div className="font-semibold">{circuit.totalDistance} km</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">Tours de course</div>
-                <div className="font-semibold">{Math.round(circuit.totalDistance / circuit.length)}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">Zones DRS</div>
-                <div className="font-semibold">{circuitStats.drsZones}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">Dénivelé</div>
-                <div className="font-semibold">{circuitStats.elevation}m</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">Temps moyen</div>
-                <div className="font-semibold">{circuitStats.avgLapTime}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">Capacité</div>
-                <div className="font-semibold">{circuitStats.capacity.toLocaleString()}</div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-border/50">
-              <div className="text-sm text-muted-foreground mb-3">Difficulté</div>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-primary to-chart-3 rounded-full transition-all"
-                    style={{ width: `${(circuitStats.difficulty / 10) * 100}%` }}
-                  />
-                </div>
-                <div className="font-bold text-xl">{circuitStats.difficulty}/10</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Weather Info */}
-        <Card className="border-border/50 shadow-lg">
-          <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
-            <CardTitle className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent to-accent/80 flex items-center justify-center">
-                <ThermometerSun className="w-4 h-4 text-white" />
-              </div>
-              Conditions météo
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-muted/30">
-                <div className="text-sm text-muted-foreground mb-2">Température moyenne</div>
-                <div className="text-3xl font-bold">{weatherInfo.avgTemp}°C</div>
-              </div>
-              <div className="p-4 rounded-xl bg-muted/30">
-                <div className="text-sm text-muted-foreground mb-2">Risque de pluie</div>
-                <div className="text-3xl font-bold">{weatherInfo.rainChance}%</div>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2">
-              <div className="p-4 rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20">
-                <div className="text-sm text-muted-foreground mb-1">Conditions idéales</div>
-                <div className="font-semibold text-green-700 dark:text-green-400">
-                  {weatherInfo.bestConditions}
-                </div>
-              </div>
-              <div className="p-4 rounded-xl bg-gradient-to-br from-orange-500/10 to-orange-500/5 border border-orange-500/20">
-                <div className="text-sm text-muted-foreground mb-1">Point d'attention</div>
-                <div className="font-semibold text-orange-700 dark:text-orange-400">
-                  {weatherInfo.challengingConditions}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Key Corners */}
-      <Card className="border-border/50 shadow-lg">
-        <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
-          <CardTitle className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-chart-3 to-chart-3/80 flex items-center justify-center">
-              <Flag className="w-4 h-4 text-white" />
-            </div>
-            Virages clés
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {keyCorners.map((corner, index) => (
-              <div 
-                key={index}
-                className="p-5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors group"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="font-bold text-lg mb-1">{corner.name}</div>
-                    <Badge className="text-xs">{corner.type}</Badge>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold">{corner.speed}</div>
-                    <div className="text-xs text-muted-foreground">km/h</div>
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">{corner.description}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Full Race Results - Last 5 Years */}
-      <Card className="border-border/50 shadow-lg">
-        <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
-          <CardTitle className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-chart-5 to-chart-5/80 flex items-center justify-center">
-              <Trophy className="w-4 h-4 text-white" />
-            </div>
-            Classements complets - 5 dernières années
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          {historyLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : !historyData?.fullResults || historyData.fullResults.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Aucune donnée historique disponible</p>
-            </div>
-          ) : (
-            <FullRaceResultsAccordion results={historyData.fullResults} />
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Circuit Stats Summary */}
-      <Card className="border-border/50 shadow-lg">
-        <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
-          <CardTitle className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-chart-4 to-chart-4/80 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-white" />
-            </div>
-            Statistiques historiques
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          {historyLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="text-center p-4 rounded-xl bg-muted/30">
-                  <div className="text-3xl font-bold mb-1">{historyData?.stats?.firstRace || circuit.firstGP}</div>
-                  <div className="text-sm text-muted-foreground">Premier Grand Prix</div>
-                </div>
-                <div className="text-center p-4 rounded-xl bg-muted/30">
-                  <div className="text-3xl font-bold mb-1">{historyData?.stats?.totalRaces || circuitStats.totalRaces}</div>
-                  <div className="text-sm text-muted-foreground">Courses disputées</div>
-                </div>
-                <div className="text-center p-4 rounded-xl bg-muted/30">
-                  <div className="text-3xl font-bold mb-1">{circuitStats.straights}</div>
-                  <div className="text-sm text-muted-foreground">Lignes droites</div>
-                </div>
-                <div className="text-center p-4 rounded-xl bg-muted/30">
-                  <div className="text-3xl font-bold mb-1">{circuitStats.capacity.toLocaleString()}</div>
-                  <div className="text-sm text-muted-foreground">Capacité spectateurs</div>
-                </div>
-              </div>
-
-              {/* Most Wins */}
-              {(historyData?.stats?.mostWinsDriver || historyData?.stats?.mostWinsConstructor) && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4 border-t border-border/50">
-                  {historyData?.stats?.mostWinsDriver && (
-                    <div className="p-4 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20">
-                      <div className="text-sm text-muted-foreground mb-1">Pilote le plus victorieux</div>
-                      <div className="font-bold text-lg">{historyData.stats.mostWinsDriver.driver}</div>
-                      <div className="text-amber-600 dark:text-amber-400 font-semibold">
-                        {historyData.stats.mostWinsDriver.wins} victoire{historyData.stats.mostWinsDriver.wins > 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  )}
-                  {historyData?.stats?.mostWinsConstructor && (
-                    <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-                      <div className="text-sm text-muted-foreground mb-1">Écurie la plus victorieuse</div>
-                      <div className="font-bold text-lg">{historyData.stats.mostWinsConstructor.constructor}</div>
-                      <div className="text-primary font-semibold">
-                        {historyData.stats.mostWinsConstructor.wins} victoire{historyData.stats.mostWinsConstructor.wins > 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Circuit Races & Sessions Section */}
-      <Card className="border-border/50 shadow-lg">
-        <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
-          <CardTitle className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-white" />
-            </div>
-            Courses & Sessions
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <CircuitRacesSection
-            races={races}
-            drivers={drivers}
-            constructors={constructors}
-          />
-        </CardContent>
-      </Card>
     </div>
   );
 }

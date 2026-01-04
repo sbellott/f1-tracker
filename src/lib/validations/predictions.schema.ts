@@ -3,7 +3,6 @@ import { z } from 'zod';
 export const sessionTypeSchema = z.enum(['FP1', 'FP2', 'FP3', 'SPRINT_QUALIFYING', 'SPRINT', 'QUALIFYING', 'RACE']);
 
 export const createPredictionSchema = z.object({
-  groupId: z.string().cuid('Invalid group ID'),
   raceId: z.string().cuid('Invalid race ID'),
   sessionType: sessionTypeSchema.default('RACE'),
   topTen: z
@@ -20,7 +19,6 @@ export const predictionSchema = createPredictionSchema;
 // Query schema for GET requests
 export const predictionQuerySchema = z.object({
   raceId: z.string().optional(),
-  groupId: z.string().optional(),
   sessionType: sessionTypeSchema.optional(),
   season: z.coerce.number().int().min(2020).max(2030).optional(),
 });
