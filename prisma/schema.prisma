@@ -24,6 +24,7 @@ model User {
   predictions         Prediction[]
   sessions            Session[]
   badges              UserBadge[]
+  readArticles        ReadArticle[]
 
   @@map("users")
 }
@@ -261,8 +262,8 @@ model UserBadge {
 }
 
 model NewsItem {
-  id          String   @id @default(cuid())
-  externalId  String   @unique
+  id          String        @id @default(cuid())
+  externalId  String        @unique
   source      String
   title       String
   summary     String?
@@ -270,10 +271,27 @@ model NewsItem {
   url         String
   publishedAt DateTime
   category    String?
-  fetchedAt   DateTime @default(now())
+  fetchedAt   DateTime      @default(now())
+  readBy      ReadArticle[]
 
   @@index([publishedAt])
   @@map("news_items")
+}
+
+// Track which articles users have read
+model ReadArticle {
+  id         String    @id @default(cuid())
+  userId     String
+  articleId  String?   // Optional - only set if article is stored in NewsItem
+  articleUrl String    // URL for external articles (always required for uniqueness)
+  readAt     DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  newsItem   NewsItem? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleUrl]) // Unique constraint on user + article URL
+  @@index([userId])
+  @@index([articleUrl])
+  @@map("read_articles")
 }
 
 enum SessionType {

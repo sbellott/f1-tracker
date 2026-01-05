@@ -1,8 +1,9 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import type { Driver, Constructor, Circuit, Race, Session, SessionResults, SessionType } from "@/types";
 import type { HistoricalWinner, CircuitStats, FullRaceResult } from "@/lib/services/circuit-history.service";
+import type { NewsArticle, NewsCategory } from "@/lib/services/news.service";
 
 // ============================================
 // Query Keys
@@ -20,6 +21,7 @@ export const queryKeys = {
   nextRace: ["calendar", "next"] as const,
   driverStandings: ["standings", "drivers"] as const,
   constructorStandings: ["standings", "constructors"] as const,
+  news: (category: NewsCategory) => ["news", category] as const,
 };
 
 // ============================================
@@ -345,6 +347,37 @@ export function useConstructorStandings(season?: number) {
 }
 
 // ============================================
+// News Hooks
+// ============================================
+
+interface NewsResponse {
+  count: number;
+  sources: string[];
+  articles: NewsArticle[];
+}
+
+export function useNews(category: NewsCategory = "all") {
+  return useQuery<NewsArticle[]>({
+    queryKey: queryKeys.news(category),
+    queryFn: async () => {
+      const response = await fetchAPI<NewsResponse>(`/api/news?category=${category}&limit=50`);
+      return response.articles;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: 10 * 60 * 1000, // Auto-refresh every 10 minutes
+  });
+}
+
+export function useNewsWithSources(category: NewsCategory = "all") {
+  return useQuery<NewsResponse>({
+    queryKey: [...queryKeys.news(category), "with-sources"],
+    queryFn: () => fetchAPI<NewsResponse>(`/api/news?category=${category}&limit=50`),
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 10 * 60 * 1000,
+  });
+}
+
+// ============================================
 // Combined Hook for Initial Load
 // ============================================
 
@@ -389,4 +422,62 @@ export function useF1Data() {
       constructorStandingsQuery.refetch();
     },
   };
+}
+
+// ============================================
+// Read Articles Hooks
+// ============================================
+
+interface ReadArticlesResponse {
+  readUrls: string[];
+  readArticles: { articleUrl: string; readAt: string }[];
+}
+
+export function useReadArticles() {
+  return useQuery<string[]>({
+    queryKey: ["news", "read"],
+    queryFn: async () => {
+      const response = await fetchAPI<ReadArticlesResponse>("/api/news/read");
+      return response.readUrls;
+    },
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+}
+
+export function useMarkArticleRead() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (articleUrl: string) => {
+      const response = await fetch("/api/news/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ articleUrl }),
+      });
+      if (!response.ok) throw new Error("Failed to mark article as read");
+      return response.json();
+    },
+    onMutate: async (articleUrl) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ queryKey: ["news", "read"] });
+      const previousReadUrls = queryClient.getQueryData<string[]>(["news", "read"]);
+      
+      queryClient.setQueryData<string[]>(["news", "read"], (old) => {
+        if (!old) return [articleUrl];
+        if (old.includes(articleUrl)) return old;
+        return [...old, articleUrl];
+      });
+      
+      return { previousReadUrls };
+    },
+    onError: (_err, _articleUrl, context) => {
+      // Rollback on error
+      if (context?.previousReadUrls) {
+        queryClient.setQueryData(["news", "read"], context.previousReadUrls);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["news", "read"] });
+    },
+  });
 }
