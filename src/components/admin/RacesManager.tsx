@@ -66,30 +66,30 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
 
   const handleSave = () => {
     if (!formData.name || !formData.circuitId || !formData.sessions || formData.sessions.length === 0) {
-      toast.error('Erreur', { description: 'Veuillez remplir tous les champs obligatoires' });
+      toast.error('Error', { description: 'Please fill in all required fields' });
       return;
     }
 
     if (isCreating) {
       const newRaces = [...races, formData as Race];
       onUpdateRaces(newRaces);
-      toast.success('Course créée', { description: `${formData.name} a été ajoutée` });
+      toast.success('Race created', { description: `${formData.name} has been added` });
     } else if (editingRace) {
       const updatedRaces = races.map(r => 
         r.id === editingRace.id ? formData as Race : r
       );
       onUpdateRaces(updatedRaces);
-      toast.success('Course modifiée', { description: `${formData.name} a été mise à jour` });
+      toast.success('Race updated', { description: `${formData.name} has been updated` });
     }
 
     handleCancel();
   };
 
   const handleDelete = (race: Race) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${race.name} ?`)) {
+    if (window.confirm(`Are you sure you want to delete ${race.name}?`)) {
       const updatedRaces = races.filter(r => r.id !== race.id);
       onUpdateRaces(updatedRaces);
-      toast.success('Course supprimée', { description: `${race.name} a été supprimée` });
+      toast.success('Race deleted', { description: `${race.name} has been deleted` });
     }
   };
 
@@ -130,25 +130,25 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
   };
 
   const sessionTypeLabels: Record<string, string> = {
-    FP1: 'Essais Libres 1',
-    FP2: 'Essais Libres 2',
-    FP3: 'Essais Libres 3',
-    SPRINT_QUALIFYING: 'Qualif. Sprint',
+    FP1: 'Free Practice 1',
+    FP2: 'Free Practice 2',
+    FP3: 'Free Practice 3',
+    SPRINT_QUALIFYING: 'Sprint Qualifying',
     SPRINT: 'Sprint',
-    QUALIFYING: 'Qualifications',
-    RACE: 'Course',
+    QUALIFYING: 'Qualifying',
+    RACE: 'Race',
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold mb-2">Gestion des courses</h2>
-          <p className="text-muted-foreground text-lg">{races.length} courses au total</p>
+          <h2 className="text-3xl font-bold mb-2">Race Management</h2>
+          <p className="text-muted-foreground text-lg">{races.length} races total</p>
         </div>
         <Button onClick={handleCreate} className="gap-2">
           <Plus className="w-4 h-4" />
-          Nouvelle course
+          New race
         </Button>
       </div>
 
@@ -156,7 +156,7 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Rechercher une course..."
+          placeholder="Search for a race..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -167,24 +167,24 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
       {(isCreating || editingRace) && (
         <Card className="border-primary/50 shadow-lg">
           <CardHeader>
-            <CardTitle>{isCreating ? 'Nouvelle course' : 'Modifier la course'}</CardTitle>
+            <CardTitle>{isCreating ? 'New race' : 'Edit race'}</CardTitle>
             <CardDescription>
-              {isCreating ? 'Remplissez les informations de la nouvelle course' : 'Modifiez les informations de la course'}
+              {isCreating ? 'Fill in the new race information' : 'Edit race information'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nom de la course *</Label>
+                <Label htmlFor="name">Race Name *</Label>
                 <Input
                   id="name"
                   value={formData.name || ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Grand Prix de Monaco"
+                  placeholder="Monaco Grand Prix"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="round">Manche n° *</Label>
+                <Label htmlFor="round">Round # *</Label>
                 <Input
                   id="round"
                   type="number"
@@ -211,7 +211,7 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
 
               <div className="md:col-span-2">
                 <div className="flex items-center justify-between mb-4">
-                  <Label>Format de course</Label>
+                  <Label>Race format</Label>
                   {formData.hasSprint ? (
                     <Button 
                       variant="outline" 
@@ -220,7 +220,7 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
                       className="gap-2"
                     >
                       <X className="w-3.5 h-3.5" />
-                      Retirer Sprint
+                      Remove Sprint
                     </Button>
                   ) : (
                     <Button 
@@ -230,7 +230,7 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
                       className="gap-2"
                     >
                       <Zap className="w-3.5 h-3.5" />
-                      Ajouter Sprint
+                      Add Sprint
                     </Button>
                   )}
                 </div>
@@ -243,7 +243,7 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
                         <div className="font-medium text-sm">{sessionTypeLabels[session.type] || session.type}</div>
                       </div>
                       <div className="col-span-6">
-                        <Label className="text-xs text-muted-foreground mb-1">Date et heure</Label>
+                        <Label className="text-xs text-muted-foreground mb-1">Date and time</Label>
                         <Input
                           type="datetime-local"
                           value={session.dateTime ? new Date(session.dateTime).toISOString().slice(0, 16) : ''}
@@ -259,7 +259,7 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
                           className="gap-1"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          {session.completed ? 'OK' : 'À venir'}
+                          {session.completed ? 'OK' : 'Upcoming'}
                         </Button>
                       </div>
                     </div>
@@ -270,11 +270,11 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={handleCancel}>
                 <X className="w-4 h-4 mr-2" />
-                Annuler
+                Cancel
               </Button>
               <Button onClick={handleSave}>
                 <Save className="w-4 h-4 mr-2" />
-                Enregistrer
+                Save
               </Button>
             </div>
           </CardContent>
@@ -309,7 +309,7 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
                       {isCompleted && (
                         <Badge className="gap-1 bg-chart-4 hover:bg-chart-4">
                           <CheckCircle2 className="w-3 h-3" />
-                          Terminée
+                          Completed
                         </Badge>
                       )}
                     </div>
@@ -362,7 +362,7 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
                         </span>
                       </div>
                       <div className="text-muted-foreground">
-                        {new Date(session.dateTime).toLocaleDateString('fr-FR', {
+                        {new Date(session.dateTime).toLocaleDateString('en-US', {
                           day: 'numeric',
                           month: 'short',
                           hour: '2-digit',
@@ -375,14 +375,14 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
 
                 <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
                   <div>
-                    Progression : {completedSessions}/{totalSessions} sessions
+                    Progress: {completedSessions}/{totalSessions} sessions
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5" />
                     {nextSession ? (
-                      <>Prochaine : {new Date(nextSession.dateTime).toLocaleDateString('fr-FR')}</>
+                      <>Next: {new Date(nextSession.dateTime).toLocaleDateString('en-US')}</>
                     ) : (
-                      <>Terminée</>
+                      <>Completed</>
                     )}
                   </div>
                 </div>
@@ -396,9 +396,9 @@ export function RacesManager({ races, circuits, onUpdateRaces }: RacesManagerPro
         <Card>
           <CardContent className="py-12 text-center">
             <Flag className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">Aucune course trouvée</h3>
+            <h3 className="text-lg font-semibold mb-2">No races found</h3>
             <p className="text-muted-foreground">
-              {searchTerm ? 'Essayez une autre recherche' : 'Commencez par ajouter une course'}
+              {searchTerm ? 'Try another search' : 'Start by adding a race'}
             </p>
           </CardContent>
         </Card>

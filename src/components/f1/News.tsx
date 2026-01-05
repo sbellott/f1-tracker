@@ -53,11 +53,11 @@ const categoryIcons = {
 };
 
 const categoryLabels: Record<NewsCategory, string> = {
-  all: 'Toutes',
-  teams: 'Écuries',
-  drivers: 'Pilotes',
-  technical: 'Technique',
-  results: 'Résultats',
+  all: 'All',
+  teams: 'Teams',
+  drivers: 'Drivers',
+  technical: 'Technical',
+  results: 'Results',
 };
 
 const categoryColors: Record<string, string> = {
@@ -71,15 +71,15 @@ type SortOption = 'date-desc' | 'date-asc' | 'source';
 type ReadFilter = 'all' | 'unread' | 'read';
 
 const sortLabels: Record<SortOption, string> = {
-  'date-desc': 'Plus récent',
-  'date-asc': 'Plus ancien',
-  'source': 'Par source',
+  'date-desc': 'Most recent',
+  'date-asc': 'Oldest first',
+  'source': 'By source',
 };
 
 const readFilterLabels: Record<ReadFilter, string> = {
-  'all': 'Tous',
-  'unread': 'Non lus',
-  'read': 'Lus',
+  'all': 'All',
+  'unread': 'Unread',
+  'read': 'Read',
 };
 
 function getTimeAgo(dateString: string) {
@@ -87,15 +87,15 @@ function getTimeAgo(dateString: string) {
   const now = new Date();
   const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
   
-  if (diffInHours < 1) return "À l'instant";
-  if (diffInHours === 1) return "Il y a 1h";
-  if (diffInHours < 24) return `Il y a ${diffInHours}h`;
+  if (diffInHours < 1) return "Just now";
+  if (diffInHours === 1) return "1h ago";
+  if (diffInHours < 24) return `${diffInHours}h ago`;
   
   const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays === 1) return "Hier";
-  if (diffInDays < 7) return `Il y a ${diffInDays}j`;
+  if (diffInDays === 1) return "Yesterday";
+  if (diffInDays < 7) return `${diffInDays}d ago`;
   
-  return `Il y a ${Math.floor(diffInDays / 7)} sem.`;
+  return `${Math.floor(diffInDays / 7)}w ago`;
 }
 
 function NewsCardSkeleton() {
@@ -182,11 +182,11 @@ export function News() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-bold mb-1">Actualités F1</h2>
+          <h2 className="text-2xl font-bold mb-1">F1 News</h2>
           <p className="text-muted-foreground text-sm">
-            Agrégation en temps réel de 4 sources expertes
+            Real-time aggregation from 4 expert sources
             {session?.user && unreadCount > 0 && (
-              <span className="ml-2 text-primary">• {unreadCount} non lu{unreadCount > 1 ? 's' : ''}</span>
+              <span className="ml-2 text-primary">• {unreadCount} unread</span>
             )}
           </p>
         </div>
@@ -198,7 +198,7 @@ export function News() {
           className="gap-2 rounded-xl"
         >
           <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-          {isFetching ? 'Chargement...' : 'Actualiser'}
+          {isFetching ? 'Loading...' : 'Refresh'}
         </Button>
       </div>
 
@@ -268,12 +268,12 @@ export function News() {
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="py-8 text-center">
             <AlertCircle className="w-10 h-10 mx-auto mb-3 text-destructive" />
-            <h3 className="font-semibold mb-1">Erreur de chargement</h3>
+            <h3 className="font-semibold mb-1">Loading error</h3>
             <p className="text-muted-foreground text-sm mb-4">
-              Impossible de charger les actualités.
+              Unable to load news.
             </p>
             <Button onClick={() => refetch()} variant="outline" size="sm">
-              Réessayer
+              Retry
             </Button>
           </CardContent>
         </Card>
@@ -288,12 +288,12 @@ export function News() {
         </div>
       )}
 
-      {/* Featured News - Horizontal Cards */}
+      {/* Featured News */}
       {!isLoading && !isError && selectedCategory === 'all' && processedArticles.featured.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
-            À la une
+            Featured
           </h3>
           <div className="grid gap-3">
             {processedArticles.featured.map((article) => {
@@ -315,12 +315,12 @@ export function News() {
                             {categoryLabels[article.category]}
                           </Badge>
                           <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-0">
-                            À la une
+                            Featured
                           </Badge>
                           {isRead && (
                             <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground border-0">
                               <Check className="w-3 h-3 mr-1" />
-                              Lu
+                              Read
                             </Badge>
                           )}
                         </div>
@@ -360,13 +360,13 @@ export function News() {
         </div>
       )}
 
-      {/* Regular News - Compact List */}
+      {/* Regular News */}
       {!isLoading && !isError && processedArticles.regular.length > 0 && (
         <div className="space-y-3">
           {selectedCategory === 'all' && processedArticles.featured.length > 0 && (
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Newspaper className="w-4 h-4" />
-              Dernières actualités
+              Latest news
             </h3>
           )}
           <div className="grid gap-2">
@@ -422,11 +422,11 @@ export function News() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
               <Newspaper className="w-8 h-8 text-muted-foreground" />
             </div>
-            <h3 className="font-semibold mb-1">Aucune actualité</h3>
+            <h3 className="font-semibold mb-1">No news</h3>
             <p className="text-muted-foreground text-sm">
-              {readFilter === 'unread' ? 'Tous les articles ont été lus.' : 
-               readFilter === 'read' ? 'Aucun article lu.' :
-               'Aucune actualité dans cette catégorie.'}
+              {readFilter === 'unread' ? 'All articles have been read.' : 
+               readFilter === 'read' ? 'No articles read.' :
+               'No news in this category.'}
             </p>
           </CardContent>
         </Card>

@@ -25,7 +25,7 @@ export function Explorer({
       <div>
         <h2 className="text-3xl font-bold mb-2">Explorer</h2>
         <p className="text-muted-foreground text-lg">
-          Découvrez les pilotes, écuries et comparaisons Head-to-Head
+          Discover drivers, teams and Head-to-Head comparisons
         </p>
       </div>
 
@@ -33,11 +33,11 @@ export function Explorer({
         <TabsList className="inline-flex w-auto bg-muted/50 p-1.5 rounded-2xl">
           <TabsTrigger value="drivers" className="gap-2 rounded-xl">
             <Users className="w-4 h-4" />
-            Pilotes
+            Drivers
           </TabsTrigger>
           <TabsTrigger value="constructors" className="gap-2 rounded-xl">
             <Building2 className="w-4 h-4" />
-            Écuries
+            Teams
           </TabsTrigger>
           <TabsTrigger value="h2h" className="gap-2 rounded-xl">
             <Zap className="w-4 h-4" />
@@ -48,8 +48,8 @@ export function Explorer({
         {/* Drivers Sub-Tab */}
         <TabsContent value="drivers" className="space-y-6">
           <div>
-            <h3 className="font-bold text-xl mb-2">Pilotes 2026</h3>
-            <p className="text-muted-foreground">{drivers.length} pilotes sur la grille</p>
+            <h3 className="font-bold text-xl mb-2">2026 Drivers</h3>
+            <p className="text-muted-foreground">{drivers.length} drivers on the grid</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -101,7 +101,7 @@ export function Explorer({
                     <div className="grid grid-cols-3 gap-4">
                       <div className="text-center">
                         <div className="text-3xl font-bold">{driver.stats.wins}</div>
-                        <div className="text-xs text-muted-foreground mt-1">Victoires</div>
+                        <div className="text-xs text-muted-foreground mt-1">Wins</div>
                       </div>
                       <div className="text-center">
                         <div className="text-3xl font-bold">{driver.stats.podiums}</div>
@@ -115,7 +115,7 @@ export function Explorer({
                     {driver.stats.titles > 0 && (
                       <div className="pt-4 border-t">
                         <Badge className="w-full justify-center py-2 bg-gradient-to-r from-chart-5 to-chart-5/80 hover:from-chart-5 hover:to-chart-5 text-white border-0 shadow-lg shadow-chart-5/20">
-                          {driver.stats.titles}× Champion du Monde 🏆
+                          {driver.stats.titles}× World Champion 🏆
                         </Badge>
                       </div>
                     )}
@@ -129,8 +129,8 @@ export function Explorer({
         {/* Constructors Sub-Tab */}
         <TabsContent value="constructors" className="space-y-6">
           <div>
-            <h3 className="font-bold text-xl mb-2">Écuries 2026</h3>
-            <p className="text-muted-foreground">{constructors.length} écuries sur la grille</p>
+            <h3 className="font-bold text-xl mb-2">2026 Teams</h3>
+            <p className="text-muted-foreground">{constructors.length} teams on the grid</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -176,7 +176,7 @@ export function Explorer({
                     <div className="grid grid-cols-3 gap-4">
                       <div className="text-center">
                         <div className="text-3xl font-bold">{constructor.stats.wins}</div>
-                        <div className="text-xs text-muted-foreground mt-1">Victoires</div>
+                        <div className="text-xs text-muted-foreground mt-1">Wins</div>
                       </div>
                       <div className="text-center">
                         <div className="text-3xl font-bold">{constructor.stats.podiums}</div>
@@ -190,7 +190,7 @@ export function Explorer({
                     {constructor.stats.titles > 0 && (
                       <div className="pt-4 border-t">
                         <Badge className="w-full justify-center py-2 bg-gradient-to-r from-chart-5 to-chart-5/80 hover:from-chart-5 hover:to-chart-5 text-white border-0 shadow-lg shadow-chart-5/20">
-                          {constructor.stats.titles}× Champion du Monde 🏆
+                          {constructor.stats.titles}× World Champion 🏆
                         </Badge>
                       </div>
                     )}

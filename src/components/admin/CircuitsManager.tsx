@@ -58,30 +58,30 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
 
   const handleSave = () => {
     if (!formData.name || !formData.city || !formData.country || !formData.length) {
-      toast.error('Erreur', { description: 'Veuillez remplir tous les champs obligatoires' });
+      toast.error('Error', { description: 'Please fill in all required fields' });
       return;
     }
 
     if (isCreating) {
       const newCircuits = [...circuits, formData as Circuit];
       onUpdateCircuits(newCircuits);
-      toast.success('Circuit créé', { description: `${formData.name} a été ajouté` });
+      toast.success('Circuit created', { description: `${formData.name} has been added` });
     } else if (editingCircuit) {
       const updatedCircuits = circuits.map(c => 
         c.id === editingCircuit.id ? formData as Circuit : c
       );
       onUpdateCircuits(updatedCircuits);
-      toast.success('Circuit modifié', { description: `${formData.name} a été mis à jour` });
+      toast.success('Circuit updated', { description: `${formData.name} has been updated` });
     }
 
     handleCancel();
   };
 
   const handleDelete = (circuit: Circuit) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${circuit.name} ?`)) {
+    if (window.confirm(`Are you sure you want to delete ${circuit.name}?`)) {
       const updatedCircuits = circuits.filter(c => c.id !== circuit.id);
       onUpdateCircuits(updatedCircuits);
-      toast.success('Circuit supprimé', { description: `${circuit.name} a été supprimé` });
+      toast.success('Circuit deleted', { description: `${circuit.name} has been deleted` });
     }
   };
 
@@ -95,12 +95,12 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold mb-2">Gestion des circuits</h2>
-          <p className="text-muted-foreground text-lg">{circuits.length} circuits au total</p>
+          <h2 className="text-3xl font-bold mb-2">Circuit Management</h2>
+          <p className="text-muted-foreground text-lg">{circuits.length} circuits total</p>
         </div>
         <Button onClick={handleCreate} className="gap-2">
           <Plus className="w-4 h-4" />
-          Nouveau circuit
+          New circuit
         </Button>
       </div>
 
@@ -108,7 +108,7 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Rechercher par nom, ville ou pays..."
+          placeholder="Search by name, city or country..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -119,15 +119,15 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
       {(isCreating || editingCircuit) && (
         <Card className="border-primary/50 shadow-lg">
           <CardHeader>
-            <CardTitle>{isCreating ? 'Nouveau circuit' : 'Modifier le circuit'}</CardTitle>
+            <CardTitle>{isCreating ? 'New circuit' : 'Edit circuit'}</CardTitle>
             <CardDescription>
-              {isCreating ? 'Remplissez les informations du nouveau circuit' : 'Modifiez les informations du circuit'}
+              {isCreating ? 'Fill in the new circuit information' : 'Edit circuit information'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="name">Nom du circuit *</Label>
+                <Label htmlFor="name">Circuit Name *</Label>
                 <Input
                   id="name"
                   value={formData.name || ''}
@@ -136,7 +136,7 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="city">Ville *</Label>
+                <Label htmlFor="city">City *</Label>
                 <Input
                   id="city"
                   value={formData.city || ''}
@@ -145,7 +145,7 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="country">Pays *</Label>
+                <Label htmlFor="country">Country *</Label>
                 <Input
                   id="country"
                   value={formData.country || ''}
@@ -154,7 +154,7 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="length">Longueur (km) *</Label>
+                <Label htmlFor="length">Length (km) *</Label>
                 <Input
                   id="length"
                   type="number"
@@ -165,7 +165,7 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="turns">Nombre de virages</Label>
+                <Label htmlFor="turns">Number of turns</Label>
                 <Input
                   id="turns"
                   type="number"
@@ -175,10 +175,10 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label>Record du tour</Label>
+                <Label>Lap Record</Label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <Input
-                    placeholder="Temps (ex: 1:14.260)"
+                    placeholder="Time (e.g. 1:14.260)"
                     value={formData.lapRecord || ''}
                     onChange={(e) => setFormData({
                       ...formData,
@@ -186,7 +186,7 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
                     })}
                   />
                   <Input
-                    placeholder="Pilote"
+                    placeholder="Driver"
                     value={formData.lapRecordHolder || ''}
                     onChange={(e) => setFormData({
                       ...formData,
@@ -195,7 +195,7 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
                   />
                   <Input
                     type="number"
-                    placeholder="Année"
+                    placeholder="Year"
                     value={formData.lapRecordYear || ''}
                     onChange={(e) => setFormData({
                       ...formData,
@@ -208,11 +208,11 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={handleCancel}>
                 <X className="w-4 h-4 mr-2" />
-                Annuler
+                Cancel
               </Button>
               <Button onClick={handleSave}>
                 <Save className="w-4 h-4 mr-2" />
-                Enregistrer
+                Save
               </Button>
             </div>
           </CardContent>
@@ -256,14 +256,14 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
                   <div className="p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                       <Ruler className="w-3.5 h-3.5" />
-                      Longueur
+                      Length
                     </div>
                     <div className="font-semibold">{circuit.length} km</div>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                       <Clock className="w-3.5 h-3.5" />
-                      Virages
+                      Turns
                     </div>
                     <div className="font-semibold">{circuit.turns || 'N/A'}</div>
                   </div>
@@ -271,7 +271,7 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
 
                 {circuit.lapRecord && (
                   <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                    <div className="text-xs text-muted-foreground mb-1">Record du tour</div>
+                    <div className="text-xs text-muted-foreground mb-1">Lap Record</div>
                     <div className="font-semibold text-sm">
                       {circuit.lapRecord} · {circuit.lapRecordHolder} ({circuit.lapRecordYear})
                     </div>
@@ -287,9 +287,9 @@ export function CircuitsManager({ circuits, onUpdateCircuits }: CircuitsManagerP
         <Card>
           <CardContent className="py-12 text-center">
             <MapPin className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">Aucun circuit trouvé</h3>
+            <h3 className="text-lg font-semibold mb-2">No circuits found</h3>
             <p className="text-muted-foreground">
-              {searchTerm ? 'Essayez une autre recherche' : 'Commencez par ajouter un circuit'}
+              {searchTerm ? 'Try another search' : 'Start by adding a circuit'}
             </p>
           </CardContent>
         </Card>

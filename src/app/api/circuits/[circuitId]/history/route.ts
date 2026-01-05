@@ -43,7 +43,7 @@ export const GET = withErrorHandler(
     });
 
     if (!circuit) {
-      throw ApiError.notFound("Circuit non trouvé");
+      throw ApiError.notFound("Circuit not found");
     }
 
     const ergastId = circuit.ergastId;

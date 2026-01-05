@@ -62,16 +62,15 @@ export function NotificationSettings() {
   };
 
   const handleSavePreferences = () => {
-    // In real app, save to Supabase
-    toast.success('Préférences enregistrées', {
-      description: 'Vos paramètres de notifications ont été mis à jour.',
+    toast.success('Preferences saved', {
+      description: 'Your notification settings have been updated.',
     });
   };
 
   const handleTestNotification = () => {
     setTestSent(true);
-    toast.info('🏁 Course dans 1 heure !', {
-      description: 'Grand Prix de Monaco - Départ à 15:00',
+    toast.info('🏁 Race in 1 hour!', {
+      description: 'Monaco Grand Prix - Start at 3:00 PM',
       duration: 5000,
     });
     
@@ -81,8 +80,8 @@ export function NotificationSettings() {
   const delayOptions = [
     { value: 15, label: '15 minutes' },
     { value: 30, label: '30 minutes' },
-    { value: 60, label: '1 heure' },
-    { value: 120, label: '2 heures' },
+    { value: 60, label: '1 hour' },
+    { value: 120, label: '2 hours' },
   ];
 
   return (
@@ -92,7 +91,7 @@ export function NotificationSettings() {
         <div>
           <h2 className="text-3xl font-bold mb-2">Notifications</h2>
           <p className="text-muted-foreground text-lg">
-            Configurez vos rappels et alertes F1
+            Configure your F1 reminders and alerts
           </p>
         </div>
         <Button
@@ -103,12 +102,12 @@ export function NotificationSettings() {
           {preferences.enabled ? (
             <>
               <Bell className="w-4 h-4" />
-              Activées
+              Enabled
             </>
           ) : (
             <>
               <BellOff className="w-4 h-4" />
-              Désactivées
+              Disabled
             </>
           )}
         </Button>
@@ -121,9 +120,9 @@ export function NotificationSettings() {
             <div className="flex items-start gap-3">
               <BellOff className="w-5 h-5 text-amber-500 mt-0.5" />
               <div>
-                <div className="font-semibold mb-1">Notifications désactivées</div>
+                <div className="font-semibold mb-1">Notifications disabled</div>
                 <p className="text-sm text-muted-foreground">
-                  Activez les notifications pour recevoir des rappels avant les séances et rester informé.
+                  Enable notifications to receive reminders before sessions and stay informed.
                 </p>
               </div>
             </div>
@@ -136,18 +135,18 @@ export function NotificationSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-primary" />
-            Rappels avant les séances
+            Session reminders
           </CardTitle>
           <CardDescription>
-            Recevez une notification avant le début d'une séance
+            Receive a notification before a session starts
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
             <Label htmlFor="session-reminders" className="cursor-pointer">
-              <div className="font-medium mb-1">Activer les rappels</div>
+              <div className="font-medium mb-1">Enable reminders</div>
               <div className="text-sm text-muted-foreground">
-                Soyez alerté avant le début des séances
+                Get alerted before sessions start
               </div>
             </Label>
             <Switch
@@ -161,7 +160,7 @@ export function NotificationSettings() {
           {preferences.beforeSession.enabled && (
             <div className="space-y-4 animate-scale-in">
               <div>
-                <Label className="mb-3 block">Délai de notification</Label>
+                <Label className="mb-3 block">Notification delay</Label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {delayOptions.map((option) => (
                     <Button
@@ -178,7 +177,7 @@ export function NotificationSettings() {
               </div>
 
               <div>
-                <Label className="mb-3 block">Types de séances</Label>
+                <Label className="mb-3 block">Session types</Label>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
                     <div className="flex items-center gap-3">
@@ -186,7 +185,7 @@ export function NotificationSettings() {
                         <Settings className="w-5 h-5 text-muted-foreground" />
                       </div>
                       <Label htmlFor="notify-practice" className="cursor-pointer">
-                        <div className="font-medium">Essais libres</div>
+                        <div className="font-medium">Free Practice</div>
                         <div className="text-sm text-muted-foreground">FP1, FP2, FP3</div>
                       </Label>
                     </div>
@@ -204,8 +203,8 @@ export function NotificationSettings() {
                         <Flag className="w-5 h-5 text-chart-2" />
                       </div>
                       <Label htmlFor="notify-qualifying" className="cursor-pointer">
-                        <div className="font-medium">Qualifications</div>
-                        <div className="text-sm text-muted-foreground">Séance qualificative</div>
+                        <div className="font-medium">Qualifying</div>
+                        <div className="text-sm text-muted-foreground">Qualifying session</div>
                       </Label>
                     </div>
                     <Switch
@@ -223,7 +222,7 @@ export function NotificationSettings() {
                       </div>
                       <Label htmlFor="notify-sprint" className="cursor-pointer">
                         <div className="font-medium">Sprint</div>
-                        <div className="text-sm text-muted-foreground">Course sprint</div>
+                        <div className="text-sm text-muted-foreground">Sprint race</div>
                       </Label>
                     </div>
                     <Switch
@@ -240,7 +239,7 @@ export function NotificationSettings() {
                         <Trophy className="w-5 h-5 text-primary" />
                       </div>
                       <Label htmlFor="notify-race" className="cursor-pointer">
-                        <div className="font-medium">Course</div>
+                        <div className="font-medium">Race</div>
                         <div className="text-sm text-muted-foreground">Grand Prix</div>
                       </Label>
                     </div>
@@ -263,15 +262,15 @@ export function NotificationSettings() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="w-5 h-5 text-primary" />
-            Autres notifications
+            Other notifications
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
             <Label htmlFor="notify-results" className="cursor-pointer">
-              <div className="font-medium mb-1">Résultats des courses</div>
+              <div className="font-medium mb-1">Race results</div>
               <div className="text-sm text-muted-foreground">
-                Notification avec le podium après la course
+                Notification with podium after the race
               </div>
             </Label>
             <Switch
@@ -284,9 +283,9 @@ export function NotificationSettings() {
 
           <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
             <Label htmlFor="notify-predictions" className="cursor-pointer">
-              <div className="font-medium mb-1">Rappel pronostics</div>
+              <div className="font-medium mb-1">Prediction reminder</div>
               <div className="text-sm text-muted-foreground">
-                Alerte si pronostics non remplis 24h avant la course
+                Alert if predictions not filled 24h before race
               </div>
             </Label>
             <Switch
@@ -299,9 +298,9 @@ export function NotificationSettings() {
 
           <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
             <Label htmlFor="notify-news" className="cursor-pointer">
-              <div className="font-medium mb-1">Actualités importantes</div>
+              <div className="font-medium mb-1">Important news</div>
               <div className="text-sm text-muted-foreground">
-                News majeures (transferts, règlements, etc.)
+                Major news (transfers, regulations, etc.)
               </div>
             </Label>
             <Switch
@@ -319,9 +318,9 @@ export function NotificationSettings() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="font-semibold mb-1">Tester les notifications</div>
+              <div className="font-semibold mb-1">Test notifications</div>
               <p className="text-sm text-muted-foreground">
-                Envoyez une notification de test pour vérifier vos paramètres
+                Send a test notification to verify your settings
               </p>
             </div>
             <Button
@@ -332,12 +331,12 @@ export function NotificationSettings() {
               {testSent ? (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  Envoyée
+                  Sent
                 </>
               ) : (
                 <>
                   <Bell className="w-4 h-4" />
-                  Tester
+                  Test
                 </>
               )}
             </Button>
@@ -354,7 +353,7 @@ export function NotificationSettings() {
           disabled={!preferences.enabled}
         >
           <CheckCircle2 className="w-4 h-4" />
-          Enregistrer les préférences
+          Save preferences
         </Button>
       </div>
     </div>

@@ -42,7 +42,7 @@ export function AuthButton({
         className="gap-2 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20"
       >
         <User className="w-4 h-4" />
-        <span className="hidden sm:inline">Connexion</span>
+        <span className="hidden sm:inline">Login</span>
       </Button>
     );
   }
@@ -84,18 +84,18 @@ export function AuthButton({
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onProfileClick} className="cursor-pointer">
           <User className="mr-2 h-4 w-4" />
-          <span>Mon Profil</span>
+          <span>My Profile</span>
         </DropdownMenuItem>
         <DropdownMenuItem className="cursor-pointer" onClick={onStandingsClick}>
           <Trophy className="mr-2 h-4 w-4" />
-          <span>Mes Classements</span>
+          <span>My Standings</span>
           <Badge variant="secondary" className="ml-auto">
             #{user.stats.rank}
           </Badge>
         </DropdownMenuItem>
         <DropdownMenuItem className="cursor-pointer" onClick={onPredictionsClick}>
           <Target className="mr-2 h-4 w-4" />
-          <span>Mes Pronostics</span>
+          <span>My Predictions</span>
           <Badge variant="secondary" className="ml-auto">
             {user.stats.predictions}
           </Badge>
@@ -110,7 +110,7 @@ export function AuthButton({
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer" onClick={onSettingsClick}>
           <Settings className="mr-2 h-4 w-4" />
-          <span>Paramètres</span>
+          <span>Settings</span>
         </DropdownMenuItem>
         <DropdownMenuItem className="cursor-pointer" onClick={onAdminClick}>
           <Shield className="mr-2 h-4 w-4" />
@@ -119,7 +119,7 @@ export function AuthButton({
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onLogout} className="cursor-pointer text-destructive">
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Déconnexion</span>
+          <span>Log out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -45,7 +45,7 @@ export function handleApiError(error: unknown): NextResponse {
           message:
             process.env.NODE_ENV === "development"
               ? error.message
-              : "Erreur interne du serveur",
+              : "Internal server error",
         },
       },
       { status: 500 }
@@ -58,7 +58,7 @@ export function handleApiError(error: unknown): NextResponse {
       success: false,
       error: {
         code: "INTERNAL_ERROR",
-        message: "Erreur interne du serveur",
+        message: "Internal server error",
       },
     },
     { status: 500 }
@@ -124,7 +124,7 @@ function handlePrismaError(error: PrismaClientError): NextResponse {
           success: false,
           error: {
             code: "INTERNAL_ERROR",
-            message: "Erreur base de données",
+            message: "Database error",
           },
         },
         { status: 500 }

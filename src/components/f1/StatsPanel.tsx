@@ -46,7 +46,7 @@ const mockBadges: BadgeData[] = [
   {
     id: 'sniper',
     name: 'Sniper',
-    description: '5 P1 exacts',
+    description: '5 exact P1',
     icon: '🎯',
     unlocked: true,
     progress: 8,
@@ -55,8 +55,8 @@ const mockBadges: BadgeData[] = [
   },
   {
     id: 'regular',
-    name: 'Régulier',
-    description: '10 courses consécutives',
+    name: 'Regular',
+    description: '10 consecutive races',
     icon: '📅',
     unlocked: true,
     progress: 18,
@@ -66,7 +66,7 @@ const mockBadges: BadgeData[] = [
   {
     id: 'speed-demon',
     name: 'Speed Demon',
-    description: '5 Fastest Lap exacts',
+    description: '5 exact Fastest Laps',
     icon: '⚡',
     unlocked: true,
     progress: 7,
@@ -76,7 +76,7 @@ const mockBadges: BadgeData[] = [
   {
     id: 'pole-hunter',
     name: 'Pole Hunter',
-    description: '5 Poles exactes',
+    description: '5 exact Poles',
     icon: '🏁',
     unlocked: true,
     progress: 10,
@@ -86,7 +86,7 @@ const mockBadges: BadgeData[] = [
   {
     id: 'oracle',
     name: 'Oracle',
-    description: '3 podiums exacts consécutifs',
+    description: '3 consecutive exact podiums',
     icon: '🔮',
     unlocked: false,
     progress: 2,
@@ -96,7 +96,7 @@ const mockBadges: BadgeData[] = [
   {
     id: 'champion',
     name: 'Champion',
-    description: 'Gagner le classement',
+    description: 'Win the ranking',
     icon: '🏆',
     unlocked: false,
     progress: 1,
@@ -113,10 +113,10 @@ const rarityColors = {
 };
 
 const rarityLabels = {
-  common: 'Commun',
+  common: 'Common',
   rare: 'Rare',
-  epic: 'Épique',
-  legendary: 'Légendaire',
+  epic: 'Epic',
+  legendary: 'Legendary',
 };
 
 interface StatsPanelProps {
@@ -137,9 +137,9 @@ export function StatsPanel({ open, onOpenChange }: StatsPanelProps) {
               <Trophy className="w-5 h-5 text-white" />
             </div>
             <div>
-              <SheetTitle className="text-xl">Vos statistiques</SheetTitle>
+              <SheetTitle className="text-xl">Your statistics</SheetTitle>
               <SheetDescription>
-                Performances & achievements
+                Performance & achievements
               </SheetDescription>
             </div>
           </div>
@@ -152,19 +152,19 @@ export function StatsPanel({ open, onOpenChange }: StatsPanelProps) {
               <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
                 <Target className="w-6 h-6 mb-2 text-primary" />
                 <div className="text-3xl font-bold">{mockStats.accuracyRate}%</div>
-                <div className="text-xs text-muted-foreground mt-1">Taux de réussite</div>
+                <div className="text-xs text-muted-foreground mt-1">Success rate</div>
               </div>
 
               <div className="p-4 rounded-xl bg-gradient-to-br from-chart-5/10 to-chart-5/5 border border-chart-5/20">
                 <Trophy className="w-6 h-6 mb-2 text-chart-5" />
                 <div className="text-3xl font-bold">{mockStats.totalPoints}</div>
-                <div className="text-xs text-muted-foreground mt-1">Points totaux</div>
+                <div className="text-xs text-muted-foreground mt-1">Total points</div>
               </div>
 
               <div className="p-4 rounded-xl bg-gradient-to-br from-chart-3/10 to-chart-3/5 border border-chart-3/20">
                 <Flame className="w-6 h-6 mb-2 text-chart-3" />
                 <div className="text-3xl font-bold">{mockStats.currentStreak}</div>
-                <div className="text-xs text-muted-foreground mt-1">Série actuelle</div>
+                <div className="text-xs text-muted-foreground mt-1">Current streak</div>
               </div>
 
               <div className="p-4 rounded-xl bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/20">
@@ -177,7 +177,7 @@ export function StatsPanel({ open, onOpenChange }: StatsPanelProps) {
             {/* Detailed Stats */}
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Performances
+                Performance
               </h3>
               
               <div className="space-y-3">
@@ -185,7 +185,7 @@ export function StatsPanel({ open, onOpenChange }: StatsPanelProps) {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Trophy className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium">Vainqueur (P1)</span>
+                      <span className="text-sm font-medium">Winner (P1)</span>
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {mockStats.correctP1}/{mockStats.totalPredictions}
@@ -224,7 +224,7 @@ export function StatsPanel({ open, onOpenChange }: StatsPanelProps) {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-chart-4" />
-                      <span className="text-sm font-medium">Tour rapide</span>
+                      <span className="text-sm font-medium">Fastest lap</span>
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {mockStats.correctFastestLap}/{mockStats.totalPredictions}
@@ -240,7 +240,7 @@ export function StatsPanel({ open, onOpenChange }: StatsPanelProps) {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    Badges débloqués
+                    Unlocked badges
                   </h3>
                   <Badge variant="secondary" className="text-xs">
                     {unlockedBadges.length}
@@ -271,7 +271,7 @@ export function StatsPanel({ open, onOpenChange }: StatsPanelProps) {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    À débloquer
+                    To unlock
                   </h3>
                   <Badge variant="outline" className="text-xs">
                     {lockedBadges.length}
@@ -311,9 +311,9 @@ export function StatsPanel({ open, onOpenChange }: StatsPanelProps) {
                   <Star className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <div className="font-semibold text-sm mb-1">Prochain objectif</div>
+                  <div className="font-semibold text-sm mb-1">Next goal</div>
                   <p className="text-xs text-muted-foreground">
-                    Plus qu'<strong>1 podium exact</strong> pour débloquer le badge <strong>Oracle</strong> 🔮
+                    Only <strong>1 exact podium</strong> left to unlock the <strong>Oracle</strong> badge 🔮
                   </p>
                 </div>
               </div>
@@ -328,7 +328,7 @@ export function StatsPanel({ open, onOpenChange }: StatsPanelProps) {
             onClick={() => onOpenChange(false)}
           >
             <TrendingUp className="w-4 h-4" />
-            Voir toutes les stats
+            View all stats
           </Button>
         </div>
       </SheetContent>

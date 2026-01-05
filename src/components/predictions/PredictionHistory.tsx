@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, History, Trophy, Zap, Target } from 'lucide-react';
@@ -41,17 +41,17 @@ export function PredictionHistory({
         <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
           <CardTitle className="flex items-center gap-2">
             <History className="w-5 h-5" />
-            Historique des pronostics
+            Prediction history
           </CardTitle>
-          <p className="text-muted-foreground">
-            {userPredictions.length} pronostic{userPredictions.length > 1 ? 's' : ''} soumis
-          </p>
+          <CardDescription>
+            {userPredictions.length} prediction{userPredictions.length > 1 ? 's' : ''} submitted
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
           {userPredictions.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>Aucun pronostic pour le moment</p>
+              <p>No predictions yet</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -87,7 +87,7 @@ export function PredictionHistory({
                       {/* Top 3 */}
                       <div>
                         <div className="text-sm font-semibold text-muted-foreground mb-2">
-                          Podium prédit
+                          Predicted podium
                         </div>
                         <div className="flex gap-2">
                           <Badge className="bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0">

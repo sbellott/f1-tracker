@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingUser) {
-      return errorResponse('Un compte avec cet email existe déjà', 409);
+      return errorResponse('An account with this email already exists', 409);
     }
 
     // Hash password and create user
@@ -61,6 +61,6 @@ export async function POST(request: NextRequest) {
     console.error('Registration error:', error);
     // Include more details in production for debugging
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return serverErrorResponse(`Erreur lors de l'inscription: ${errorMessage}`);
+    return serverErrorResponse(`Registration error: ${errorMessage}`);
   }
 }

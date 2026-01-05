@@ -2,16 +2,26 @@
 // F1.COM OFFICIAL IMAGE URL MAPPINGS
 // ============================================
 
-// Hero banner images by country name
-const F1_HERO_BASE_URL = 'https://media.formula1.com/image/upload/f_auto/q_auto/v1677245032/content/dam/fom-website/2018-redesign-assets/Racehub%20header%20images%2016x9';
+// Hero banner images - Updated URL pattern for 2024+
+const F1_HERO_BASE_URL = 'https://media.formula1.com/image/upload/c_lfill,w_1920/q_auto/v1740000000/content/dam/fom-website/2018-redesign-assets/Racehub%20header%20images%2016x9';
 
+// City-specific hero images (takes priority over country)
+const cityToHeroImage: Record<string, string> = {
+  'Miami': 'Miami',
+  'Las Vegas': 'Las%20Vegas',
+  'Austin': 'USA',
+  'Jeddah': 'Saudi_Arabia',
+  'Madrid': 'Spain', // New Spanish GP venue
+};
+
+// Country to hero image mapping
 const countryToHeroImage: Record<string, string> = {
   'Australia': 'Australia',
   'China': 'China',
   'Japan': 'Japan',
   'Bahrain': 'Bahrain',
-  'Saudi Arabia': 'Saudi%20Arabia',
-  'USA': 'United%20States',
+  'Saudi Arabia': 'Saudi_Arabia',
+  'USA': 'USA',
   'Monaco': 'Monaco',
   'Spain': 'Spain',
   'Canada': 'Canada',
@@ -27,8 +37,8 @@ const countryToHeroImage: Record<string, string> = {
   'Mexico': 'Mexico',
   'Brazil': 'Brazil',
   'Qatar': 'Qatar',
-  'UAE': 'Abu%20Dhabi',
-  'United Arab Emirates': 'Abu%20Dhabi',
+  'UAE': 'Abu_Dhabi',
+  'United Arab Emirates': 'Abu_Dhabi',
 };
 
 // Track map images by city/circuit location
@@ -63,11 +73,18 @@ const cityToTrackMap: Record<string, string> = {
 };
 
 /**
- * Get F1.com hero image URL for a country
+ * Get F1.com hero image URL for a country/city
+ * City-specific images take priority for circuits like Miami, Las Vegas
  */
-export function getF1HeroImageUrl(country: string): string {
-  const heroName = countryToHeroImage[country] || country.replace(/\s+/g, '%20');
-  return `${F1_HERO_BASE_URL}/${heroName}.jpg.transform/9col/image.jpg`;
+export function getF1HeroImageUrl(country: string, city?: string): string {
+  // Check city-specific mapping first (for Miami, Las Vegas, etc.)
+  if (city && cityToHeroImage[city]) {
+    return `${F1_HERO_BASE_URL}/${cityToHeroImage[city]}.webp`;
+  }
+  
+  // Fall back to country mapping
+  const heroName = countryToHeroImage[country] || country.replace(/\s+/g, '_');
+  return `${F1_HERO_BASE_URL}/${heroName}.webp`;
 }
 
 /**

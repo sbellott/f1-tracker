@@ -44,7 +44,7 @@ const mockBadges: BadgeData[] = [
   {
     id: 'oracle',
     name: 'Oracle',
-    description: '3 podiums exacts consécutifs',
+    description: '3 consecutive exact podiums',
     icon: '🔮',
     unlocked: false,
     progress: 2,
@@ -54,7 +54,7 @@ const mockBadges: BadgeData[] = [
   {
     id: 'sniper',
     name: 'Sniper',
-    description: '5 P1 exacts dans la saison',
+    description: '5 exact P1 in the season',
     icon: '🎯',
     unlocked: true,
     progress: 8,
@@ -63,8 +63,8 @@ const mockBadges: BadgeData[] = [
   },
   {
     id: 'regular',
-    name: 'Régulier',
-    description: 'Pronostics sur 10 courses consécutives',
+    name: 'Regular',
+    description: 'Predictions on 10 consecutive races',
     icon: '📅',
     unlocked: true,
     progress: 18,
@@ -74,7 +74,7 @@ const mockBadges: BadgeData[] = [
   {
     id: 'underdog',
     name: 'Underdog',
-    description: 'Prédit un top 5 d\'un pilote hors top 10',
+    description: 'Predicted a top 5 for a driver outside top 10',
     icon: '🐕',
     unlocked: false,
     progress: 0,
@@ -84,7 +84,7 @@ const mockBadges: BadgeData[] = [
   {
     id: 'speed-demon',
     name: 'Speed Demon',
-    description: '5 Fastest Lap exacts',
+    description: '5 exact Fastest Laps',
     icon: '⚡',
     unlocked: true,
     progress: 7,
@@ -94,7 +94,7 @@ const mockBadges: BadgeData[] = [
   {
     id: 'pole-hunter',
     name: 'Pole Hunter',
-    description: '5 Poles exactes',
+    description: '5 exact Poles',
     icon: '🏁',
     unlocked: true,
     progress: 10,
@@ -104,7 +104,7 @@ const mockBadges: BadgeData[] = [
   {
     id: 'champion',
     name: 'Champion',
-    description: 'Gagner le classement de la saison',
+    description: 'Win the season ranking',
     icon: '🏆',
     unlocked: false,
     progress: 1,
@@ -114,7 +114,7 @@ const mockBadges: BadgeData[] = [
   {
     id: 'perfect-weekend',
     name: 'Perfect Weekend',
-    description: 'Podium exact + Pole + FL sur une course',
+    description: 'Exact podium + Pole + FL on a race',
     icon: '⭐',
     unlocked: false,
     progress: 0,
@@ -131,10 +131,10 @@ const rarityColors = {
 };
 
 const rarityLabels = {
-  common: 'Commun',
+  common: 'Common',
   rare: 'Rare',
-  epic: 'Épique',
-  legendary: 'Légendaire',
+  epic: 'Epic',
+  legendary: 'Legendary',
 };
 
 export function StatsAndBadges() {
@@ -145,9 +145,9 @@ export function StatsAndBadges() {
     <div className="space-y-8 fade-in">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold mb-2">Statistiques & Badges</h2>
+        <h2 className="text-3xl font-bold mb-2">Statistics & Badges</h2>
         <p className="text-muted-foreground text-lg">
-          Suivez vos performances et débloquez des achievements
+          Track your performance and unlock achievements
         </p>
       </div>
 
@@ -158,7 +158,7 @@ export function StatsAndBadges() {
             <div className="text-center">
               <Target className="w-8 h-8 mx-auto mb-3 text-primary" />
               <div className="text-4xl font-bold mb-1">{mockStats.accuracyRate}%</div>
-              <div className="text-sm text-muted-foreground">Taux de réussite</div>
+              <div className="text-sm text-muted-foreground">Success rate</div>
             </div>
           </CardContent>
         </Card>
@@ -168,7 +168,7 @@ export function StatsAndBadges() {
             <div className="text-center">
               <Trophy className="w-8 h-8 mx-auto mb-3 text-amber-500" />
               <div className="text-4xl font-bold mb-1">{mockStats.totalPoints}</div>
-              <div className="text-sm text-muted-foreground">Points totaux</div>
+              <div className="text-sm text-muted-foreground">Total points</div>
             </div>
           </CardContent>
         </Card>
@@ -178,7 +178,7 @@ export function StatsAndBadges() {
             <div className="text-center">
               <Flame className="w-8 h-8 mx-auto mb-3 text-chart-3" />
               <div className="text-4xl font-bold mb-1">{mockStats.currentStreak}</div>
-              <div className="text-sm text-muted-foreground">Série actuelle</div>
+              <div className="text-sm text-muted-foreground">Current streak</div>
             </div>
           </CardContent>
         </Card>
@@ -199,10 +199,10 @@ export function StatsAndBadges() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-primary" />
-            Statistiques détaillées
+            Detailed statistics
           </CardTitle>
           <CardDescription>
-            Vos performances par type de pronostic
+            Your performance by prediction type
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -211,7 +211,7 @@ export function StatsAndBadges() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-primary" />
-                  <span className="font-medium">Vainqueur (P1)</span>
+                  <span className="font-medium">Winner (P1)</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
                   {mockStats.correctP1}/{mockStats.totalPredictions} ({Math.round((mockStats.correctP1 / mockStats.totalPredictions) * 100)}%)
@@ -224,7 +224,7 @@ export function StatsAndBadges() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Award className="w-4 h-4 text-chart-2" />
-                  <span className="font-medium">Podium complet</span>
+                  <span className="font-medium">Full podium</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
                   {mockStats.correctPodium}/{mockStats.totalPredictions} ({Math.round((mockStats.correctPodium / mockStats.totalPredictions) * 100)}%)
@@ -250,7 +250,7 @@ export function StatsAndBadges() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <Zap className="w-4 h-4 text-chart-4" />
-                  <span className="font-medium">Tour le plus rapide</span>
+                  <span className="font-medium">Fastest lap</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
                   {mockStats.correctFastestLap}/{mockStats.totalPredictions} ({Math.round((mockStats.correctFastestLap / mockStats.totalPredictions) * 100)}%)
@@ -263,15 +263,15 @@ export function StatsAndBadges() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-border">
             <div className="text-center p-4 rounded-xl bg-muted/50">
               <div className="text-2xl font-bold mb-1">{mockStats.averagePoints}</div>
-              <div className="text-sm text-muted-foreground">Pts moyens/course</div>
+              <div className="text-sm text-muted-foreground">Avg pts/race</div>
             </div>
             <div className="text-center p-4 rounded-xl bg-muted/50">
               <div className="text-2xl font-bold mb-1">{mockStats.bestStreak}</div>
-              <div className="text-sm text-muted-foreground">Meilleure série</div>
+              <div className="text-sm text-muted-foreground">Best streak</div>
             </div>
             <div className="text-center p-4 rounded-xl bg-muted/50">
               <div className="text-2xl font-bold mb-1">{mockStats.totalPredictions}</div>
-              <div className="text-sm text-muted-foreground">Pronostics soumis</div>
+              <div className="text-sm text-muted-foreground">Predictions submitted</div>
             </div>
           </div>
         </CardContent>
@@ -283,13 +283,13 @@ export function StatsAndBadges() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Award className="w-5 h-5 text-primary" />
-              Badges débloqués
+              Unlocked badges
               <Badge variant="secondary" className="ml-2">
                 {unlockedBadges.length}
               </Badge>
             </CardTitle>
             <CardDescription>
-              Vos achievements obtenus
+              Your earned achievements
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -333,13 +333,13 @@ export function StatsAndBadges() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Lock className="w-5 h-5 text-muted-foreground" />
-              Badges à débloquer
+              Badges to unlock
               <Badge variant="secondary" className="ml-2">
                 {lockedBadges.length}
               </Badge>
             </CardTitle>
             <CardDescription>
-              Continuez à progresser pour débloquer ces achievements
+              Keep progressing to unlock these achievements
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -386,10 +386,10 @@ export function StatsAndBadges() {
               <Star className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <div className="font-semibold mb-1">Continuez vos pronostics !</div>
+              <div className="font-semibold mb-1">Keep predicting!</div>
               <p className="text-sm text-muted-foreground">
-                Vous êtes à <strong>1 podium exact</strong> de débloquer le badge <strong>Oracle</strong> 🔮. 
-                Maintenez votre série de {mockStats.currentStreak} victoires !
+                You are <strong>1 exact podium</strong> away from unlocking the <strong>Oracle</strong> badge 🔮. 
+                Maintain your streak of {mockStats.currentStreak} wins!
               </p>
             </div>
           </div>

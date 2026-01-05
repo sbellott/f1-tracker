@@ -57,18 +57,18 @@ export class ApiError extends Error {
     return new ApiError("CONFLICT", message, 409, details);
   }
 
-  static rateLimited(message: string = "Trop de requêtes"): ApiError {
+  static rateLimited(message: string = "Too many requests"): ApiError {
     return new ApiError("RATE_LIMITED", message, 429);
   }
 
-  static internal(message: string = "Erreur interne du serveur"): ApiError {
+  static internal(message: string = "Internal server error"): ApiError {
     return new ApiError("INTERNAL_ERROR", message, 500);
   }
 
   static predictionLocked(): ApiError {
     return new ApiError(
       "PREDICTION_LOCKED",
-      "Les pronostics sont verrouillés pour cette course",
+      "Predictions are locked for this race",
       400
     );
   }
@@ -80,7 +80,7 @@ export class ApiError extends Error {
   static externalApi(service: string, message: string): ApiError {
     return new ApiError(
       "EXTERNAL_API_ERROR",
-      `Erreur API ${service}: ${message}`,
+      `API error ${service}: ${message}`,
       502
     );
   }

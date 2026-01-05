@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Award, Calendar, Flag, MapPin, Trophy, Zap, TrendingUp, Medal } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 
 interface DriverDetailViewProps {
   driver: Driver;
@@ -26,10 +25,10 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
   ].filter(r => r.race);
 
   const careerHighlights = [
-    { label: 'Première victoire', value: 'Monaco 2020', icon: Trophy },
-    { label: 'Première pole', value: 'Silverstone 2019', icon: Zap },
-    { label: 'Meilleur résultat', value: '1er', icon: Medal },
-    { label: 'Courses terminées', value: `${Math.round((driver.stats.gp * 0.85))}/${driver.stats.gp}`, icon: Flag },
+    { label: 'First win', value: 'Monaco 2020', icon: Trophy },
+    { label: 'First pole', value: 'Silverstone 2019', icon: Zap },
+    { label: 'Best result', value: '1st', icon: Medal },
+    { label: 'Races finished', value: `${Math.round((driver.stats.gp * 0.85))}/${driver.stats.gp}`, icon: Flag },
   ];
 
   return (
@@ -41,7 +40,7 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
         className="gap-2 hover:bg-muted/50 rounded-xl"
       >
         <ArrowLeft className="w-4 h-4" />
-        Retour aux pilotes
+        Back to drivers
       </Button>
 
       {/* Hero Section */}
@@ -112,7 +111,7 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
             <div className="text-4xl font-bold bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-transparent">
               {driver.stats.wins}
             </div>
-            <div className="text-sm text-muted-foreground">Victoires</div>
+            <div className="text-sm text-muted-foreground">Wins</div>
           </CardHeader>
         </Card>
 
@@ -149,7 +148,7 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
           <CardHeader className="pb-3 relative">
             <div className="flex items-center justify-between mb-2">
               <TrendingUp className="w-5 h-5 text-chart-4" />
-              <div className="text-xs text-muted-foreground">Saison 2026</div>
+              <div className="text-xs text-muted-foreground">2026 Season</div>
             </div>
             <div className="text-4xl font-bold bg-gradient-to-br from-chart-4 to-chart-4/70 bg-clip-text text-transparent">
               {driver.stats.points}
@@ -168,29 +167,29 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
                 <Flag className="w-4 h-4 text-white" />
               </div>
-              Informations
+              Information
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Nationalité</div>
+                <div className="text-sm text-muted-foreground mb-1">Nationality</div>
                 <div className="font-semibold">{driver.nationality}</div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Date de naissance</div>
+                <div className="text-sm text-muted-foreground mb-1">Date of birth</div>
                 <div className="font-semibold">
-                  {format(new Date(driver.dateOfBirth), 'd MMM yyyy', { locale: fr })}
+                  {format(new Date(driver.dateOfBirth), 'MMM d, yyyy')}
                 </div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Âge</div>
+                <div className="text-sm text-muted-foreground mb-1">Age</div>
                 <div className="font-semibold">
-                  {new Date().getFullYear() - new Date(driver.dateOfBirth).getFullYear()} ans
+                  {new Date().getFullYear() - new Date(driver.dateOfBirth).getFullYear()} years
                 </div>
               </div>
               <div>
-                <div className="text-sm text-muted-foreground mb-1">Grands Prix</div>
+                <div className="text-sm text-muted-foreground mb-1">Grand Prix</div>
                 <div className="font-semibold">{driver.stats.gp}</div>
               </div>
             </div>
@@ -199,13 +198,13 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
               <div className="pt-4 border-t border-border/50">
                 <Badge className="w-full justify-center py-3 bg-gradient-to-r from-chart-5 to-chart-5/80 text-white border-0 shadow-lg shadow-chart-5/20">
                   <Trophy className="w-4 h-4 mr-2" />
-                  {driver.stats.titles}× Champion du Monde
+                  {driver.stats.titles}× World Champion
                 </Badge>
               </div>
             )}
 
             <div className="pt-4 border-t border-border/50">
-              <div className="text-sm text-muted-foreground mb-3">Écurie actuelle</div>
+              <div className="text-sm text-muted-foreground mb-3">Current team</div>
               <div className="p-4 rounded-xl bg-muted/30 space-y-2">
                 <div className="flex items-center gap-2 mb-2">
                   <div 
@@ -220,7 +219,7 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
                     <span>{constructor.base}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Moteur: </span>
+                    <span className="text-muted-foreground">Engine: </span>
                     <span>{constructor.engine}</span>
                   </div>
                 </div>
@@ -236,7 +235,7 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
               <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-accent to-accent/80 flex items-center justify-center">
                 <Award className="w-4 h-4 text-white" />
               </div>
-              Temps forts
+              Highlights
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 space-y-3">
@@ -265,7 +264,7 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-chart-3 to-chart-3/80 flex items-center justify-center">
               <Calendar className="w-4 h-4 text-white" />
             </div>
-            Derniers résultats
+            Recent results
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
@@ -293,7 +292,7 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
                   <div className="flex-1">
                     <div className="font-semibold">{result.race.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      {format(new Date(result.race.date), 'd MMM yyyy', { locale: fr })}
+                      {format(new Date(result.race.date), 'MMM d, yyyy')}
                     </div>
                   </div>
                 </div>
@@ -323,42 +322,42 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-chart-4 to-chart-4/80 flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-white" />
             </div>
-            Statistiques de carrière
+            Career statistics
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="text-center p-4 rounded-xl bg-muted/30">
               <div className="text-3xl font-bold mb-1">{driver.stats.gp}</div>
-              <div className="text-sm text-muted-foreground">Grands Prix</div>
+              <div className="text-sm text-muted-foreground">Grand Prix</div>
             </div>
             <div className="text-center p-4 rounded-xl bg-muted/30">
               <div className="text-3xl font-bold mb-1">{driver.stats.fastestLaps}</div>
-              <div className="text-sm text-muted-foreground">Tours rapides</div>
+              <div className="text-sm text-muted-foreground">Fastest laps</div>
             </div>
             <div className="text-center p-4 rounded-xl bg-muted/30">
               <div className="text-3xl font-bold mb-1">
                 {Math.round((driver.stats.wins / driver.stats.gp) * 100)}%
               </div>
-              <div className="text-sm text-muted-foreground">Taux de victoire</div>
+              <div className="text-sm text-muted-foreground">Win rate</div>
             </div>
             <div className="text-center p-4 rounded-xl bg-muted/30">
               <div className="text-3xl font-bold mb-1">
                 {Math.round((driver.stats.podiums / driver.stats.gp) * 100)}%
               </div>
-              <div className="text-sm text-muted-foreground">Taux de podium</div>
+              <div className="text-sm text-muted-foreground">Podium rate</div>
             </div>
             <div className="text-center p-4 rounded-xl bg-muted/30">
               <div className="text-3xl font-bold mb-1">
                 {Math.round((driver.stats.poles / driver.stats.gp) * 100)}%
               </div>
-              <div className="text-sm text-muted-foreground">Taux de pole</div>
+              <div className="text-sm text-muted-foreground">Pole rate</div>
             </div>
             <div className="text-center p-4 rounded-xl bg-muted/30">
               <div className="text-3xl font-bold mb-1">
                 {(driver.stats.points / driver.stats.gp).toFixed(1)}
               </div>
-              <div className="text-sm text-muted-foreground">Points par course</div>
+              <div className="text-sm text-muted-foreground">Points per race</div>
             </div>
           </div>
         </CardContent>

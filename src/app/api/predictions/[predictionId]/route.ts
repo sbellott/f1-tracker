@@ -40,12 +40,12 @@ export const GET = withErrorHandler(
     });
 
     if (!prediction) {
-      throw ApiError.notFound("Pronostic non trouvé");
+      throw ApiError.notFound("Prediction not found");
     }
 
     // Verify ownership
     if (prediction.userId !== user.id) {
-      throw ApiError.forbidden("Accès refusé");
+      throw ApiError.forbidden("Access denied");
     }
 
     return apiSuccess(prediction);
@@ -69,11 +69,11 @@ export const PUT = withErrorHandler(
     });
 
     if (!existing) {
-      throw ApiError.notFound("Pronostic non trouvé");
+      throw ApiError.notFound("Prediction not found");
     }
 
     if (existing.userId !== user.id) {
-      throw ApiError.forbidden("Accès refusé");
+      throw ApiError.forbidden("Access denied");
     }
 
     const data = predictionSchema.parse({

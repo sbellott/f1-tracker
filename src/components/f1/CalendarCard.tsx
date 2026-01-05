@@ -2,12 +2,11 @@ import { Race, Circuit, Driver, Constructor } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { Calendar, MapPin, CheckCircle2, Circle, Zap } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { RaceDetailModal } from './RaceDetailModal';
 import { useState } from 'react';
-import { getF1TrackMapUrl } from '@/lib/utils/circuit-images';
+import { getF1HeroImageUrl } from '@/lib/utils/circuit-images';
 
 interface CalendarCardProps {
   race: Race;
@@ -22,8 +21,8 @@ export function CalendarCard({ race, circuit, drivers, constructors }: CalendarC
   const isUpcoming = nextSession !== undefined;
   const isCompleted = race.sessions.every(s => s.completed);
 
-  // Use official F1 track map based on circuit city
-  const circuitImage = getF1TrackMapUrl(circuit.city);
+  // Use official F1 hero banner image based on circuit country/city
+  const circuitImage = getF1HeroImageUrl(circuit.country, circuit.city);
 
   return (
     <>
@@ -49,7 +48,7 @@ export function CalendarCard({ race, circuit, drivers, constructors }: CalendarC
           {isUpcoming && (
             <div className="absolute top-4 right-4 flex items-center gap-2 bg-primary/90 backdrop-blur-xl text-white px-3 py-1.5 rounded-full shadow-lg">
               <Zap className="w-3.5 h-3.5" />
-              <span className="text-xs font-medium">À venir</span>
+              <span className="text-xs font-medium">Upcoming</span>
             </div>
           )}
           {isCompleted && (
@@ -79,7 +78,7 @@ export function CalendarCard({ race, circuit, drivers, constructors }: CalendarC
               <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center">
                 <Calendar className="w-4 h-4" />
               </div>
-              <span className="text-sm">{format(new Date(race.date), 'd MMMM yyyy', { locale: fr })}</span>
+              <span className="text-sm">{format(new Date(race.date), 'MMMM d, yyyy')}</span>
             </div>
           </div>
         </CardHeader>
@@ -89,10 +88,10 @@ export function CalendarCard({ race, circuit, drivers, constructors }: CalendarC
             <div className="rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 p-4 border border-primary/20">
               <div className="flex items-center gap-2 text-primary font-semibold mb-2">
                 <Circle className="w-3 h-3 fill-current" />
-                <span className="text-sm">Prochaine session</span>
+                <span className="text-sm">Next session</span>
               </div>
               <div className="text-foreground font-medium">
-                {nextSession.type} · {format(new Date(nextSession.dateTime), 'HH:mm', { locale: fr })}
+                {nextSession.type} · {format(new Date(nextSession.dateTime), 'HH:mm')}
               </div>
             </div>
           </CardContent>
@@ -101,7 +100,7 @@ export function CalendarCard({ race, circuit, drivers, constructors }: CalendarC
         {isCompleted && (
           <CardContent className="pt-0">
             <div className="rounded-2xl bg-muted/50 p-4 text-center border border-border/50">
-              <span className="text-sm font-medium text-muted-foreground">Course terminée</span>
+              <span className="text-sm font-medium text-muted-foreground">Race completed</span>
             </div>
           </CardContent>
         )}

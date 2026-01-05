@@ -38,7 +38,7 @@ export async function GET() {
     });
 
     if (!user) {
-      throw ApiError.notFound("Utilisateur");
+      throw ApiError.notFound("User");
     }
 
     return apiSuccess({

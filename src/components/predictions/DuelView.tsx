@@ -39,7 +39,7 @@ export function DuelView({
   const pointsDifference = Math.abs(leader.totalPoints - challenger.totalPoints);
   const isLeader = currentParticipant?.id === leader.id;
 
-  // Stats des dernières courses
+  // Last races stats
   const recentRaces = races
     .filter(r => new Date(r.date) < new Date())
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -84,7 +84,7 @@ export function DuelView({
       <Card className="border-border/50 overflow-hidden">
         <div className="h-2 bg-gradient-to-r from-primary via-accent to-chart-3" />
         <CardHeader>
-          <CardTitle className="text-center text-2xl mb-4">Saison 2026</CardTitle>
+          <CardTitle className="text-center text-2xl mb-4">Season 2026</CardTitle>
           
           <div className="grid grid-cols-3 gap-4 items-center">
             {/* Current User */}
@@ -141,28 +141,28 @@ export function DuelView({
         <Card className="p-6 border-border/50 bg-gradient-to-br from-green-500/5 to-transparent">
           <div className="flex items-center justify-between mb-2">
             <Trophy className="w-5 h-5 text-green-500" />
-            <Badge className="bg-green-500/20 text-green-700 dark:text-green-400 border-0">Victoires</Badge>
+            <Badge className="bg-green-500/20 text-green-700 dark:text-green-400 border-0">Wins</Badge>
           </div>
           <div className="text-3xl font-bold mb-1">{currentWins}</div>
-          <div className="text-sm text-muted-foreground">Courses gagnées (5 dernières)</div>
+          <div className="text-sm text-muted-foreground">Races won (last 5)</div>
         </Card>
 
         <Card className="p-6 border-border/50 bg-gradient-to-br from-blue-500/5 to-transparent">
           <div className="flex items-center justify-between mb-2">
             <Medal className="w-5 h-5 text-blue-500" />
-            <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-400 border-0">Égalités</Badge>
+            <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-400 border-0">Ties</Badge>
           </div>
           <div className="text-3xl font-bold mb-1">{draws}</div>
-          <div className="text-sm text-muted-foreground">Courses à égalité</div>
+          <div className="text-sm text-muted-foreground">Tied races</div>
         </Card>
 
         <Card className="p-6 border-border/50 bg-gradient-to-br from-orange-500/5 to-transparent">
           <div className="flex items-center justify-between mb-2">
             <TrendingUp className="w-5 h-5 text-orange-500" />
-            <Badge className="bg-orange-500/20 text-orange-700 dark:text-orange-400 border-0">Défaites</Badge>
+            <Badge className="bg-orange-500/20 text-orange-700 dark:text-orange-400 border-0">Races lost</Badge>
           </div>
           <div className="text-3xl font-bold mb-1">{opponentWins}</div>
-          <div className="text-sm text-muted-foreground">Courses perdues</div>
+          <div className="text-sm text-muted-foreground">Races lost</div>
         </Card>
       </div>
 
@@ -180,7 +180,7 @@ export function DuelView({
           <div className="space-y-3">
             {recentRaces.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                Aucune course complétée pour le moment
+                No completed races yet
               </div>
             ) : (
               recentRaces.map(race => {
@@ -257,7 +257,7 @@ export function DuelView({
         className="w-full h-14 text-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Target className="w-5 h-5 mr-2" />
-        {hasUpcomingRace ? 'Faire mes pronostics' : 'Aucune course à venir'}
+        {hasUpcomingRace ? 'Make my predictions' : 'No upcoming race'}
       </Button>
     </div>
   );

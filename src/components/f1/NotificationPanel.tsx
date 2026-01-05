@@ -31,8 +31,8 @@ const mockNotifications: Notification[] = [
   },
   {
     id: '2',
-    title: 'Pronostics non remplis',
-    description: 'N\'oubliez pas de remplir vos pronostics pour Monaco',
+    title: 'Predictions not filled',
+    description: 'Don\'t forget to fill in your predictions for Monaco',
     timestamp: '2026-05-25T10:00:00Z',
     read: false,
     type: 'prediction',
@@ -121,8 +121,8 @@ export function NotificationPanel({ open, onOpenChange, unreadCount }: Notificat
                 <SheetTitle className="text-xl">Notifications</SheetTitle>
                 <SheetDescription>
                   {unreadNotifications.length > 0
-                    ? `${unreadNotifications.length} non lue${unreadNotifications.length > 1 ? 's' : ''}`
-                    : 'Aucune nouvelle notification'}
+                    ? `${unreadNotifications.length} unread`
+                    : 'No new notifications'}
                 </SheetDescription>
               </div>
             </div>
@@ -154,9 +154,9 @@ export function NotificationPanel({ open, onOpenChange, unreadCount }: Notificat
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
                   <Bell className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground font-medium">Aucune notification</p>
+                <p className="text-muted-foreground font-medium">No notifications</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Vous êtes à jour !
+                  You're all caught up!
                 </p>
               </div>
             ) : (

@@ -71,12 +71,12 @@ export function ResultsManager({ races, circuits, drivers, constructors }: Resul
     // Validate that all positions have a driver
     const hasEmptyPositions = results.some(r => !r.driverId);
     if (hasEmptyPositions) {
-      toast.error('Erreur', { description: 'Tous les pilotes doivent être sélectionnés' });
+      toast.error('Error', { description: 'All drivers must be selected' });
       return;
     }
 
-    toast.success('Résultats enregistrés', { 
-      description: `Les résultats de ${selectedRace.name} ont été enregistrés` 
+    toast.success('Results saved', { 
+      description: `The results of ${selectedRace.name} have been saved` 
     });
     setSelectedRace(null);
     setResults([]);
@@ -110,8 +110,8 @@ export function ResultsManager({ races, circuits, drivers, constructors }: Resul
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold mb-2">Gestion des résultats</h2>
-          <p className="text-muted-foreground text-lg">Saisir les résultats de course et sprint</p>
+          <h2 className="text-3xl font-bold mb-2">Results Management</h2>
+          <p className="text-muted-foreground text-lg">Enter race and sprint results</p>
         </div>
       </div>
 
@@ -121,7 +121,7 @@ export function ResultsManager({ races, circuits, drivers, constructors }: Resul
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Rechercher une course..."
+              placeholder="Search for a race..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -165,7 +165,7 @@ export function ResultsManager({ races, circuits, drivers, constructors }: Resul
                             className="gap-2"
                           >
                             <Zap className="w-4 h-4" />
-                            Résultats Sprint
+                            Sprint Results
                           </Button>
                         )}
                         {hasRace && (
@@ -177,7 +177,7 @@ export function ResultsManager({ races, circuits, drivers, constructors }: Resul
                             className="gap-2"
                           >
                             <Flag className="w-4 h-4" />
-                            Résultats Course
+                            Race Results
                           </Button>
                         )}
                       </div>
@@ -192,9 +192,9 @@ export function ResultsManager({ races, circuits, drivers, constructors }: Resul
             <Card>
               <CardContent className="py-12 text-center">
                 <Flag className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">Aucune course trouvée</h3>
+                <h3 className="text-lg font-semibold mb-2">No race found</h3>
                 <p className="text-muted-foreground">
-                  {searchTerm ? 'Essayez une autre recherche' : 'Aucune course disponible'}
+                  {searchTerm ? 'Try another search' : 'No races available'}
                 </p>
               </CardContent>
             </Card>
@@ -206,10 +206,10 @@ export function ResultsManager({ races, circuits, drivers, constructors }: Resul
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-2xl mb-2">
-                  {selectedRace.name} - {sessionType === 'RACE' ? 'Course' : 'Sprint'}
+                  {selectedRace.name} - {sessionType === 'RACE' ? 'Race' : 'Sprint'}
                 </CardTitle>
                 <CardDescription className="text-base">
-                  Saisissez les résultats du Top 10
+                  Enter the Top 10 results
                 </CardDescription>
               </div>
               <Badge variant="outline" className="text-lg font-mono px-3 py-1">
@@ -254,7 +254,6 @@ export function ResultsManager({ races, circuits, drivers, constructors }: Resul
                       value={result.driverId}
                       onChange={(e) => {
                         handleUpdateResult(result.position, 'driverId', e.target.value);
-                        // Auto-assign points based on position
                         const points = pointsSystem[result.position - 1] || 0;
                         handleUpdateResult(result.position, 'points', points);
                       }}
@@ -263,7 +262,7 @@ export function ResultsManager({ races, circuits, drivers, constructors }: Resul
                         borderLeft: result.driverId ? `4px solid ${getConstructorColor(result.driverId)}` : undefined
                       }}
                     >
-                      <option value="">Sélectionner un pilote...</option>
+                      <option value="">Select a driver...</option>
                       {drivers.map(driver => (
                         <option key={driver.id} value={driver.id}>
                           #{driver.number} - {driver.firstName} {driver.lastName}
@@ -328,23 +327,23 @@ export function ResultsManager({ races, circuits, drivers, constructors }: Resul
               <CardContent className="p-4">
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
-                    <div className="text-muted-foreground mb-1">Pilotes sélectionnés</div>
+                    <div className="text-muted-foreground mb-1">Selected drivers</div>
                     <div className="text-2xl font-bold">
                       {results.filter(r => r.driverId).length}/10
                     </div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground mb-1">Points distribués</div>
+                    <div className="text-muted-foreground mb-1">Points distributed</div>
                     <div className="text-2xl font-bold">
                       {results.reduce((sum, r) => sum + r.points, 0)}
                     </div>
                   </div>
                   <div>
-                    <div className="text-muted-foreground mb-1">Meilleur tour</div>
+                    <div className="text-muted-foreground mb-1">Fastest lap</div>
                     <div className="text-lg font-semibold">
                       {results.find(r => r.fastestLap)?.driverId 
                         ? getDriverName(results.find(r => r.fastestLap)!.driverId)
-                        : 'Non attribué'
+                        : 'Not assigned'
                       }
                     </div>
                   </div>
@@ -356,11 +355,11 @@ export function ResultsManager({ races, circuits, drivers, constructors }: Resul
             <div className="flex gap-3 justify-end">
               <Button variant="outline" onClick={handleCancel} size="lg">
                 <X className="w-4 h-4 mr-2" />
-                Annuler
+                Cancel
               </Button>
               <Button onClick={handleSaveResults} size="lg">
                 <Save className="w-4 h-4 mr-2" />
-                Enregistrer les résultats
+                Save results
               </Button>
             </div>
           </CardContent>

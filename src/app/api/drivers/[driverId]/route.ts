@@ -27,7 +27,7 @@ export const GET = withErrorHandler(
     const driver = await getDriverById(driverId);
 
     if (!driver) {
-      throw ApiError.notFound("Pilote non trouvé");
+      throw ApiError.notFound("Driver not found");
     }
 
     return apiCached(driver, 3600);

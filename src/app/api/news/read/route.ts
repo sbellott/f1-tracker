@@ -17,7 +17,7 @@ export const GET = withErrorHandler(async () => {
   const session = await auth();
   
   if (!session?.user?.id) {
-    return errorResponse("Non authentifié", 401);
+    return errorResponse("Not authenticated", 401);
   }
 
   const readArticles = await prisma.readArticle.findMany({
@@ -40,7 +40,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const session = await auth();
   
   if (!session?.user?.id) {
-    return errorResponse("Non authentifié", 401);
+    return errorResponse("Not authenticated", 401);
   }
 
   const body = await request.json();
@@ -64,7 +64,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   });
 
   return apiSuccess({
-    message: "Article marqué comme lu",
+    message: "Article marked as read",
     readArticle: {
       id: readArticle.id,
       articleUrl: readArticle.articleUrl,
@@ -81,14 +81,14 @@ export const DELETE = withErrorHandler(async (request: NextRequest) => {
   const session = await auth();
   
   if (!session?.user?.id) {
-    return errorResponse("Non authentifié", 401);
+    return errorResponse("Not authenticated", 401);
   }
 
   const { searchParams } = new URL(request.url);
   const articleUrl = searchParams.get("articleUrl");
 
   if (!articleUrl) {
-    return errorResponse("URL de l'article requise", 400);
+    return errorResponse("Article URL required", 400);
   }
 
   await prisma.readArticle.deleteMany({
@@ -99,6 +99,6 @@ export const DELETE = withErrorHandler(async (request: NextRequest) => {
   });
 
   return apiSuccess({
-    message: "Article marqué comme non lu",
+    message: "Article marked as unread",
   });
 });

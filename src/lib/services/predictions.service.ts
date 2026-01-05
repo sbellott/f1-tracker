@@ -280,7 +280,7 @@ export async function getRacePredictions(
   const raceSession = race.sessions[0];
   if (raceSession && !arePredictionsLocked(raceSession.dateTime)) {
     throw ApiError.forbidden(
-      "Les pronostics des autres joueurs seront visibles après le début de la course"
+      "Other players' predictions will be visible after the race starts"
     );
   }
 
@@ -435,11 +435,11 @@ export async function deletePrediction(
   });
 
   if (!prediction) {
-    throw ApiError.notFound("Pronostic non trouvé");
+    throw ApiError.notFound("Prediction not found");
   }
 
   if (prediction.userId !== userId) {
-    throw ApiError.forbidden("Vous ne pouvez pas supprimer ce pronostic");
+    throw ApiError.forbidden("You cannot delete this prediction");
   }
 
   // Check if predictions are locked

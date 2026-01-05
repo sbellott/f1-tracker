@@ -142,7 +142,7 @@ export default function HomePage() {
   const currentUser: User | null = session?.user ? {
     id: session.user.id || '',
     email: session.user.email || '',
-    pseudo: session.user.name || session.user.email?.split('@')[0] || 'Utilisateur',
+    pseudo: session.user.name || session.user.email?.split('@')[0] || 'User',
     avatar: session.user.image || undefined,
     firstName: session.user.name?.split(' ')[0] || '',
     lastName: session.user.name?.split(' ').slice(1).join(' ') || '',
@@ -166,7 +166,7 @@ export default function HomePage() {
 
   const handleSubmitPrediction = async (raceId: string, sessionType: 'RACE' | 'SPRINT', prediction: Prediction) => {
     if (!currentUser) {
-      toast.error('Connexion requise');
+      toast.error('Login required');
       setShowLoginModal(true);
       return;
     }
@@ -204,12 +204,12 @@ export default function HomePage() {
       });
       
       const race = races.find(r => r.id === raceId);
-      toast.success('Pronostic enregistré !', {
-        description: `Votre pronostic pour ${race?.name} a été enregistré.`,
+      toast.success('Prediction saved!', {
+        description: `Your prediction for ${race?.name} has been saved.`,
       });
     } catch (error) {
-      toast.error('Erreur', {
-        description: 'Impossible d\'enregistrer le pronostic.',
+      toast.error('Error', {
+        description: 'Unable to save prediction.',
       });
     }
   };
@@ -223,19 +223,19 @@ export default function HomePage() {
       });
       
       if (result?.error) {
-        toast.error('Erreur de connexion', {
-          description: 'Email ou mot de passe incorrect.',
+        toast.error('Login error', {
+          description: 'Incorrect email or password.',
         });
         return;
       }
       
       setShowLoginModal(false);
-      toast.success('Connexion réussie !', {
-        description: 'Bienvenue sur F1 Tracker !',
+      toast.success('Login successful!', {
+        description: 'Welcome to F1 Tracker!',
       });
     } catch (error) {
-      toast.error('Erreur', {
-        description: 'Une erreur est survenue.',
+      toast.error('Error', {
+        description: 'An error occurred.',
       });
     }
   };
@@ -270,13 +270,13 @@ export default function HomePage() {
       
       if (result?.ok) {
         setShowLoginModal(false);
-        toast.success('Compte créé !', {
-          description: 'Bienvenue sur F1 Tracker !',
+        toast.success('Account created!', {
+          description: 'Welcome to F1 Tracker!',
         });
       }
     } catch (error: any) {
-      toast.error('Erreur', {
-        description: error.message || 'Impossible de créer le compte.',
+      toast.error('Error', {
+        description: error.message || 'Unable to create account.',
       });
     }
   };
@@ -284,8 +284,8 @@ export default function HomePage() {
   const handleLogout = async () => {
     await signOut({ redirect: false });
     setShowProfile(false);
-    toast.info('Déconnexion', {
-      description: 'À bientôt sur F1 Tracker !',
+    toast.info('Logged out', {
+      description: 'See you soon on F1 Tracker!',
     });
   };
 
@@ -306,13 +306,13 @@ export default function HomePage() {
   const handleBadgesClick = () => {
     setShowProfile(true);
     toast.info('Badges', {
-      description: 'Consultez vos badges dans votre profil',
+      description: 'View your badges in your profile',
     });
   };
 
   const handleSettingsClick = () => {
-    toast.info('Paramètres', {
-      description: 'Section en développement',
+    toast.info('Settings', {
+      description: 'Section under development',
     });
   };
 
@@ -332,7 +332,7 @@ export default function HomePage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground">Chargement des données F1...</p>
+          <p className="text-muted-foreground">Loading F1 data...</p>
         </div>
       </div>
     );
@@ -449,7 +449,7 @@ export default function HomePage() {
               }}
               className="mb-4"
             >
-              ← Retour
+              ← Back
             </Button>
             <UserProfile
               user={currentUser}
@@ -463,15 +463,15 @@ export default function HomePage() {
             <TabsList className="inline-flex w-auto bg-muted/50 p-1.5 rounded-2xl">
               <TabsTrigger value="calendar" className="gap-2 rounded-xl data-[state=active]:shadow-sm">
                 <Calendar className="w-4 h-4" />
-                <span className="hidden sm:inline">Calendrier</span>
+                <span className="hidden sm:inline">Calendar</span>
               </TabsTrigger>
               <TabsTrigger value="standings" className="gap-2 rounded-xl data-[state=active]:shadow-sm">
                 <Trophy className="w-4 h-4" />
-                <span className="hidden sm:inline">Classements</span>
+                <span className="hidden sm:inline">Standings</span>
               </TabsTrigger>
               <TabsTrigger value="predictions" className="gap-2 rounded-xl data-[state=active]:shadow-sm">
                 <Target className="w-4 h-4" />
-                <span className="hidden sm:inline">Pronostics</span>
+                <span className="hidden sm:inline">Predictions</span>
               </TabsTrigger>
               <TabsTrigger value="news" className="gap-2 rounded-xl data-[state=active]:shadow-sm">
                 <Newspaper className="w-4 h-4" />
@@ -492,13 +492,13 @@ export default function HomePage() {
                 <div className="relative z-10 max-w-2xl">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-white mb-4 text-sm">
                     <Zap className="w-3.5 h-3.5" />
-                    <span>Live - Saison 2026</span>
+                    <span>Live - 2026 Season</span>
                   </div>
                   <h2 className="text-3xl lg:text-5xl font-bold text-white mb-3">
-                    Suivez la Formule 1
+                    Follow Formula 1
                   </h2>
                   <p className="text-white/90 text-lg max-w-xl">
-                    Classements en temps réel, calendrier complet et pronostics entre amis
+                    Real-time standings, full calendar and predictions with friends
                   </p>
                 </div>
               </div>
@@ -521,7 +521,7 @@ export default function HomePage() {
                     <div className="text-4xl font-bold mb-1 bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-transparent">
                       {races.length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Courses</div>
+                    <div className="text-sm text-muted-foreground">Races</div>
                   </div>
                 </div>
                 <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent/10 via-accent/5 to-transparent p-6 hover:shadow-lg transition-all border border-accent/10">
@@ -530,7 +530,7 @@ export default function HomePage() {
                     <div className="text-4xl font-bold mb-1 bg-gradient-to-br from-accent to-accent/70 bg-clip-text text-transparent">
                       {drivers.length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Pilotes</div>
+                    <div className="text-sm text-muted-foreground">Drivers</div>
                   </div>
                 </div>
                 <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-chart-4/10 via-chart-4/5 to-transparent p-6 hover:shadow-lg transition-all border border-chart-4/10">
@@ -539,7 +539,7 @@ export default function HomePage() {
                     <div className="text-4xl font-bold mb-1 bg-gradient-to-br from-chart-4 to-chart-4/70 bg-clip-text text-transparent">
                       {constructors.length}
                     </div>
-                    <div className="text-sm text-muted-foreground">Écuries</div>
+                    <div className="text-sm text-muted-foreground">Teams</div>
                   </div>
                 </div>
                 <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-chart-3/10 via-chart-3/5 to-transparent p-6 hover:shadow-lg transition-all border border-chart-3/10">
@@ -561,9 +561,9 @@ export default function HomePage() {
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
                       <Trophy className="w-6 h-6 text-white" />
                     </div>
-                    <CardTitle className="text-xl">Classements live</CardTitle>
+                    <CardTitle className="text-xl">Live standings</CardTitle>
                     <CardDescription className="text-base">
-                      Suivez l&apos;évolution du championnat pilotes et constructeurs en temps réel
+                      Follow the drivers and constructors championship evolution in real-time
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -574,9 +574,9 @@ export default function HomePage() {
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-accent/80 flex items-center justify-center mb-4 shadow-lg shadow-accent/20">
                       <Target className="w-6 h-6 text-white" />
                     </div>
-                    <CardTitle className="text-xl">Pronostics</CardTitle>
+                    <CardTitle className="text-xl">Predictions</CardTitle>
                     <CardDescription className="text-base">
-                      Défiez vos amis avec des prédictions de course et comparez vos scores
+                      Challenge your friends with race predictions and compare your scores
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -587,9 +587,9 @@ export default function HomePage() {
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-chart-3 to-chart-3/80 flex items-center justify-center mb-4 shadow-lg shadow-chart-3/20">
                       <Calendar className="w-6 h-6 text-white" />
                     </div>
-                    <CardTitle className="text-xl">Calendrier</CardTitle>
+                    <CardTitle className="text-xl">Calendar</CardTitle>
                     <CardDescription className="text-base">
-                      {races.length} courses avec horaires complets et countdowns par session
+                      {races.length} races with full schedules and session countdowns
                     </CardDescription>
                   </CardHeader>
                 </Card>
@@ -622,9 +622,9 @@ export default function HomePage() {
                 <>
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-3xl font-bold mb-2">Calendrier 2026</h2>
+                      <h2 className="text-3xl font-bold mb-2">2026 Calendar</h2>
                       <p className="text-muted-foreground text-lg">
-                        {races.length} courses - {races.filter(r => r.hasSprint).length} weekends Sprint
+                        {races.length} races - {races.filter(r => r.hasSprint).length} Sprint weekends
                       </p>
                     </div>
                   </div>
@@ -651,11 +651,11 @@ export default function HomePage() {
             <TabsContent value="standings" className="space-y-8 fade-in">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                  <h2 className="text-3xl font-bold mb-2">Classements {standingsSeason}</h2>
+                  <h2 className="text-3xl font-bold mb-2">{standingsSeason} Standings</h2>
                   <p className="text-muted-foreground text-lg">
                     {standingsSeason === 2026 
-                      ? `Après ${races[0]?.round || 0} course(s)` 
-                      : 'Classement final de la saison'}
+                      ? `After ${races[0]?.round || 0} race(s)` 
+                      : 'Final season standings'}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -676,7 +676,7 @@ export default function HomePage() {
               {(isDriverStandingsLoading || isConstructorStandingsLoading) ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-red-500" />
-                  <span className="ml-3 text-muted-foreground">Chargement des classements...</span>
+                  <span className="ml-3 text-muted-foreground">Loading standings...</span>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
@@ -698,8 +698,8 @@ export default function HomePage() {
             {/* Predictions Tab */}
             <TabsContent value="predictions" className="space-y-8 fade-in">
               <div>
-                <h2 className="text-3xl font-bold mb-2">Duel Pronostics</h2>
-                <p className="text-muted-foreground text-lg">Affrontez votre adversaire sur chaque course</p>
+                <h2 className="text-3xl font-bold mb-2">Predictions Duel</h2>
+                <p className="text-muted-foreground text-lg">Challenge your opponent on each race</p>
               </div>
 
               {!isLoggedIn && (
@@ -709,13 +709,13 @@ export default function HomePage() {
                       <div className="text-3xl">🔐</div>
                       <div>
                         <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 text-lg">
-                          Connexion requise
+                          Login required
                         </h4>
                         <p className="text-amber-800 dark:text-amber-200 mb-4">
-                          Connectez-vous pour accéder au duel et soumettre vos pronostics.
+                          Log in to access the duel and submit your predictions.
                         </p>
                         <Button onClick={() => setShowLoginModal(true)} className="bg-primary">
-                          Se connecter
+                          Log in
                         </Button>
                       </div>
                     </div>
@@ -730,10 +730,10 @@ export default function HomePage() {
                       <div className="text-3xl">👤</div>
                       <div>
                         <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-lg">
-                          En attente d'un adversaire
+                          Waiting for opponent
                         </h4>
                         <p className="text-blue-800 dark:text-blue-200">
-                          Le duel commencera dès qu'un second utilisateur rejoindra l'application.
+                          The duel will start as soon as a second user joins the app.
                         </p>
                       </div>
                     </div>
@@ -757,8 +757,8 @@ export default function HomePage() {
             {/* News Tab */}
             <TabsContent value="news" className="space-y-8 fade-in">
               <div>
-                <h2 className="text-3xl font-bold mb-2">News F1</h2>
-                <p className="text-muted-foreground text-lg">Actualités et dernières nouvelles de la Formule 1</p>
+                <h2 className="text-3xl font-bold mb-2">F1 News</h2>
+                <p className="text-muted-foreground text-lg">Latest Formula 1 news and updates</p>
               </div>
               <News />
             </TabsContent>
@@ -822,7 +822,7 @@ export default function HomePage() {
         )}
       </main>
 
-      {/* Refined Footer */}
+      {/* Footer */}
       <footer className="border-t border-border/50 mt-20 bg-muted/20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center mb-6">
@@ -833,7 +833,7 @@ export default function HomePage() {
               <span className="font-bold text-lg">F1 Tracker</span>
             </div>
             <p className="text-muted-foreground">
-              Données réelles F1 2026 - Propulsé par Supabase
+              Real F1 2026 data - Powered by Supabase
             </p>
           </div>
 
@@ -845,7 +845,7 @@ export default function HomePage() {
               className="gap-2 hover:bg-primary/10 hover:border-primary/50"
             >
               <Shield className="w-4 h-4" />
-              Accès Administration
+              Admin Access
             </Button>
           </div>
         </div>

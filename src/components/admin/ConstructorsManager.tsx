@@ -61,30 +61,30 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
 
   const handleSave = () => {
     if (!formData.name || !formData.nationality || !formData.base) {
-      toast.error('Erreur', { description: 'Veuillez remplir tous les champs obligatoires' });
+      toast.error('Error', { description: 'Please fill in all required fields' });
       return;
     }
 
     if (isCreating) {
       const newConstructors = [...constructors, formData as Constructor];
       onUpdateConstructors(newConstructors);
-      toast.success('Écurie créée', { description: `${formData.name} a été ajoutée` });
+      toast.success('Team created', { description: `${formData.name} has been added` });
     } else if (editingConstructor) {
       const updatedConstructors = constructors.map(c => 
         c.id === editingConstructor.id ? formData as Constructor : c
       );
       onUpdateConstructors(updatedConstructors);
-      toast.success('Écurie modifiée', { description: `${formData.name} a été mise à jour` });
+      toast.success('Team modified', { description: `${formData.name} has been updated` });
     }
 
     handleCancel();
   };
 
   const handleDelete = (constructor: Constructor) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${constructor.name} ?`)) {
+    if (window.confirm(`Are you sure you want to delete ${constructor.name}?`)) {
       const updatedConstructors = constructors.filter(c => c.id !== constructor.id);
       onUpdateConstructors(updatedConstructors);
-      toast.success('Écurie supprimée', { description: `${constructor.name} a été supprimée` });
+      toast.success('Team deleted', { description: `${constructor.name} has been deleted` });
     }
   };
 
@@ -98,12 +98,12 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold mb-2">Gestion des écuries</h2>
-          <p className="text-muted-foreground text-lg">{constructors.length} écuries au total</p>
+          <h2 className="text-3xl font-bold mb-2">Team Management</h2>
+          <p className="text-muted-foreground text-lg">{constructors.length} teams total</p>
         </div>
         <Button onClick={handleCreate} className="gap-2">
           <Plus className="w-4 h-4" />
-          Nouvelle écurie
+          New team
         </Button>
       </div>
 
@@ -111,7 +111,7 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Rechercher par nom ou base..."
+          placeholder="Search by name or base..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -122,15 +122,15 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
       {(isCreating || editingConstructor) && (
         <Card className="border-primary/50 shadow-lg">
           <CardHeader>
-            <CardTitle>{isCreating ? 'Nouvelle écurie' : 'Modifier l\'écurie'}</CardTitle>
+            <CardTitle>{isCreating ? 'New team' : 'Edit team'}</CardTitle>
             <CardDescription>
-              {isCreating ? 'Remplissez les informations de la nouvelle écurie' : 'Modifiez les informations de l\'écurie'}
+              {isCreating ? 'Fill in the new team\'s information' : 'Edit the team\'s information'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nom de l'écurie *</Label>
+                <Label htmlFor="name">Team Name *</Label>
                 <Input
                   id="name"
                   value={formData.name || ''}
@@ -139,7 +139,7 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="nationality">Nationalité *</Label>
+                <Label htmlFor="nationality">Nationality *</Label>
                 <Input
                   id="nationality"
                   value={formData.nationality || ''}
@@ -153,11 +153,11 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
                   id="base"
                   value={formData.base || ''}
                   onChange={(e) => setFormData({ ...formData, base: e.target.value })}
-                  placeholder="Milton Keynes, Royaume-Uni"
+                  placeholder="Milton Keynes, UK"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="teamPrincipal">Directeur d'équipe</Label>
+                <Label htmlFor="teamPrincipal">Team Principal</Label>
                 <Input
                   id="teamPrincipal"
                   value={formData.teamPrincipal || ''}
@@ -166,7 +166,7 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="technicalDirector">Directeur technique</Label>
+                <Label htmlFor="technicalDirector">Technical Director</Label>
                 <Input
                   id="technicalDirector"
                   value={formData.technicalDirector || ''}
@@ -175,7 +175,7 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="engine">Moteur</Label>
+                <Label htmlFor="engine">Engine</Label>
                 <Input
                   id="engine"
                   value={formData.engine || ''}
@@ -184,7 +184,7 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="titles">Titres constructeurs</Label>
+                <Label htmlFor="titles">Constructor Titles</Label>
                 <Input
                   id="titles"
                   type="number"
@@ -197,7 +197,7 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="color">Couleur principale</Label>
+                <Label htmlFor="color">Primary Color</Label>
                 <div className="flex gap-2">
                   <Input
                     id="color"
@@ -217,11 +217,11 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={handleCancel}>
                 <X className="w-4 h-4 mr-2" />
-                Annuler
+                Cancel
               </Button>
               <Button onClick={handleSave}>
                 <Save className="w-4 h-4 mr-2" />
-                Enregistrer
+                Save
               </Button>
             </div>
           </CardContent>
@@ -272,14 +272,14 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
                     <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                         <Trophy className="w-3.5 h-3.5" />
-                        Titres
+                        Titles
                       </div>
                       <div className="font-semibold">{constructor.stats.titles}</div>
                     </div>
                   )}
                   {constructor.stats?.wins > 0 && (
                     <div className="p-3 rounded-lg bg-muted/50">
-                      <div className="text-xs text-muted-foreground mb-1">Victoires</div>
+                      <div className="text-xs text-muted-foreground mb-1">Wins</div>
                       <div className="font-semibold">{constructor.stats.wins}</div>
                     </div>
                   )}
@@ -288,19 +288,19 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
                 <div className="space-y-2 text-sm">
                   {constructor.teamPrincipal && (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Directeur</span>
+                      <span className="text-muted-foreground">Principal</span>
                       <span className="font-medium">{constructor.teamPrincipal}</span>
                     </div>
                   )}
                   {constructor.technicalDirector && (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Dir. technique</span>
+                      <span className="text-muted-foreground">Tech. Director</span>
                       <span className="font-medium">{constructor.technicalDirector}</span>
                     </div>
                   )}
                   {constructor.engine && (
                     <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Moteur</span>
+                      <span className="text-muted-foreground">Engine</span>
                       <span className="font-medium">{constructor.engine}</span>
                     </div>
                   )}
@@ -315,9 +315,9 @@ export function ConstructorsManager({ constructors, onUpdateConstructors }: Cons
         <Card>
           <CardContent className="py-12 text-center">
             <Building2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">Aucune écurie trouvée</h3>
+            <h3 className="text-lg font-semibold mb-2">No team found</h3>
             <p className="text-muted-foreground">
-              {searchTerm ? 'Essayez une autre recherche' : 'Commencez par ajouter une écurie'}
+              {searchTerm ? 'Try a different search' : 'Start by adding a team'}
             </p>
           </CardContent>
         </Card>

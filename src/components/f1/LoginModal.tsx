@@ -32,7 +32,7 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     if (registerPassword !== registerConfirmPassword) {
-      alert('Les mots de passe ne correspondent pas');
+      alert('Passwords do not match');
       return;
     }
     onRegister(registerFirstName, registerLastName, registerEmail, registerPassword);
@@ -43,13 +43,13 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border-border/50">
         <DialogHeader className="sr-only">
-          <DialogTitle>Connexion / Inscription F1 Tracker</DialogTitle>
+          <DialogTitle>Login / Sign Up F1 Tracker</DialogTitle>
           <DialogDescription>
-            Connectez-vous ou créez un compte pour accéder à toutes les fonctionnalités F1 Tracker
+            Log in or create an account to access all F1 Tracker features
           </DialogDescription>
         </DialogHeader>
         
-        {/* Header avec branding F1 */}
+        {/* Header with F1 branding */}
         <div className="relative bg-gradient-to-br from-primary to-primary/80 p-8 text-white">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
           <div className="relative flex items-center gap-3 mb-4">
@@ -58,7 +58,7 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
             </div>
             <div>
               <h1 className="font-bold text-2xl" aria-hidden="true">F1 Tracker</h1>
-              <p className="text-sm text-white/80">Rejoignez la communauté</p>
+              <p className="text-sm text-white/80">Join the community</p>
             </div>
           </div>
         </div>
@@ -66,8 +66,8 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
         <div className="p-6">
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Connexion</TabsTrigger>
-              <TabsTrigger value="register">Inscription</TabsTrigger>
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="register">Sign Up</TabsTrigger>
             </TabsList>
 
             {/* Login Tab */}
@@ -80,7 +80,7 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
                     <Input
                       id="login-email"
                       type="email"
-                      placeholder="votre@email.com"
+                      placeholder="your@email.com"
                       value={loginEmail}
                       onChange={(e) => setLoginEmail(e.target.value)}
                       className="pl-10"
@@ -89,7 +89,7 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="login-password">Mot de passe</Label>
+                  <Label htmlFor="login-password">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -111,10 +111,10 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
                   </div>
                 </div>
                 <Button type="submit" className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
-                  Se connecter
+                  Log in
                 </Button>
                 <Button type="button" variant="link" className="w-full text-sm text-muted-foreground">
-                  Mot de passe oublié ?
+                  Forgot password?
                 </Button>
               </form>
             </TabsContent>
@@ -124,7 +124,7 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="register-firstname">Prénom</Label>
+                    <Label htmlFor="register-firstname">First Name</Label>
                     <Input
                       id="register-firstname"
                       type="text"
@@ -135,7 +135,7 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-lastname">Nom</Label>
+                    <Label htmlFor="register-lastname">Last Name</Label>
                     <Input
                       id="register-lastname"
                       type="text"
@@ -153,7 +153,7 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
                     <Input
                       id="register-email"
                       type="email"
-                      placeholder="votre@email.com"
+                      placeholder="your@email.com"
                       value={registerEmail}
                       onChange={(e) => setRegisterEmail(e.target.value)}
                       className="pl-10"
@@ -162,7 +162,7 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="register-password">Mot de passe</Label>
+                  <Label htmlFor="register-password">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -184,7 +184,7 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="register-confirm-password">Confirmer le mot de passe</Label>
+                  <Label htmlFor="register-confirm-password">Confirm Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -199,10 +199,10 @@ export function LoginModal({ open, onOpenChange, onLogin, onRegister }: LoginMod
                   </div>
                 </div>
                 <Button type="submit" className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
-                  Créer un compte
+                  Create account
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
-                  En créant un compte, vous acceptez nos conditions d'utilisation
+                  By creating an account, you agree to our terms of service
                 </p>
               </form>
             </TabsContent>

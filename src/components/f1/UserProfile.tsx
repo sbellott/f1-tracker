@@ -63,7 +63,7 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
                 className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary hover:bg-primary shadow-lg"
               >
                 <Trophy className="w-3 h-3 mr-1" />
-                Rang #{user.stats.rank}
+                Rank #{user.stats.rank}
               </Badge>
             </div>
 
@@ -82,11 +82,11 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
                 </div>
                 <div className="text-center p-3 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50">
                   <div className="text-2xl font-bold text-chart-3">{user.stats.predictions}</div>
-                  <div className="text-xs text-muted-foreground mt-1">Pronostics</div>
+                  <div className="text-xs text-muted-foreground mt-1">Predictions</div>
                 </div>
                 <div className="text-center p-3 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50">
                   <div className="text-2xl font-bold text-chart-5">{accuracy}%</div>
-                  <div className="text-xs text-muted-foreground mt-1">Précision</div>
+                  <div className="text-xs text-muted-foreground mt-1">Accuracy</div>
                 </div>
                 <div className="text-center p-3 rounded-xl bg-background/50 backdrop-blur-sm border border-border/50">
                   <div className="text-2xl font-bold text-chart-4">{user.stats.badges}</div>
@@ -103,15 +103,15 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
         <TabsList className="inline-flex w-auto bg-muted/50 p-1.5 rounded-2xl">
           <TabsTrigger value="overview" className="gap-2 rounded-xl">
             <TrendingUp className="w-4 h-4" />
-            Vue d'ensemble
+            Overview
           </TabsTrigger>
           <TabsTrigger value="predictions" className="gap-2 rounded-xl">
             <Target className="w-4 h-4" />
-            Pronostics
+            Predictions
           </TabsTrigger>
           <TabsTrigger value="achievements" className="gap-2 rounded-xl">
             <Award className="w-4 h-4" />
-            Succès
+            Achievements
           </TabsTrigger>
         </TabsList>
 
@@ -125,12 +125,12 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
                   <TrendingUp className="w-5 h-5 text-primary" />
                   Performance
                 </CardTitle>
-                <CardDescription>Votre évolution cette saison</CardDescription>
+                <CardDescription>Your evolution this season</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Taux de réussite</span>
+                    <span className="text-muted-foreground">Success rate</span>
                     <span className="font-medium">{accuracy}%</span>
                   </div>
                   <Progress value={accuracy} className="h-2" />
@@ -138,7 +138,7 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
                 
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Objectif saison</span>
+                    <span className="text-muted-foreground">Season goal</span>
                     <span className="font-medium">{totalPoints} / 1000 pts</span>
                   </div>
                   <Progress value={(totalPoints / 1000) * 100} className="h-2" />
@@ -147,11 +147,11 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
                 <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t">
                   <div>
                     <div className="text-2xl font-bold">{user.stats.streak}</div>
-                    <div className="text-xs text-muted-foreground">Jours consécutifs</div>
+                    <div className="text-xs text-muted-foreground">Day streak</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold">{user.stats.bestRank}</div>
-                    <div className="text-xs text-muted-foreground">Meilleur rang</div>
+                    <div className="text-xs text-muted-foreground">Best rank</div>
                   </div>
                 </div>
               </CardContent>
@@ -162,9 +162,9 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-primary" />
-                  Activité récente
+                  Recent activity
                 </CardTitle>
-                <CardDescription>Vos derniers pronostics</CardDescription>
+                <CardDescription>Your latest predictions</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -200,15 +200,15 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
         <TabsContent value="predictions" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Historique des pronostics</CardTitle>
-              <CardDescription>Tous vos pronostics de la saison 2026</CardDescription>
+              <CardTitle>Predictions history</CardTitle>
+              <CardDescription>All your predictions for the 2026 season</CardDescription>
             </CardHeader>
             <CardContent>
               {predictions.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Target className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Aucun pronostic enregistré pour le moment</p>
-                  <p className="text-sm mt-2">Faites vos premiers pronostics dans l'onglet Pronostics</p>
+                  <p>No predictions recorded yet</p>
+                  <p className="text-sm mt-2">Make your first predictions in the Predictions tab</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -222,17 +222,17 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
                           <Target className="w-6 h-6 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium">{(pred as any).raceName || 'Course'}</p>
+                          <p className="font-medium">{(pred as any).raceName || 'Race'}</p>
                           <p className="text-sm text-muted-foreground">{pred.sessionType}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
                           <p className="text-sm font-medium">
-                            {new Date((pred as any).timestamp || pred.createdAt).toLocaleDateString('fr-FR')}
+                            {new Date((pred as any).timestamp || pred.createdAt).toLocaleDateString('en-US')}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {[pred.predictions.p1, pred.predictions.p2, pred.predictions.p3, pred.predictions.p4, pred.predictions.p5, pred.predictions.p6, pred.predictions.p7, pred.predictions.p8, pred.predictions.p9, pred.predictions.p10].filter(Boolean).length} pronostics
+                            {[pred.predictions.p1, pred.predictions.p2, pred.predictions.p3, pred.predictions.p4, pred.predictions.p5, pred.predictions.p6, pred.predictions.p7, pred.predictions.p8, pred.predictions.p9, pred.predictions.p10].filter(Boolean).length} predictions
                           </p>
                         </div>
                         <Badge
@@ -257,8 +257,8 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
               <CardContent className="py-12">
                 <div className="text-center text-muted-foreground">
                   <Award className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Aucun badge disponible pour le moment</p>
-                  <p className="text-sm mt-2">Les badges seront ajoutés prochainement</p>
+                  <p>No badges available yet</p>
+                  <p className="text-sm mt-2">Badges will be added soon</p>
                 </div>
               </CardContent>
             </Card>
@@ -269,9 +269,9 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Crown className="w-5 h-5 text-chart-5" />
-                    Badges débloqués
+                    Unlocked badges
                   </CardTitle>
-                  <CardDescription>{unlockedBadges.length} / {achievements.length} débloqués</CardDescription>
+                  <CardDescription>{unlockedBadges.length} / {achievements.length} unlocked</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <StaggerChildren className="grid grid-cols-2 gap-4">
@@ -290,7 +290,7 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
                           <p className="text-xs text-muted-foreground mt-2">{achievement.description}</p>
                           {achievement.unlockedAt && (
                             <p className="text-xs text-muted-foreground mt-2 opacity-70">
-                              Débloqué le {new Date(achievement.unlockedAt).toLocaleDateString('fr-FR')}
+                              Unlocked on {new Date(achievement.unlockedAt).toLocaleDateString('en-US')}
                             </p>
                           )}
                         </div>
@@ -305,9 +305,9 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Zap className="w-5 h-5 text-muted-foreground" />
-                    À débloquer
+                    To unlock
                   </CardTitle>
-                  <CardDescription>Continuez vos pronostics pour débloquer</CardDescription>
+                  <CardDescription>Keep predicting to unlock</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">

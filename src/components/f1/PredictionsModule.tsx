@@ -83,7 +83,7 @@ export function PredictionsModule({
     } else if (pointsDiff < 0) {
       return { icon: TrendingDown, color: 'text-red-500', text: `${pointsDiff} pts` };
     }
-    return { icon: Minus, color: 'text-muted-foreground', text: 'Égalité' };
+    return { icon: Minus, color: 'text-muted-foreground', text: 'Tie' };
   };
 
   const status = getStatusIndicator();
@@ -95,9 +95,9 @@ export function PredictionsModule({
         <>
           {/* Header with competition title */}
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-2">Duel F1 2026</h2>
+            <h2 className="text-3xl font-bold mb-2">F1 2026 Duel</h2>
             <p className="text-muted-foreground text-lg">
-              Qui sera le meilleur pronostiqueur de la saison ?
+              Who will be the best predictor of the season?
             </p>
           </div>
 
@@ -116,7 +116,7 @@ export function PredictionsModule({
                       {currentUser.pseudo?.[0] || currentUser.email[0]}
                     </div>
                   </div>
-                  <h3 className="font-bold text-lg mb-1">{currentUser.pseudo || 'Moi'}</h3>
+                  <h3 className="font-bold text-lg mb-1">{currentUser.pseudo || 'Me'}</h3>
                   <div className="text-4xl font-bold text-primary mb-1">
                     {myTotalPoints}
                   </div>
@@ -143,7 +143,7 @@ export function PredictionsModule({
                       {opponent.pseudo?.[0] || opponent.email[0]}
                     </div>
                   </div>
-                  <h3 className="font-bold text-lg mb-1">{opponent.pseudo || 'Adversaire'}</h3>
+                  <h3 className="font-bold text-lg mb-1">{opponent.pseudo || 'Opponent'}</h3>
                   <div className="text-4xl font-bold text-accent mb-1">
                     {opponentTotalPoints}
                   </div>
@@ -158,25 +158,25 @@ export function PredictionsModule({
             <Card className="p-4 border-border/50">
               <div className="flex items-center justify-between mb-2">
                 <Calendar className="w-4 h-4 text-primary" />
-                <Badge variant="outline" className="text-xs">Courses</Badge>
+                <Badge variant="outline" className="text-xs">Races</Badge>
               </div>
               <div className="text-2xl font-bold">{completedRaces.length}</div>
-              <div className="text-xs text-muted-foreground">terminées</div>
+              <div className="text-xs text-muted-foreground">completed</div>
             </Card>
 
             <Card className="p-4 border-border/50">
               <div className="flex items-center justify-between mb-2">
                 <Target className="w-4 h-4 text-accent" />
-                <Badge variant="outline" className="text-xs">Pronostics</Badge>
+                <Badge variant="outline" className="text-xs">Predictions</Badge>
               </div>
               <div className="text-2xl font-bold">{userPredictions.length}</div>
-              <div className="text-xs text-muted-foreground">soumis</div>
+              <div className="text-xs text-muted-foreground">submitted</div>
             </Card>
 
             <Card className="p-4 border-border/50">
               <div className="flex items-center justify-between mb-2">
                 <Trophy className="w-4 h-4 text-amber-500" />
-                <Badge variant="outline" className="text-xs">Victoires</Badge>
+                <Badge variant="outline" className="text-xs">Wins</Badge>
               </div>
               <div className="text-2xl font-bold">
                 {completedRaces.filter(race => {
@@ -185,20 +185,20 @@ export function PredictionsModule({
                   return (myPred?.points || 0) > (oppPred?.points || 0);
                 }).length}
               </div>
-              <div className="text-xs text-muted-foreground">courses gagnées</div>
+              <div className="text-xs text-muted-foreground">races won</div>
             </Card>
 
             <Card className="p-4 border-border/50">
               <div className="flex items-center justify-between mb-2">
                 <TrendingUp className="w-4 h-4 text-green-500" />
-                <Badge variant="outline" className="text-xs">Moyenne</Badge>
+                <Badge variant="outline" className="text-xs">Average</Badge>
               </div>
               <div className="text-2xl font-bold">
                 {userPredictions.length > 0 
                   ? Math.round(myTotalPoints / userPredictions.length)
                   : 0}
               </div>
-              <div className="text-xs text-muted-foreground">pts/course</div>
+              <div className="text-xs text-muted-foreground">pts/race</div>
             </Card>
           </div>
 
@@ -211,15 +211,15 @@ export function PredictionsModule({
                     <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
                       <Calendar className="w-4 h-4 text-white" />
                     </div>
-                    Prochaine course
+                    Next race
                   </div>
                   {hasNextRacePrediction ? (
                     <Badge className="bg-green-500/20 text-green-600 border-0">
-                      ✓ Pronostic soumis
+                      ✓ Prediction submitted
                     </Badge>
                   ) : (
                     <Badge className="bg-amber-500/20 text-amber-600 border-0">
-                      En attente
+                      Pending
                     </Badge>
                   )}
                 </CardTitle>
@@ -229,7 +229,7 @@ export function PredictionsModule({
                   <div>
                     <h3 className="text-xl font-bold">{nextRace.name}</h3>
                     <p className="text-muted-foreground">
-                      {new Date(nextRace.date).toLocaleDateString('fr-FR', { 
+                      {new Date(nextRace.date).toLocaleDateString('en-US', { 
                         weekday: 'long',
                         day: 'numeric', 
                         month: 'long' 
@@ -244,7 +244,7 @@ export function PredictionsModule({
                     className="flex-1 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
                   >
                     <Target className="w-4 h-4" />
-                    {hasNextRacePrediction ? 'Modifier mes pronostics' : 'Faire mes pronostics'}
+                    {hasNextRacePrediction ? 'Edit my predictions' : 'Make my predictions'}
                   </Button>
                   <Button
                     variant="outline"
@@ -252,7 +252,7 @@ export function PredictionsModule({
                     className="gap-2"
                   >
                     <History className="w-4 h-4" />
-                    Historique
+                    History
                   </Button>
                 </div>
               </CardContent>
@@ -265,7 +265,7 @@ export function PredictionsModule({
               <CardHeader className="border-b border-border/50">
                 <CardTitle className="flex items-center gap-2">
                   <Trophy className="w-5 h-5 text-amber-500" />
-                  Résultats course par course
+                  Race by race results
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
@@ -282,7 +282,7 @@ export function PredictionsModule({
                         <div className="flex-1">
                           <div className="font-medium">{race.name}</div>
                           <div className="text-xs text-muted-foreground">
-                            {new Date(race.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                            {new Date(race.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                           </div>
                         </div>
                         

@@ -31,37 +31,37 @@ export function AdminDashboard({
 
   const stats = [
     {
-      title: 'Pilotes',
+      title: 'Drivers',
       value: drivers.length,
-      description: 'Pilotes actifs sur la grille',
+      description: 'Active drivers on the grid',
       icon: Users,
       color: 'primary',
     },
     {
-      title: 'Écuries',
+      title: 'Teams',
       value: constructors.length,
-      description: 'Équipes en compétition',
+      description: 'Teams competing',
       icon: Trophy,
       color: 'accent',
     },
     {
       title: 'Circuits',
       value: circuits.length,
-      description: 'Circuits au calendrier',
+      description: 'Circuits on the calendar',
       icon: MapPin,
       color: 'chart-3',
     },
     {
-      title: 'Courses',
+      title: 'Races',
       value: races.length,
-      description: `${completedRaces} terminées · ${upcomingRaces} à venir`,
+      description: `${completedRaces} completed · ${upcomingRaces} upcoming`,
       icon: Calendar,
       color: 'chart-4',
     },
     {
       title: 'Sprints',
       value: sprintWeekends,
-      description: 'Weekends avec Sprint',
+      description: 'Sprint weekends',
       icon: TrendingUp,
       color: 'chart-2',
     },
@@ -70,9 +70,9 @@ export function AdminDashboard({
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-3xl font-bold mb-2">Tableau de bord</h2>
+        <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
         <p className="text-muted-foreground text-lg">
-          Vue d'ensemble de l'administration
+          Administration overview
         </p>
       </div>
 
@@ -102,8 +102,8 @@ export function AdminDashboard({
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Actions rapides</CardTitle>
-          <CardDescription>Gérez les données de votre application F1 Tracker</CardDescription>
+          <CardTitle>Quick Actions</CardTitle>
+          <CardDescription>Manage your F1 Tracker application data</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -113,8 +113,8 @@ export function AdminDashboard({
                   <Users className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <div className="font-semibold">Gérer les pilotes</div>
-                  <div className="text-sm text-muted-foreground">Ajouter, modifier ou supprimer</div>
+                  <div className="font-semibold">Manage drivers</div>
+                  <div className="text-sm text-muted-foreground">Add, edit or delete</div>
                 </div>
               </div>
             </div>
@@ -124,8 +124,8 @@ export function AdminDashboard({
                   <Trophy className="w-5 h-5 text-accent" />
                 </div>
                 <div>
-                  <div className="font-semibold">Gérer les écuries</div>
-                  <div className="text-sm text-muted-foreground">Ajouter, modifier ou supprimer</div>
+                  <div className="font-semibold">Manage teams</div>
+                  <div className="text-sm text-muted-foreground">Add, edit or delete</div>
                 </div>
               </div>
             </div>
@@ -135,8 +135,8 @@ export function AdminDashboard({
                   <MapPin className="w-5 h-5 text-chart-3" />
                 </div>
                 <div>
-                  <div className="font-semibold">Gérer les circuits</div>
-                  <div className="text-sm text-muted-foreground">Ajouter, modifier ou supprimer</div>
+                  <div className="font-semibold">Manage circuits</div>
+                  <div className="text-sm text-muted-foreground">Add, edit or delete</div>
                 </div>
               </div>
             </div>
@@ -146,8 +146,8 @@ export function AdminDashboard({
                   <Calendar className="w-5 h-5 text-chart-4" />
                 </div>
                 <div>
-                  <div className="font-semibold">Gérer les courses</div>
-                  <div className="text-sm text-muted-foreground">Ajouter, modifier ou supprimer</div>
+                  <div className="font-semibold">Manage races</div>
+                  <div className="text-sm text-muted-foreground">Add, edit or delete</div>
                 </div>
               </div>
             </div>
@@ -157,8 +157,8 @@ export function AdminDashboard({
                   <TrendingUp className="w-5 h-5 text-chart-2" />
                 </div>
                 <div>
-                  <div className="font-semibold">Gérer les résultats</div>
-                  <div className="text-sm text-muted-foreground">Ajouter, modifier ou supprimer</div>
+                  <div className="font-semibold">Manage results</div>
+                  <div className="text-sm text-muted-foreground">Add, edit or delete</div>
                 </div>
               </div>
             </div>
@@ -169,8 +169,8 @@ export function AdminDashboard({
       {/* Recent Activity */}
       <Card>
         <CardHeader>
-          <CardTitle>Activité récente</CardTitle>
-          <CardDescription>Dernières modifications apportées</CardDescription>
+          <CardTitle>Recent Activity</CardTitle>
+          <CardDescription>Latest changes made</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -179,30 +179,30 @@ export function AdminDashboard({
                 <Calendar className="w-4 h-4 text-primary" />
               </div>
               <div className="flex-1">
-                <div className="text-sm font-medium">Course ajoutée</div>
-                <div className="text-xs text-muted-foreground">Grand Prix de Monaco</div>
+                <div className="text-sm font-medium">Race added</div>
+                <div className="text-xs text-muted-foreground">Monaco Grand Prix</div>
               </div>
-              <div className="text-xs text-muted-foreground">Il y a 2h</div>
+              <div className="text-xs text-muted-foreground">2h ago</div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
               <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
                 <Users className="w-4 h-4 text-accent" />
               </div>
               <div className="flex-1">
-                <div className="text-sm font-medium">Pilote modifié</div>
-                <div className="text-xs text-muted-foreground">Max Verstappen - Points mis à jour</div>
+                <div className="text-sm font-medium">Driver modified</div>
+                <div className="text-xs text-muted-foreground">Max Verstappen - Points updated</div>
               </div>
-              <div className="text-xs text-muted-foreground">Il y a 5h</div>
+              <div className="text-xs text-muted-foreground">5h ago</div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
               <div className="w-8 h-8 rounded-lg bg-chart-3/10 flex items-center justify-center">
                 <MapPin className="w-4 h-4 text-chart-3" />
               </div>
               <div className="flex-1">
-                <div className="text-sm font-medium">Circuit ajouté</div>
-                <div className="text-xs text-muted-foreground">Circuit de Spa-Francorchamps</div>
+                <div className="text-sm font-medium">Circuit added</div>
+                <div className="text-xs text-muted-foreground">Spa-Francorchamps Circuit</div>
               </div>
-              <div className="text-xs text-muted-foreground">Il y a 1j</div>
+              <div className="text-xs text-muted-foreground">1d ago</div>
             </div>
           </div>
         </CardContent>

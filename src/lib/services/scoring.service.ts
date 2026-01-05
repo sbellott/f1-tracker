@@ -222,10 +222,10 @@ export function formatScoreBreakdown(breakdown: ScoringBreakdown): string {
   const lines: string[] = [];
 
   if (breakdown.positionPoints > 0) {
-    lines.push(`Positions exactes: ${breakdown.positionPoints} pts`);
+    lines.push(`Exact positions: ${breakdown.positionPoints} pts`);
   }
   if (breakdown.partialPoints > 0) {
-    lines.push(`Podium partiel: ${breakdown.partialPoints} pts`);
+    lines.push(`Partial podium: ${breakdown.partialPoints} pts`);
   }
   if (breakdown.polePoints > 0) {
     lines.push(`Pole Position: ${breakdown.polePoints} pts`);
@@ -257,15 +257,15 @@ export function validatePrediction(prediction: Prediction): {
 
   // Check positions array
   if (!Array.isArray(prediction.positions)) {
-    errors.push("positions doit être un tableau");
+    errors.push("positions must be an array");
   } else {
     if (prediction.positions.length !== 10) {
-      errors.push("positions doit contenir exactement 10 pilotes");
+      errors.push("positions must contain exactly 10 drivers");
     }
 
     const uniqueDrivers = new Set(prediction.positions);
     if (uniqueDrivers.size !== prediction.positions.length) {
-      errors.push("Chaque pilote ne peut apparaître qu'une seule fois");
+      errors.push("Each driver can only appear once");
     }
   }
 

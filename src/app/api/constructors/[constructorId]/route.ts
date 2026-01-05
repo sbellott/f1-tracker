@@ -28,7 +28,7 @@ export const GET = withErrorHandler(
     const constructor = await getConstructorById(constructorId);
 
     if (!constructor) {
-      throw ApiError.notFound("Écurie non trouvée");
+      throw ApiError.notFound("Constructor not found");
     }
 
     return apiCached(constructor, 3600);

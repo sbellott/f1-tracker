@@ -57,7 +57,7 @@ export function AdminPanel({
               </div>
               <div>
                 <h1 className="text-xl font-bold text-white">Administration</h1>
-                <p className="text-xs text-white/80">Gestion F1 Tracker</p>
+                <p className="text-xs text-white/80">F1 Tracker Management</p>
               </div>
             </div>
             <Button 
@@ -66,7 +66,7 @@ export function AdminPanel({
               className="text-white hover:bg-white/10"
             >
               <X className="w-4 h-4 mr-2" />
-              Fermer
+              Close
             </Button>
           </div>
         </div>
@@ -78,15 +78,15 @@ export function AdminPanel({
           <TabsList className="inline-flex w-auto bg-muted/50 p-1.5 rounded-2xl">
             <TabsTrigger value="dashboard" className="gap-2 rounded-xl data-[state=active]:shadow-sm">
               <LayoutDashboard className="w-4 h-4" />
-              <span className="hidden sm:inline">Tableau de bord</span>
+              <span className="hidden sm:inline">Dashboard</span>
             </TabsTrigger>
             <TabsTrigger value="drivers" className="gap-2 rounded-xl data-[state=active]:shadow-sm">
               <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Pilotes</span>
+              <span className="hidden sm:inline">Drivers</span>
             </TabsTrigger>
             <TabsTrigger value="constructors" className="gap-2 rounded-xl data-[state=active]:shadow-sm">
               <Trophy className="w-4 h-4" />
-              <span className="hidden sm:inline">Écuries</span>
+              <span className="hidden sm:inline">Teams</span>
             </TabsTrigger>
             <TabsTrigger value="circuits" className="gap-2 rounded-xl data-[state=active]:shadow-sm">
               <MapPin className="w-4 h-4" />
@@ -94,11 +94,11 @@ export function AdminPanel({
             </TabsTrigger>
             <TabsTrigger value="races" className="gap-2 rounded-xl data-[state=active]:shadow-sm">
               <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Courses</span>
+              <span className="hidden sm:inline">Races</span>
             </TabsTrigger>
             <TabsTrigger value="results" className="gap-2 rounded-xl data-[state=active]:shadow-sm">
               <Flag className="w-4 h-4" />
-              <span className="hidden sm:inline">Résultats</span>
+              <span className="hidden sm:inline">Results</span>
             </TabsTrigger>
           </TabsList>
 
@@ -109,10 +109,10 @@ export function AdminPanel({
                 <div className="text-2xl">⚠️</div>
                 <div>
                   <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
-                    Mode démonstration
+                    Demo mode
                   </h4>
                   <p className="text-sm text-amber-800 dark:text-amber-200">
-                    Les modifications ne sont pas sauvegardées. Connectez Supabase pour activer la persistance des données.
+                    Changes are not saved. Connect Supabase to enable data persistence.
                   </p>
                 </div>
               </div>

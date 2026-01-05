@@ -57,7 +57,7 @@ export function PredictionForm({ drivers, onSubmit, existingPrediction, isLocked
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
               <Trophy className="w-5 h-5 text-white" />
             </div>
-            <CardTitle className="text-2xl">Vos pronostics</CardTitle>
+            <CardTitle className="text-2xl">Your predictions</CardTitle>
           </div>
           {isLocked && (
             <Badge className="gap-2 bg-muted text-muted-foreground border-border">
@@ -115,7 +115,7 @@ export function PredictionForm({ drivers, onSubmit, existingPrediction, isLocked
           <div className="space-y-4 pt-6 border-t border-border/50">
             <div className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-accent" />
-              <h3 className="text-lg font-semibold">Pronostics bonus</h3>
+              <h3 className="text-lg font-semibold">Bonus predictions</h3>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="group">
@@ -187,7 +187,7 @@ export function PredictionForm({ drivers, onSubmit, existingPrediction, isLocked
               type="submit" 
               className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary shadow-lg shadow-primary/20 text-base font-semibold"
             >
-              Enregistrer mes pronostics
+              Save my predictions
             </Button>
           )}
         </form>

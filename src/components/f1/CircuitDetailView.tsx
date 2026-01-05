@@ -5,7 +5,7 @@ import { ArrowLeft, Clock, Trophy, Zap, Calendar, ChevronDown, ChevronUp, Loader
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { fr, enUS } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 import { useCircuitHistory } from '@/lib/hooks/useF1Data';
 import type { FullRaceResult } from '@/lib/services/circuit-history.service';
 import { WeatherWidget } from './WeatherWidget';
@@ -529,7 +529,7 @@ function F1ResultsSection({ results, isLoading }: { results: FullRaceResult[]; i
 
                   {/* Footer */}
                   <div className="p-3 bg-muted/30 border-t border-border text-xs text-muted-foreground flex items-center justify-between">
-                    <span>{format(new Date(race.date), 'd MMMM yyyy', { locale: fr })}</span>
+                    <span>{format(new Date(race.date), 'MMMM d, yyyy', { locale: enUS })}</span>
                     <span>Round {race.round}</span>
                   </div>
                 </div>

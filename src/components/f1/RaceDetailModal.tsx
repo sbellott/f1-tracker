@@ -356,9 +356,9 @@ export function RaceDetailModal({ race, circuit, drivers, constructors, open, on
               <Card className="bg-muted/30">
                 <CardContent className="p-8 text-center">
                   <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h4 className="font-semibold mb-2">Aucun résultat disponible</h4>
+                  <h4 className="font-semibold mb-2">No results available</h4>
                   <p className="text-sm text-muted-foreground">
-                    Les résultats seront affichés une fois les sessions terminées
+                    Results will be displayed once the sessions are completed
                   </p>
                 </CardContent>
               </Card>

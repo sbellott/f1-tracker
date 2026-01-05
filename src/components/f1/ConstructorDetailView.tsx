@@ -34,7 +34,7 @@ export function ConstructorDetailView({
         </Button>
         <div>
           <h2 className="text-3xl font-bold">{constructor.name}</h2>
-          <p className="text-muted-foreground text-lg">Écurie de Formule 1</p>
+          <p className="text-muted-foreground text-lg">Formula 1 Team</p>
         </div>
       </div>
 
@@ -97,7 +97,7 @@ export function ConstructorDetailView({
             <div className="text-center">
               <Trophy className="w-8 h-8 mx-auto mb-3 text-amber-500" />
               <div className="text-4xl font-bold mb-1">{constructor.stats.wins}</div>
-              <div className="text-sm text-muted-foreground">Victoires</div>
+              <div className="text-sm text-muted-foreground">Wins</div>
             </div>
           </CardContent>
         </Card>
@@ -127,7 +127,7 @@ export function ConstructorDetailView({
             <div className="text-center">
               <Flag className="w-8 h-8 mx-auto mb-3 text-chart-3" />
               <div className="text-4xl font-bold mb-1">{constructor.stats.titles}</div>
-              <div className="text-sm text-muted-foreground">Titres</div>
+              <div className="text-sm text-muted-foreground">Titles</div>
             </div>
           </CardContent>
         </Card>
@@ -139,7 +139,7 @@ export function ConstructorDetailView({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Flag className="w-5 h-5" />
-              Informations
+              Information
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -148,15 +148,15 @@ export function ConstructorDetailView({
               <span className="font-bold">{constructor.base}</span>
             </div>
             <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30">
-              <span className="text-muted-foreground">Directeur</span>
+              <span className="text-muted-foreground">Team Principal</span>
               <span className="font-bold">{constructor.teamPrincipal}</span>
             </div>
             <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30">
-              <span className="text-muted-foreground">Dir. Technique</span>
+              <span className="text-muted-foreground">Technical Director</span>
               <span className="font-bold">{constructor.technicalDirector}</span>
             </div>
             <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30">
-              <span className="text-muted-foreground">Moteur</span>
+              <span className="text-muted-foreground">Engine</span>
               <span className="font-bold">{constructor.engine}</span>
             </div>
           </CardContent>
@@ -166,7 +166,7 @@ export function ConstructorDetailView({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
-              Pilotes {new Date().getFullYear()}
+              Drivers {new Date().getFullYear()}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -189,7 +189,7 @@ export function ConstructorDetailView({
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold">{driver.stats.wins}</div>
-                  <div className="text-xs text-muted-foreground">Victoires</div>
+                  <div className="text-xs text-muted-foreground">Wins</div>
                 </div>
               </div>
             ))}
@@ -208,7 +208,7 @@ export function ConstructorDetailView({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="w-5 h-5" />
-            Palmarès
+            Achievements
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -216,13 +216,13 @@ export function ConstructorDetailView({
             <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/20">
               <Trophy className="w-12 h-12 mx-auto mb-3 text-amber-500" />
               <div className="text-5xl font-bold mb-2">{constructor.stats.titles}</div>
-              <div className="text-muted-foreground">Championnats Constructeurs</div>
+              <div className="text-muted-foreground">Constructors' Championships</div>
             </div>
             
             <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
               <TrendingUp className="w-12 h-12 mx-auto mb-3 text-primary" />
               <div className="text-5xl font-bold mb-2">{constructor.stats.wins}</div>
-              <div className="text-muted-foreground">Victoires en Course</div>
+              <div className="text-muted-foreground">Race Wins</div>
             </div>
             
             <div className="text-center p-6 rounded-2xl bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/20">

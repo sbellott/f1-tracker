@@ -31,7 +31,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   // Check if user is admin via email list
   if (!user.email || !ADMIN_EMAILS.includes(user.email)) {
-    throw ApiError.forbidden("Accès réservé aux administrateurs");
+    throw ApiError.forbidden("Administrator access only");
   }
 
   const body = await request.json();
@@ -43,7 +43,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       const result = await syncSeason(season);
 
       return apiSuccess({
-        message: `Saison ${season} synchronisée`,
+        message: `Season ${season} synchronized`,
         result,
       });
     }
@@ -61,7 +61,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       });
 
       if (!race?.resultsJson) {
-        throw ApiError.badRequest("Résultats non disponibles");
+        throw ApiError.badRequest("Results not available");
       }
 
       const results = race.resultsJson as {
@@ -74,7 +74,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       const scoreResult = await scorePredictions(race.id, results);
 
       return apiSuccess({
-        message: `Résultats de la manche ${round} synchronisés et pronostics notés`,
+        message: `Round ${round} results synchronized and predictions scored`,
         syncResult,
         scoreResult,
       });
@@ -90,7 +90,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       });
 
       if (!race?.resultsJson) {
-        throw ApiError.badRequest("Résultats non disponibles pour cette course");
+        throw ApiError.badRequest("Results not available for this race");
       }
 
       // Reset points to allow re-scoring
@@ -109,14 +109,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       const scoreResult = await scorePredictions(race.id, results);
 
       return apiSuccess({
-        message: `Pronostics recalculés pour la manche ${round}`,
+        message: `Predictions recalculated for round ${round}`,
         scoreResult,
       });
     }
 
     default:
       throw ApiError.badRequest(
-        "Action invalide. Utilisez: sync-season, sync-results, rescore"
+        "Invalid action. Use: sync-season, sync-results, rescore"
       );
   }
 });

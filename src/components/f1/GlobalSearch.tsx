@@ -93,9 +93,9 @@ export function GlobalSearch({
       </button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Rechercher pilotes, écuries, circuits..." />
+        <CommandInput placeholder="Search drivers, teams, circuits..." />
         <CommandList>
-          <CommandEmpty>Aucun résultat trouvé.</CommandEmpty>
+          <CommandEmpty>No results found.</CommandEmpty>
 
           {/* Navigation */}
           <CommandGroup heading="Navigation">
@@ -109,11 +109,11 @@ export function GlobalSearch({
             </CommandItem>
             <CommandItem onSelect={() => handleNavigate('standings')}>
               <Trophy className="mr-2 h-4 w-4" />
-              <span>Classements</span>
+              <span>Standings</span>
             </CommandItem>
             <CommandItem onSelect={() => handleNavigate('predictions')}>
               <Target className="mr-2 h-4 w-4" />
-              <span>Pronostics</span>
+              <span>Predictions</span>
             </CommandItem>
             <CommandItem onSelect={() => handleNavigate('explorer')}>
               <Zap className="mr-2 h-4 w-4" />

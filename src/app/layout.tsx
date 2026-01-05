@@ -10,8 +10,8 @@ const titillium = Titillium_Web({
 });
 
 export const metadata: Metadata = {
-  title: "F1 Tracker - Suivez la Formule 1",
-  description: "Classements en temps réel, calendrier complet et pronostics entre amis",
+  title: "F1 Tracker - Follow Formula 1",
+  description: "Real-time standings, full calendar and predictions with friends",
   icons: {
     icon: "/f1-logo.svg",
   },
@@ -23,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className={`${titillium.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
       </body>

@@ -91,7 +91,7 @@ export function DriversManager({ drivers, constructors, onUpdateDrivers }: Drive
 
   const handleSave = () => {
     if (!formData.firstName || !formData.lastName || !formData.code || !formData.number || !formData.constructorId) {
-      toast.error('Erreur', { description: 'Veuillez remplir tous les champs obligatoires' });
+      toast.error('Error', { description: 'Please fill in all required fields' });
       return;
     }
 
@@ -122,23 +122,23 @@ export function DriversManager({ drivers, constructors, onUpdateDrivers }: Drive
     if (isCreating) {
       const newDrivers = [...drivers, processedData];
       onUpdateDrivers(newDrivers);
-      toast.success('Pilote créé', { description: `${processedData.firstName} ${processedData.lastName} a été ajouté` });
+      toast.success('Driver created', { description: `${processedData.firstName} ${processedData.lastName} has been added` });
     } else if (editingDriver) {
       const updatedDrivers = drivers.map(d => 
         d.id === editingDriver.id ? processedData : d
       );
       onUpdateDrivers(updatedDrivers);
-      toast.success('Pilote modifié', { description: `${processedData.firstName} ${processedData.lastName} a été mis à jour` });
+      toast.success('Driver modified', { description: `${processedData.firstName} ${processedData.lastName} has been updated` });
     }
 
     handleCancel();
   };
 
   const handleDelete = (driver: Driver) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${driver.firstName} ${driver.lastName} ?`)) {
+    if (window.confirm(`Are you sure you want to delete ${driver.firstName} ${driver.lastName}?`)) {
       const updatedDrivers = drivers.filter(d => d.id !== driver.id);
       onUpdateDrivers(updatedDrivers);
-      toast.success('Pilote supprimé', { description: `${driver.firstName} ${driver.lastName} a été supprimé` });
+      toast.success('Driver deleted', { description: `${driver.firstName} ${driver.lastName} has been deleted` });
     }
   };
 
@@ -152,12 +152,12 @@ export function DriversManager({ drivers, constructors, onUpdateDrivers }: Drive
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold mb-2">Gestion des pilotes</h2>
-          <p className="text-muted-foreground text-lg">{drivers.length} pilotes au total</p>
+          <h2 className="text-3xl font-bold mb-2">Driver Management</h2>
+          <p className="text-muted-foreground text-lg">{drivers.length} drivers total</p>
         </div>
         <Button onClick={handleCreate} className="gap-2">
           <Plus className="w-4 h-4" />
-          Nouveau pilote
+          New driver
         </Button>
       </div>
 
@@ -165,7 +165,7 @@ export function DriversManager({ drivers, constructors, onUpdateDrivers }: Drive
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Rechercher par nom ou numéro..."
+          placeholder="Search by name or number..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -176,15 +176,15 @@ export function DriversManager({ drivers, constructors, onUpdateDrivers }: Drive
       {(isCreating || editingDriver) && (
         <Card className="border-primary/50 shadow-lg">
           <CardHeader>
-            <CardTitle>{isCreating ? 'Nouveau pilote' : 'Modifier le pilote'}</CardTitle>
+            <CardTitle>{isCreating ? 'New driver' : 'Edit driver'}</CardTitle>
             <CardDescription>
-              {isCreating ? 'Remplissez les informations du nouveau pilote' : 'Modifiez les informations du pilote'}
+              {isCreating ? 'Fill in the new driver\'s information' : 'Edit the driver\'s information'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName">Prénom *</Label>
+                <Label htmlFor="firstName">First Name *</Label>
                 <Input
                   id="firstName"
                   value={formData.firstName || ''}
@@ -193,7 +193,7 @@ export function DriversManager({ drivers, constructors, onUpdateDrivers }: Drive
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Nom *</Label>
+                <Label htmlFor="lastName">Last Name *</Label>
                 <Input
                   id="lastName"
                   value={formData.lastName || ''}
@@ -212,7 +212,7 @@ export function DriversManager({ drivers, constructors, onUpdateDrivers }: Drive
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="number">Numéro *</Label>
+                <Label htmlFor="number">Number *</Label>
                 <Input
                   id="number"
                   type="number"
@@ -222,7 +222,7 @@ export function DriversManager({ drivers, constructors, onUpdateDrivers }: Drive
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="constructorId">Écurie *</Label>
+                <Label htmlFor="constructorId">Team *</Label>
                 <select
                   id="constructorId"
                   value={formData.constructorId || ''}
@@ -237,16 +237,16 @@ export function DriversManager({ drivers, constructors, onUpdateDrivers }: Drive
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="nationality">Nationalité</Label>
+                <Label htmlFor="nationality">Nationality</Label>
                 <Input
                   id="nationality"
                   value={formData.nationality || ''}
                   onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
-                  placeholder="Néerlandais"
+                  placeholder="Dutch"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="dateOfBirth">Date de naissance</Label>
+                <Label htmlFor="dateOfBirth">Date of Birth</Label>
                 <Input
                   id="dateOfBirth"
                   type="date"
@@ -255,7 +255,7 @@ export function DriversManager({ drivers, constructors, onUpdateDrivers }: Drive
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="profileImage">URL de l'image</Label>
+                <Label htmlFor="profileImage">Profile Image URL</Label>
                 <Input
                   id="profileImage"
                   value={formData.photo || ''}
@@ -267,11 +267,11 @@ export function DriversManager({ drivers, constructors, onUpdateDrivers }: Drive
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={handleCancel}>
                 <X className="w-4 h-4 mr-2" />
-                Annuler
+                Cancel
               </Button>
               <Button onClick={handleSave}>
                 <Save className="w-4 h-4 mr-2" />
-                Enregistrer
+                Save
               </Button>
             </div>
           </CardContent>
@@ -342,9 +342,9 @@ export function DriversManager({ drivers, constructors, onUpdateDrivers }: Drive
         <Card>
           <CardContent className="py-12 text-center">
             <User className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">Aucun pilote trouvé</h3>
+            <h3 className="text-lg font-semibold mb-2">No driver found</h3>
             <p className="text-muted-foreground">
-              {searchTerm ? 'Essayez une autre recherche' : 'Commencez par ajouter un pilote'}
+              {searchTerm ? 'Try a different search' : 'Start by adding a driver'}
             </p>
           </CardContent>
         </Card>

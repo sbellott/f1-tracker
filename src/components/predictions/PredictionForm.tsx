@@ -72,7 +72,7 @@ export function PredictionForm({
     const selectedDrivers = positions.map(pos => prediction[pos]).filter(Boolean);
     const uniqueDrivers = new Set(selectedDrivers);
     if (uniqueDrivers.size !== selectedDrivers.length) {
-      errors.push('Chaque pilote ne peut apparaître qu\'une seule fois dans le top 10');
+      errors.push('Each driver can only appear once in the top 10');
     }
 
     return errors;
@@ -116,12 +116,12 @@ export function PredictionForm({
           <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center mx-auto mb-4">
             <Lock className="w-8 h-8 text-destructive" />
           </div>
-          <h3 className="text-2xl font-bold mb-2">Pronostics verrouillés</h3>
-          <p className="text-muted-foreground text-lg mb-6">
-            Les pronostics pour cette course sont verrouillés depuis {lockTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+          <h3 className="text-2xl font-bold mb-2">Predictions locked</h3>
+          <p className="text-muted-foreground">
+            Predictions for this race have been locked since {lockTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
           </p>
-          <p className="text-sm text-muted-foreground">
-            Vous pourrez faire vos pronostics pour la prochaine course !
+          <p className="text-sm text-muted-foreground mt-2">
+            You can make your predictions for the next race!
           </p>
         </Card>
       </div>
@@ -154,8 +154,8 @@ export function PredictionForm({
               <CardTitle className="text-2xl mb-2">{race.name}</CardTitle>
             </div>
             <div className="text-right">
-              <div className="text-sm text-muted-foreground mb-1">Date de la course</div>
-              <div className="font-bold">{new Date(race.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</div>
+              <div className="text-sm text-muted-foreground mb-1">Race date</div>
+              <div className="font-bold">{new Date(race.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}</div>
             </div>
           </div>
         </CardHeader>
@@ -167,7 +167,7 @@ export function PredictionForm({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
               <AlertCircle className="w-5 h-5" />
-              Erreurs de validation
+              Validation errors
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -214,7 +214,7 @@ export function PredictionForm({
                       disabled={isLocked}
                     >
                       <SelectTrigger className="h-12">
-                        <SelectValue placeholder="Sélectionner un pilote" />
+                        <SelectValue placeholder="Select a driver" />
                       </SelectTrigger>
                       <SelectContent>
                         {getAvailableDrivers(pos).map(driver => (
@@ -232,7 +232,7 @@ export function PredictionForm({
                   </div>
 
                   <div className="text-right shrink-0 w-16">
-                    <div className="text-xs text-muted-foreground">Exact</div>
+                    <div className="text-xs text-muted-foreground">Exact P1</div>
                     <div className="font-bold text-primary">{points} pts</div>
                   </div>
                 </div>
@@ -332,15 +332,15 @@ export function PredictionForm({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="p-3 rounded-xl bg-muted/30 text-center">
               <div className="font-bold text-lg">25</div>
-              <div className="text-xs text-muted-foreground">P1 exact</div>
+              <div className="text-xs text-muted-foreground">Exact P1</div>
             </div>
             <div className="p-3 rounded-xl bg-muted/30 text-center">
               <div className="font-bold text-lg">50</div>
-              <div className="text-xs text-muted-foreground">Podium exact</div>
+              <div className="text-xs text-muted-foreground">Exact podium</div>
             </div>
             <div className="p-3 rounded-xl bg-muted/30 text-center">
               <div className="font-bold text-lg">10</div>
-              <div className="text-xs text-muted-foreground">Pole exact</div>
+              <div className="text-xs text-muted-foreground">Exact pole</div>
             </div>
             <div className="p-3 rounded-xl bg-muted/30 text-center">
               <div className="font-bold text-lg">5</div>
@@ -348,7 +348,7 @@ export function PredictionForm({
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Des points bonus sont accordés pour les podiums dans l'ordre exact (+50 pts) ou désordre (+20 pts)
+            Bonus points are awarded for exact podium order (+50 pts) or any order (+20 pts)
           </p>
         </CardContent>
       </Card>
@@ -362,7 +362,7 @@ export function PredictionForm({
           className="flex-1 h-14 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
         >
           <CheckCircle2 className="w-5 h-5 mr-2" />
-          {existingPrediction ? 'Modifier mes pronostics' : 'Valider mes pronostics'}
+          {existingPrediction ? 'Edit my predictions' : 'Submit my predictions'}
         </Button>
       </div>
     </div>
