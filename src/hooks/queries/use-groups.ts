@@ -246,11 +246,10 @@ async function createInvitation(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error?.message || "Failed to create invitation");
+    throw new Error(error.error || "Failed to create invitation");
   }
 
-  const json = await response.json();
-  return json.data;
+  return response.json();
 }
 
 async function respondToInvitation(

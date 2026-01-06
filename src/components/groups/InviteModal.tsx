@@ -1,15 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
 import {
   Copy,
   Check,
   Share2,
-  Mail,
   Link2,
   Users,
   RefreshCw,
@@ -17,37 +13,18 @@ import {
 } from "lucide-react";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 
-import { useCreateInvitation, useRegenerateCode } from "@/hooks/queries/use-groups";
-
-// ============================================
-// Schema
-// ============================================
-
-const inviteByEmailSchema = z.object({
-  email: z.string().email("Adresse email invalide"),
-});
-
-type InviteByEmailValues = z.infer<typeof inviteByEmailSchema>;
+import { useRegenerateCode } from "@/hooks/queries/use-groups";
 
 // ============================================
 // Types
@@ -76,15 +53,7 @@ export function InviteModal({
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const [currentCode, setCurrentCode] = useState(groupCode);
 
-  const createInvitation = useCreateInvitation();
   const regenerateCode = useRegenerateCode();
-
-  const form = useForm<InviteByEmailValues>({
-    resolver: zodResolver(inviteByEmailSchema),
-    defaultValues: {
-      email: "",
-    },
-  });
 
   const inviteLink = typeof window !== "undefined"
     ? `${window.location.origin}/join?code=${currentCode}`
@@ -133,179 +102,107 @@ export function InviteModal({
     }
   };
 
-  const onSubmitEmail = async (values: InviteByEmailValues) => {
-    try {
-      await createInvitation.mutateAsync({
-        groupId,
-        recipientEmail: values.email,
-      });
-      toast.success(`Invitation envoyée à ${values.email}`);
-      form.reset();
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Erreur lors de l'envoi"
-      );
-    }
-  };
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <ResponsiveModal open={open} onOpenChange={setOpen}>
+      <ResponsiveModalTrigger asChild>
         {trigger || (
           <Button variant="outline" size="sm" className="gap-2">
             <Users className="h-4 w-4" />
             Inviter
           </Button>
         )}
-      </DialogTrigger>
+      </ResponsiveModalTrigger>
 
-      <DialogContent className="sm:max-w-[450px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <ResponsiveModalContent className="sm:max-w-[450px]">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
             Inviter des membres
-          </DialogTitle>
-          <DialogDescription>
+          </ResponsiveModalTitle>
+          <ResponsiveModalDescription>
             Partagez le code ou le lien pour inviter des amis à rejoindre{" "}
             <span className="font-medium">{groupName}</span>
-          </DialogDescription>
-        </DialogHeader>
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
-        <Tabs defaultValue="code" className="mt-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="code" className="gap-2">
-              <Link2 className="h-4 w-4" />
-              Code / Lien
-            </TabsTrigger>
-            <TabsTrigger value="email" className="gap-2">
-              <Mail className="h-4 w-4" />
-              Par email
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Code & Link Tab */}
-          <TabsContent value="code" className="space-y-4 mt-4">
-            {/* Invite Code */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Code d&apos;invitation</label>
-              <div className="flex gap-2">
-                <div className="flex-1 flex items-center justify-center px-4 py-3 bg-muted rounded-lg">
-                  <span className="text-2xl font-mono font-bold tracking-widest">
-                    {currentCode}
-                  </span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => copyToClipboard(currentCode, "code")}
-                  className="shrink-0 h-auto aspect-square"
-                >
-                  {copied === "code" ? (
-                    <Check className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
+        <div className="space-y-4 mt-4">
+          {/* Invite Code */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Code d&apos;invitation</label>
+            <div className="flex gap-2">
+              <div className="flex-1 flex items-center justify-center px-4 py-3 bg-muted rounded-lg">
+                <span className="text-2xl font-mono font-bold tracking-widest">
+                  {currentCode}
+                </span>
               </div>
-              {canRegenerateCode && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRegenerateCode}
-                  disabled={regenerateCode.isPending}
-                  className="text-xs text-muted-foreground"
-                >
-                  {regenerateCode.isPending ? (
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                  )}
-                  Générer un nouveau code
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => copyToClipboard(currentCode, "code")}
+                className="shrink-0 h-auto aspect-square"
+              >
+                {copied === "code" ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
             </div>
+            {canRegenerateCode && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRegenerateCode}
+                disabled={regenerateCode.isPending}
+                className="text-xs text-muted-foreground"
+              >
+                {regenerateCode.isPending ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                )}
+                Générer un nouveau code
+              </Button>
+            )}
+          </div>
 
-            <Separator />
+          <Separator />
 
-            {/* Invite Link */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Lien d&apos;invitation</label>
-              <div className="flex gap-2">
-                <Input
-                  value={inviteLink}
-                  readOnly
-                  className="font-mono text-sm"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => copyToClipboard(inviteLink, "link")}
-                  className="shrink-0"
-                >
-                  {copied === "link" ? (
-                    <Check className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
+          {/* Invite Link */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Lien d&apos;invitation</label>
+            <div className="flex gap-2">
+              <Input
+                value={inviteLink}
+                readOnly
+                className="font-mono text-sm"
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => copyToClipboard(inviteLink, "link")}
+                className="shrink-0"
+              >
+                {copied === "link" ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
             </div>
+          </div>
 
-            {/* Share Button */}
-            <Button onClick={handleShare} className="w-full gap-2">
-              <Share2 className="h-4 w-4" />
-              Partager
-            </Button>
-          </TabsContent>
+          {/* Share Button */}
+          <Button onClick={handleShare} className="w-full gap-2">
+            <Share2 className="h-4 w-4" />
+            Partager
+          </Button>
 
-          {/* Email Tab */}
-          <TabsContent value="email" className="mt-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmitEmail)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Adresse email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="ami@example.com"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="submit"
-                  disabled={createInvitation.isPending}
-                  className="w-full gap-2"
-                >
-                  {createInvitation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Envoi...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="h-4 w-4" />
-                      Envoyer l&apos;invitation
-                    </>
-                  )}
-                </Button>
-
-                <p className="text-xs text-muted-foreground text-center">
-                  Une invitation sera envoyée si l&apos;utilisateur a un compte F1 Tracker
-                </p>
-              </form>
-            </Form>
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+          <p className="text-xs text-muted-foreground text-center">
+            Vos amis peuvent rejoindre en entrant ce code dans la section &quot;Rejoindre un groupe&quot;
+          </p>
+        </div>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

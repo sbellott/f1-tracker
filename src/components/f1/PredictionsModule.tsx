@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, History, Target, Crown, Swords, Calendar, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { Race, Driver, UserPrediction, User } from '@/types';
+import { Race, Driver, Constructor, UserPrediction, User } from '@/types';
 import { PredictionForm } from '@/components/predictions/PredictionForm';
 import { PredictionHistory } from '@/components/predictions/PredictionHistory';
 import { Prediction } from '@/types';
+import { useConfetti } from '@/hooks/use-confetti';
 
 interface Participant {
   id: string;
@@ -20,6 +21,7 @@ interface PredictionsModuleProps {
   opponent: User;
   races: Race[];
   drivers: Driver[];
+  constructors: Constructor[];
   userPredictions: UserPrediction[];
   opponentPredictions: UserPrediction[];
   onSubmitPrediction: (raceId: string, sessionType: 'RACE' | 'SPRINT', prediction: Prediction) => void;
@@ -32,12 +34,14 @@ export function PredictionsModule({
   opponent,
   races,
   drivers,
+  constructors,
   userPredictions,
   opponentPredictions,
   onSubmitPrediction,
 }: PredictionsModuleProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('duel');
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
+  const { celebrate, celebrateFirstPrediction } = useConfetti();
 
   // Calculate total points for each participant
   const myTotalPoints = userPredictions.reduce((sum, p) => sum + (p.points || 0), 0);
@@ -71,6 +75,15 @@ export function PredictionsModule({
   const handleSubmitPrediction = (prediction: Prediction) => {
     if (selectedRace) {
       onSubmitPrediction(selectedRace.id, 'RACE', prediction);
+      
+      // Celebrate with confetti!
+      // Check if it's the first prediction ever
+      if (userPredictions.length === 0) {
+        celebrateFirstPrediction();
+      } else {
+        celebrate({ particleCount: 80, spread: 100 });
+      }
+      
       setViewMode('duel');
       setSelectedRace(null);
     }
@@ -105,28 +118,29 @@ export function PredictionsModule({
           <Card className="border-border/50 overflow-hidden">
             <div className="h-2 bg-gradient-to-r from-primary via-accent to-chart-3" />
             <CardContent className="p-0">
-              <div className="grid grid-cols-3 items-center">
+              {/* Mobile: Stack vertically, Desktop: 3 columns */}
+              <div className="grid grid-cols-1 md:grid-cols-3 items-center">
                 {/* Current User */}
-                <div className={`p-6 text-center ${myTotalPoints > opponentTotalPoints ? 'bg-gradient-to-br from-amber-500/10 to-transparent' : ''}`}>
-                  <div className="relative inline-block mb-3">
+                <div className={`p-4 md:p-6 text-center ${myTotalPoints > opponentTotalPoints ? 'bg-gradient-to-br from-amber-500/10 to-transparent' : ''}`}>
+                  <div className="relative inline-block mb-2 md:mb-3">
                     {myTotalPoints > opponentTotalPoints && (
-                      <Crown className="w-6 h-6 text-amber-500 absolute -top-4 left-1/2 transform -translate-x-1/2" />
+                      <Crown className="w-5 h-5 md:w-6 md:h-6 text-amber-500 absolute -top-3 md:-top-4 left-1/2 transform -translate-x-1/2" />
                     )}
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-2xl font-bold text-white mx-auto">
+                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-xl md:text-2xl font-bold text-white mx-auto">
                       {currentUser.pseudo?.[0] || currentUser.email[0]}
                     </div>
                   </div>
-                  <h3 className="font-bold text-lg mb-1">{currentUser.pseudo || 'Me'}</h3>
-                  <div className="text-4xl font-bold text-primary mb-1">
+                  <h3 className="font-bold text-base md:text-lg mb-1">{currentUser.pseudo || 'Moi'}</h3>
+                  <div className="text-3xl md:text-4xl font-bold text-primary mb-1">
                     {myTotalPoints}
                   </div>
-                  <div className="text-sm text-muted-foreground">points</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">points</div>
                 </div>
 
-                {/* VS / Status */}
-                <div className="p-6 text-center border-x border-border/30">
-                  <Swords className="w-10 h-10 mx-auto mb-2 text-muted-foreground" />
-                  <div className="text-2xl font-bold text-muted-foreground mb-2">VS</div>
+                {/* VS / Status - Hidden label on mobile, shown between scores */}
+                <div className="p-3 md:p-6 text-center border-y md:border-y-0 md:border-x border-border/30 flex md:block items-center justify-center gap-4">
+                  <Swords className="w-6 h-6 md:w-10 md:h-10 text-muted-foreground" />
+                  <div className="text-xl md:text-2xl font-bold text-muted-foreground">VS</div>
                   <Badge className={`gap-1 ${pointsDiff > 0 ? 'bg-green-500/20 text-green-600' : pointsDiff < 0 ? 'bg-red-500/20 text-red-600' : 'bg-muted/50 text-muted-foreground'} border-0`}>
                     <status.icon className="w-3 h-3" />
                     {status.text}
@@ -134,20 +148,20 @@ export function PredictionsModule({
                 </div>
 
                 {/* Opponent */}
-                <div className={`p-6 text-center ${opponentTotalPoints > myTotalPoints ? 'bg-gradient-to-br from-amber-500/10 to-transparent' : ''}`}>
-                  <div className="relative inline-block mb-3">
+                <div className={`p-4 md:p-6 text-center ${opponentTotalPoints > myTotalPoints ? 'bg-gradient-to-br from-amber-500/10 to-transparent' : ''}`}>
+                  <div className="relative inline-block mb-2 md:mb-3">
                     {opponentTotalPoints > myTotalPoints && (
-                      <Crown className="w-6 h-6 text-amber-500 absolute -top-4 left-1/2 transform -translate-x-1/2" />
+                      <Crown className="w-5 h-5 md:w-6 md:h-6 text-amber-500 absolute -top-3 md:-top-4 left-1/2 transform -translate-x-1/2" />
                     )}
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-accent to-accent/80 flex items-center justify-center text-2xl font-bold text-white mx-auto">
+                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-accent to-accent/80 flex items-center justify-center text-xl md:text-2xl font-bold text-white mx-auto">
                       {opponent.pseudo?.[0] || opponent.email[0]}
                     </div>
                   </div>
-                  <h3 className="font-bold text-lg mb-1">{opponent.pseudo || 'Opponent'}</h3>
-                  <div className="text-4xl font-bold text-accent mb-1">
+                  <h3 className="font-bold text-base md:text-lg mb-1">{opponent.pseudo || 'Adversaire'}</h3>
+                  <div className="text-3xl md:text-4xl font-bold text-accent mb-1">
                     {opponentTotalPoints}
                   </div>
-                  <div className="text-sm text-muted-foreground">points</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">points</div>
                 </div>
               </div>
             </CardContent>
@@ -320,6 +334,7 @@ export function PredictionsModule({
           }}
           onSubmit={handleSubmitPrediction}
           existingPrediction={userPredictions.find(p => p.raceId === selectedRace.id)?.predictions}
+          constructors={constructors}
         />
       )}
 

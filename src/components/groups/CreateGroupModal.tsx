@@ -8,14 +8,14 @@ import { toast } from "sonner";
 import { Users, Lock, Globe, Loader2, Plus, Copy, Check } from "lucide-react";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalTrigger,
+} from "@/components/ui/responsive-modal";
 import {
   Form,
   FormControl,
@@ -33,6 +33,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 
 import { useCreateGroup } from "@/hooks/queries/use-groups";
+import { useConfetti } from "@/hooks/use-confetti";
 
 // ============================================
 // Schema
@@ -69,6 +70,7 @@ export function CreateGroupModal({ trigger, onSuccess }: CreateGroupModalProps) 
   const [copied, setCopied] = useState(false);
 
   const createGroup = useCreateGroup();
+  const { celebrateTrophy } = useConfetti();
 
   const form = useForm<CreateGroupFormValues>({
     resolver: zodResolver(createGroupSchema),
@@ -85,6 +87,7 @@ export function CreateGroupModal({ trigger, onSuccess }: CreateGroupModalProps) 
       const group = await createGroup.mutateAsync(values);
       setCreatedCode(group.code);
       toast.success("Groupe créé avec succès !");
+      celebrateTrophy(); // Celebrate group creation!
       onSuccess?.(group.code);
     } catch (error) {
       toast.error(
@@ -127,30 +130,30 @@ export function CreateGroupModal({ trigger, onSuccess }: CreateGroupModalProps) 
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <ResponsiveModal open={open} onOpenChange={setOpen}>
+      <ResponsiveModalTrigger asChild>
         {trigger || (
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
             Créer un groupe
           </Button>
         )}
-      </DialogTrigger>
+      </ResponsiveModalTrigger>
 
-      <DialogContent className="sm:max-w-[500px]">
+      <ResponsiveModalContent className="sm:max-w-[500px]">
         {!createdCode ? (
           // Form View
           <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
+            <ResponsiveModalHeader>
+              <ResponsiveModalTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
                 Créer un nouveau groupe
-              </DialogTitle>
-              <DialogDescription>
+              </ResponsiveModalTitle>
+              <ResponsiveModalDescription>
                 Créez votre ligue de pronostics et invitez vos amis à vous
                 rejoindre.
-              </DialogDescription>
-            </DialogHeader>
+              </ResponsiveModalDescription>
+            </ResponsiveModalHeader>
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -253,7 +256,7 @@ export function CreateGroupModal({ trigger, onSuccess }: CreateGroupModalProps) 
                   )}
                 />
 
-                <DialogFooter>
+                <ResponsiveModalFooter>
                   <Button
                     type="button"
                     variant="outline"
@@ -278,23 +281,23 @@ export function CreateGroupModal({ trigger, onSuccess }: CreateGroupModalProps) 
                       </>
                     )}
                   </Button>
-                </DialogFooter>
+                </ResponsiveModalFooter>
               </form>
             </Form>
           </>
         ) : (
           // Success View
           <>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-green-600">
+            <ResponsiveModalHeader>
+              <ResponsiveModalTitle className="flex items-center gap-2 text-green-600">
                 <Check className="h-5 w-5" />
                 Groupe créé !
-              </DialogTitle>
-              <DialogDescription>
+              </ResponsiveModalTitle>
+              <ResponsiveModalDescription>
                 Partagez ce code avec vos amis pour qu&apos;ils rejoignent votre
                 groupe.
-              </DialogDescription>
-            </DialogHeader>
+              </ResponsiveModalDescription>
+            </ResponsiveModalHeader>
 
             <div className="space-y-6 py-4">
               {/* Code Display */}
@@ -348,14 +351,14 @@ export function CreateGroupModal({ trigger, onSuccess }: CreateGroupModalProps) 
               </div>
             </div>
 
-            <DialogFooter>
+            <ResponsiveModalFooter>
               <Button onClick={handleClose} className="w-full">
                 Terminé
               </Button>
-            </DialogFooter>
+            </ResponsiveModalFooter>
           </>
         )}
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

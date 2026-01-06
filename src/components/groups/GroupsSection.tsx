@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/form";
 
 import { useGroups, useJoinGroup } from "@/hooks/queries/use-groups";
+import { useConfetti } from "@/hooks/use-confetti";
 import { CreateGroupModal } from "./CreateGroupModal";
 import { GroupCard, GroupCardSkeleton } from "./GroupCard";
 
@@ -49,6 +50,7 @@ type JoinGroupValues = z.infer<typeof joinGroupSchema>;
 export function GroupsSection() {
   const router = useRouter();
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const { celebrate } = useConfetti();
 
   const { data: groups, isLoading, error } = useGroups();
   const joinGroup = useJoinGroup();
@@ -64,6 +66,7 @@ export function GroupsSection() {
     try {
       const group = await joinGroup.mutateAsync(values.code);
       toast.success(`Vous avez rejoint "${group.name}" !`);
+      celebrate({ particleCount: 60, spread: 80 });
       setShowJoinModal(false);
       form.reset();
     } catch (error) {
