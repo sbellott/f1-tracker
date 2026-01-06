@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, History, Trophy, Zap, Target } from 'lucide-react';
+import { ArrowLeft, History, Trophy, Zap, Target, Eye } from 'lucide-react';
 import { User, Race, Driver, UserPrediction } from '@/types';
 
 interface PredictionHistoryProps {
@@ -10,6 +10,7 @@ interface PredictionHistoryProps {
   drivers: Driver[];
   userPredictions: UserPrediction[];
   onBack: () => void;
+  onViewScore?: (prediction: UserPrediction, race: Race) => void;
 }
 
 export function PredictionHistory({
@@ -18,6 +19,7 @@ export function PredictionHistory({
   drivers,
   userPredictions,
   onBack,
+  onViewScore,
 }: PredictionHistoryProps) {
   const completedRaces = races
     .filter(r => new Date(r.date) < new Date())
@@ -76,10 +78,22 @@ export function PredictionHistory({
                         </div>
                       </div>
                       {prediction.points !== undefined && (
-                        <Badge className="gap-2 bg-gradient-to-r from-primary to-accent text-white border-0">
-                          <Trophy className="w-3 h-3" />
-                          {prediction.points} points
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className="gap-2 bg-gradient-to-r from-primary to-accent text-white border-0">
+                            <Trophy className="w-3 h-3" />
+                            {prediction.points} points
+                          </Badge>
+                          {onViewScore && prediction.pointsBreakdown && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onViewScore(prediction, race)}
+                              className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
 

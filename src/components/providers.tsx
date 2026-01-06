@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
 import { useState } from "react";
+import { BadgeNotificationProvider } from "@/components/f1/BadgeUnlockToast";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -23,7 +24,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <SessionProvider>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          {children}
+          <BadgeNotificationProvider>
+            {children}
+          </BadgeNotificationProvider>
           <Toaster />
         </ThemeProvider>
       </QueryClientProvider>

@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, History, Target, Crown, Swords, Calendar, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Trophy, History, Target, Crown, Swords, Calendar, TrendingUp, TrendingDown, Minus, Eye } from 'lucide-react';
 import { Race, Driver, Constructor, UserPrediction, User } from '@/types';
 import { PredictionForm } from '@/components/predictions/PredictionForm';
 import { PredictionHistory } from '@/components/predictions/PredictionHistory';
 import { Prediction } from '@/types';
 import { useConfetti } from '@/hooks/use-confetti';
+import { VictoryAnimation } from './VictoryAnimation';
+import { useScoringCelebration, type ScoreBreakdown } from '@/lib/hooks/useScoringCelebration';
 
 interface Participant {
   id: string;
@@ -42,6 +44,38 @@ export function PredictionsModule({
   const [viewMode, setViewMode] = useState<ViewMode>('duel');
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
   const { celebrate, celebrateFirstPrediction } = useConfetti();
+
+  // Scoring celebration hook
+  const {
+    isOpen: isVictoryOpen,
+    celebrationData,
+    closeCelebration,
+    triggerCelebration,
+    checkForNewScores,
+    initializeSeenPredictions,
+    checkForBadgeUnlocks,
+  } = useScoringCelebration();
+
+  // Initialize seen predictions on mount (so we don't celebrate old scores)
+  useEffect(() => {
+    initializeSeenPredictions(userPredictions);
+  }, []); // Only run once on mount
+
+  // Check for new scores when predictions update
+  useEffect(() => {
+    checkForNewScores(userPredictions, races);
+  }, [userPredictions, races, checkForNewScores]);
+
+  // Check for badge unlocks periodically (every 30 seconds when focused)
+  useEffect(() => {
+    checkForBadgeUnlocks();
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        checkForBadgeUnlocks();
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [checkForBadgeUnlocks]);
 
   // Calculate total points for each participant
   const myTotalPoints = userPredictions.reduce((sum, p) => sum + (p.points || 0), 0);
@@ -346,6 +380,36 @@ export function PredictionsModule({
           drivers={drivers}
           userPredictions={userPredictions}
           onBack={() => setViewMode('duel')}
+          onViewScore={(prediction, race) => {
+            if (prediction.points !== null && prediction.points !== undefined && prediction.pointsBreakdown) {
+              const breakdown = prediction.pointsBreakdown;
+              triggerCelebration({
+                raceName: race.name,
+                score: {
+                  positionPoints: breakdown.positionPoints || 0,
+                  partialPoints: breakdown.partialPoints || 0,
+                  polePoints: breakdown.polePoints || 0,
+                  fastestLapPoints: breakdown.fastestLapPoints || 0,
+                  podiumBonus: breakdown.podiumBonus || 0,
+                  totalPoints: prediction.points,
+                },
+              });
+            }
+          }}
+        />
+      )}
+
+      {/* Victory Animation Modal */}
+      {celebrationData && (
+        <VictoryAnimation
+          isOpen={isVictoryOpen}
+          onClose={closeCelebration}
+          raceName={celebrationData.raceName}
+          score={celebrationData.score}
+          previousRank={celebrationData.previousRank}
+          newRank={celebrationData.newRank}
+          perfectPodium={celebrationData.perfectPodium}
+          badgesUnlocked={celebrationData.badgesUnlocked}
         />
       )}
     </div>

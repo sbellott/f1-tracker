@@ -172,6 +172,19 @@ export interface UserPrediction {
   sessionType: 'RACE' | 'SPRINT';
   predictions: Prediction;
   points?: number;
+  pointsBreakdown?: {
+    positionPoints: number;
+    partialPoints: number;
+    polePoints: number;
+    fastestLapPoints: number;
+    podiumBonus: number;
+    details?: Array<{
+      position: number;
+      correct: boolean;
+      predicted: string;
+      actual: string;
+    }>;
+  };
   createdAt: Date;
   lockedAt?: Date;
 }
