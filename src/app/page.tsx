@@ -5,13 +5,13 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Bell, Calendar, Trophy, Target, Zap, Flag, Moon, Sun, Newspaper, Shield, Loader2 } from 'lucide-react';
+import { Bell, Calendar, Trophy, Target, Zap, Flag, Moon, Sun, Newspaper, Shield, Loader2, Globe, Users, Swords } from 'lucide-react';
 import { Countdown } from '@/components/f1/Countdown';
 import { CalendarCard } from '@/components/f1/CalendarCard';
 import { StandingsTable } from '@/components/f1/StandingsTable';
 import { PredictionsModule } from '@/components/f1/PredictionsModule';
 import { SessionsTimeline } from '@/components/f1/SessionsTimeline';
-import { useF1Data, useDriverStandings, useConstructorStandings } from '@/lib/hooks/useF1Data';
+import { useF1Data, useDriverStandings, useConstructorStandings, useCalendar } from '@/lib/hooks/useF1Data';
 import type { Prediction, UserPrediction, User } from '@/types';
 import { toast } from 'sonner';
 import { LoginModal } from '@/components/f1/LoginModal';
@@ -30,6 +30,8 @@ import { CircuitDetailView } from '@/components/f1/CircuitDetailView';
 import { UserProfile } from '@/components/f1/UserProfile';
 import { AdminPanel } from '@/components/admin/AdminPanel';
 import Image from 'next/image';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { GroupsSection } from '@/components/groups';
 
 export default function HomePage() {
   // ============================================
@@ -83,11 +85,74 @@ export default function HomePage() {
   const [opponentPredictions, setOpponentPredictions] = useState<UserPrediction[]>([]);
   const [opponent, setOpponent] = useState<User | null>(null);
   const [currentTab, setCurrentTab] = useState('home');
+  const [predictionsSubTab, setPredictionsSubTab] = useState<'duel' | 'groups'>('duel');
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [standingsSeason, setStandingsSeason] = useState(2026);
+  const [standingsSelectedDriverId, setStandingsSelectedDriverId] = useState<string | null>(null);
+  const [standingsSelectedRaceId, setStandingsSelectedRaceId] = useState<string | null>(null);
+  const [explorerTab, setExplorerTab] = useState<'drivers' | 'constructors'>('drivers');
   const { theme, setTheme } = useTheme();
+
+  // ============================================
+  // Handle tab changes - reset circuit selection when leaving/entering calendar
+  // ============================================
+  const handleTabChange = (newTab: string) => {
+    // Reset selections when clicking on tabs to return to main view
+    if (newTab === 'calendar') {
+      setSelectedCircuitId(null);
+    }
+    if (newTab === 'explorer') {
+      setSelectedDriverId(null);
+      setSelectedConstructorId(null);
+    }
+    if (newTab === 'standings') {
+      setStandingsSelectedDriverId(null);
+    }
+    setCurrentTab(newTab);
+  };
+
+  // Helper to scroll to top when navigating to detail views
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handlers for detail view navigation with scroll to top
+  const handleDriverSelect = (driverId: string | null) => {
+    if (driverId) {
+      setExplorerTab('drivers'); // Remember we're on drivers tab
+    }
+    setSelectedDriverId(driverId);
+    if (driverId) scrollToTop();
+  };
+
+  const handleStandingsDriverSelect = (driverId: string | null) => {
+    setStandingsSelectedDriverId(driverId);
+    if (driverId) scrollToTop();
+  };
+
+  const handleConstructorSelect = (constructorId: string | null) => {
+    if (constructorId) {
+      setExplorerTab('constructors'); // Remember we're on constructors tab
+    }
+    setSelectedConstructorId(constructorId);
+    if (constructorId) scrollToTop();
+  };
+
+  const handleCircuitSelect = (circuitId: string | null) => {
+    setSelectedCircuitId(circuitId);
+    if (circuitId) scrollToTop();
+  };
+
+  // ============================================
+  // Handle circuit click - scroll to top and select circuit
+  // ============================================
+  const handleCircuitClick = (circuitId: string) => {
+    setSelectedCircuitId(circuitId);
+    // Scroll to top of page
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // ============================================
   // Fetch opponent and predictions when logged in
@@ -137,6 +202,9 @@ export default function HomePage() {
   // Historical standings queries
   const { data: historicalDriverStandings, isLoading: isDriverStandingsLoading } = useDriverStandings(standingsSeason);
   const { data: historicalConstructorStandings, isLoading: isConstructorStandingsLoading } = useConstructorStandings(standingsSeason);
+  
+  // Calendar for selected standings season (for race filter)
+  const { data: standingsSeasonRaces } = useCalendar(standingsSeason);
 
   // Create user object from session
   const currentUser: User | null = session?.user ? {
@@ -459,7 +527,7 @@ export default function HomePage() {
             />
           </div>
         ) : (
-          <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-8">
+          <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-8">
             <TabsList className="inline-flex w-auto bg-muted/50 p-1.5 rounded-2xl">
               <TabsTrigger value="calendar" className="gap-2 rounded-xl data-[state=active]:shadow-sm">
                 <Calendar className="w-4 h-4" />
@@ -632,7 +700,7 @@ export default function HomePage() {
                     {races.map(race => {
                       const circuit = circuits.find(c => c.id === race.circuitId);
                       return circuit ? (
-                        <div key={race.id} onClick={() => setSelectedCircuitId(circuit.id)}>
+                        <div key={race.id} onClick={() => handleCircuitClick(circuit.id)} className="cursor-pointer">
                           <CalendarCard 
                             race={race} 
                             circuit={circuit}
@@ -649,108 +717,254 @@ export default function HomePage() {
 
             {/* Standings Tab */}
             <TabsContent value="standings" className="space-y-8 fade-in">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h2 className="text-3xl font-bold mb-2">{standingsSeason} Standings</h2>
-                  <p className="text-muted-foreground text-lg">
-                    {standingsSeason === 2026 
-                      ? `After ${races[0]?.round || 0} race(s)` 
-                      : 'Final season standings'}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {[2026, 2025, 2024, 2023, 2022, 2021].map((year) => (
-                    <Button
-                      key={year}
-                      variant={standingsSeason === year ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setStandingsSeason(year)}
-                      className={standingsSeason === year ? "bg-red-600 hover:bg-red-700" : ""}
-                    >
-                      {year}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              
-              {(isDriverStandingsLoading || isConstructorStandingsLoading) ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-red-500" />
-                  <span className="ml-3 text-muted-foreground">Loading standings...</span>
-                </div>
+              {standingsSelectedDriverId ? (
+                (() => {
+                  const selectedDriver = drivers.find(d => d.id === standingsSelectedDriverId);
+                  const selectedConstructor = selectedDriver
+                    ? constructors.find(c => c.id === selectedDriver.constructorId)
+                    : null;
+
+                  return selectedDriver && selectedConstructor ? (
+                    <DriverDetailView
+                      driver={selectedDriver}
+                      constructor={selectedConstructor}
+                      races={races}
+                      onBack={() => setStandingsSelectedDriverId(null)}
+                    />
+                  ) : null;
+                })()
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-                  <StandingsTable
-                    standings={historicalDriverStandings || []}
-                    drivers={drivers}
-                    constructors={constructors}
-                    type="drivers"
-                  />
-                  <StandingsTable
-                    standings={historicalConstructorStandings || []}
-                    constructors={constructors}
-                    type="constructors"
-                  />
-                </div>
+                <>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <h2 className="text-3xl font-bold mb-2">{standingsSeason} Standings</h2>
+                      <p className="text-muted-foreground text-lg">
+                        {standingsSeason === 2026 
+                          ? `After ${races[0]?.round || 0} race(s)` 
+                          : 'Final season standings'}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {[2026, 2025, 2024, 2023, 2022, 2021].map((year) => (
+                        <Button
+                          key={year}
+                          variant={standingsSeason === year ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            setStandingsSeason(year);
+                            setStandingsSelectedRaceId(null); // Reset race filter when changing season
+                          }}
+                          className={standingsSeason === year ? "bg-red-600 hover:bg-red-700" : ""}
+                        >
+                          {year}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {(isDriverStandingsLoading || isConstructorStandingsLoading) ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-red-500" />
+                      <span className="ml-3 text-muted-foreground">Loading standings...</span>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Global Race Filter */}
+                      {standingsSeasonRaces && standingsSeasonRaces.length > 0 && (
+                        <div className="mb-6">
+                          <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                            {standingsSelectedRaceId 
+                              ? `Résultats du ${standingsSeasonRaces.find(r => r.id === standingsSelectedRaceId)?.name || 'Grand Prix'}`
+                              : 'Filtrer par course'
+                            }
+                          </h3>
+                          <ScrollArea className="w-full whitespace-nowrap">
+                            <div className="flex gap-2 pb-2">
+                              {/* Global standings pill */}
+                              <Button
+                                variant={standingsSelectedRaceId === null ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setStandingsSelectedRaceId(null)}
+                                className={`flex items-center gap-1.5 shrink-0 ${
+                                  standingsSelectedRaceId === null ? "bg-red-600 hover:bg-red-700" : ""
+                                }`}
+                              >
+                                <Globe className="w-3.5 h-3.5" />
+                                <span>Classement global</span>
+                              </Button>
+                              
+                              {/* Race pills */}
+                              {standingsSeasonRaces
+                                .filter(race => race.sessions?.some(s => s.type === 'RACE'))
+                                .map((race) => {
+                                  const raceSession = race.sessions?.find(s => s.type === 'RACE');
+                                  const hasResults = (raceSession?.results?.positions?.length ?? 0) > 0 || raceSession?.completed;
+                                  return (
+                                    <Button
+                                      key={race.id}
+                                      variant={standingsSelectedRaceId === race.id ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => setStandingsSelectedRaceId(race.id)}
+                                      className={`flex items-center gap-1.5 shrink-0 ${
+                                        standingsSelectedRaceId === race.id ? "bg-red-600 hover:bg-red-700" : ""
+                                      } ${!hasResults ? "opacity-60" : ""}`}
+                                    >
+                                      <Flag className="w-3.5 h-3.5" />
+                                      <span className="hidden sm:inline">{race.name.replace(' Grand Prix', '')}</span>
+                                      <span className="sm:hidden">R{race.round}</span>
+                                      {!hasResults && <span className="text-xs ml-1">📅</span>}
+                                    </Button>
+                                  );
+                                })}
+                            </div>
+                            <ScrollBar orientation="horizontal" />
+                          </ScrollArea>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                        <StandingsTable
+                          standings={historicalDriverStandings || []}
+                          drivers={drivers}
+                          constructors={constructors}
+                          races={standingsSeasonRaces}
+                          type="drivers"
+                          selectedRaceId={standingsSelectedRaceId}
+                          onRaceSelect={setStandingsSelectedRaceId}
+                          onDriverClick={handleStandingsDriverSelect}
+                        />
+                        <StandingsTable
+                          standings={historicalConstructorStandings || []}
+                          constructors={constructors}
+                          races={standingsSeasonRaces}
+                          type="constructors"
+                          selectedRaceId={standingsSelectedRaceId}
+                          onRaceSelect={setStandingsSelectedRaceId}
+                        />
+                      </div>
+                    </>
+                  )}
+                </>
               )}
             </TabsContent>
 
             {/* Predictions Tab */}
-            <TabsContent value="predictions" className="space-y-8 fade-in">
-              <div>
-                <h2 className="text-3xl font-bold mb-2">Predictions Duel</h2>
-                <p className="text-muted-foreground text-lg">Challenge your opponent on each race</p>
+            <TabsContent value="predictions" className="space-y-6 fade-in">
+              {/* Sub-tabs for Duel vs Groups */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h2 className="text-3xl font-bold mb-1">Pronostics</h2>
+                  <p className="text-muted-foreground">
+                    {predictionsSubTab === 'duel' 
+                      ? 'Affrontez vos adversaires sur chaque course'
+                      : 'Créez ou rejoignez des ligues de pronostics'}
+                  </p>
+                </div>
+                <div className="flex gap-1 p-1 bg-muted rounded-lg">
+                  <Button
+                    variant={predictionsSubTab === 'duel' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setPredictionsSubTab('duel')}
+                    className="gap-2"
+                  >
+                    <Swords className="h-4 w-4" />
+                    Duel
+                  </Button>
+                  <Button
+                    variant={predictionsSubTab === 'groups' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setPredictionsSubTab('groups')}
+                    className="gap-2"
+                  >
+                    <Users className="h-4 w-4" />
+                    Groupes
+                  </Button>
+                </div>
               </div>
 
-              {!isLoggedIn && (
-                <Card className="border-amber-200 dark:border-amber-900/30 bg-gradient-to-br from-amber-50 to-amber-50/50 dark:from-amber-950/20 dark:to-amber-950/10">
-                  <CardContent className="p-6">
-                    <div className="flex gap-4">
-                      <div className="text-3xl">🔐</div>
-                      <div>
-                        <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 text-lg">
-                          Login required
-                        </h4>
-                        <p className="text-amber-800 dark:text-amber-200 mb-4">
-                          Log in to access the duel and submit your predictions.
-                        </p>
-                        <Button onClick={() => setShowLoginModal(true)} className="bg-primary">
-                          Log in
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              {/* Duel Sub-Tab Content */}
+              {predictionsSubTab === 'duel' && (
+                <>
+                  {!isLoggedIn && (
+                    <Card className="border-amber-200 dark:border-amber-900/30 bg-gradient-to-br from-amber-50 to-amber-50/50 dark:from-amber-950/20 dark:to-amber-950/10">
+                      <CardContent className="p-6">
+                        <div className="flex gap-4">
+                          <div className="text-3xl">🔐</div>
+                          <div>
+                            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 text-lg">
+                              Connexion requise
+                            </h4>
+                            <p className="text-amber-800 dark:text-amber-200 mb-4">
+                              Connectez-vous pour accéder au duel et soumettre vos pronostics.
+                            </p>
+                            <Button onClick={() => setShowLoginModal(true)} className="bg-primary">
+                              Se connecter
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {currentUser && !opponent && (
+                    <Card className="border-blue-200 dark:border-blue-900/30 bg-gradient-to-br from-blue-50 to-blue-50/50 dark:from-blue-950/20 dark:to-blue-950/10">
+                      <CardContent className="p-6">
+                        <div className="flex gap-4">
+                          <div className="text-3xl">👤</div>
+                          <div>
+                            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-lg">
+                              En attente d'un adversaire
+                            </h4>
+                            <p className="text-blue-800 dark:text-blue-200">
+                              Le duel commencera dès que un second utilisateur rejoindra l'application.
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {currentUser && opponent && (
+                    <PredictionsModule
+                      currentUser={currentUser}
+                      opponent={opponent}
+                      races={races}
+                      drivers={drivers}
+                      constructors={constructors}
+                      userPredictions={userPredictions}
+                      opponentPredictions={opponentPredictions}
+                      onSubmitPrediction={handleSubmitPrediction}
+                    />
+                  )}
+                </>
               )}
 
-              {currentUser && !opponent && (
-                <Card className="border-blue-200 dark:border-blue-900/30 bg-gradient-to-br from-blue-50 to-blue-50/50 dark:from-blue-950/20 dark:to-blue-950/10">
-                  <CardContent className="p-6">
-                    <div className="flex gap-4">
-                      <div className="text-3xl">👤</div>
-                      <div>
-                        <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 text-lg">
-                          Waiting for opponent
-                        </h4>
-                        <p className="text-blue-800 dark:text-blue-200">
-                          The duel will start as soon as a second user joins the app.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {currentUser && opponent && (
-                <PredictionsModule
-                  currentUser={currentUser}
-                  opponent={opponent}
-                  races={races}
-                  drivers={drivers}
-                  userPredictions={userPredictions}
-                  opponentPredictions={opponentPredictions}
-                  onSubmitPrediction={handleSubmitPrediction}
-                />
+              {/* Groups Sub-Tab Content */}
+              {predictionsSubTab === 'groups' && (
+                <>
+                  {!isLoggedIn ? (
+                    <Card className="border-amber-200 dark:border-amber-900/30 bg-gradient-to-br from-amber-50 to-amber-50/50 dark:from-amber-950/20 dark:to-amber-950/10">
+                      <CardContent className="p-6">
+                        <div className="flex gap-4">
+                          <div className="text-3xl">🔐</div>
+                          <div>
+                            <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 text-lg">
+                              Connexion requise
+                            </h4>
+                            <p className="text-amber-800 dark:text-amber-200 mb-4">
+                              Connectez-vous pour créer ou rejoindre des groupes de pronostics.
+                            </p>
+                            <Button onClick={() => setShowLoginModal(true)} className="bg-primary">
+                              Se connecter
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <GroupsSection />
+                  )}
+                </>
               )}
             </TabsContent>
 
@@ -771,13 +985,6 @@ export default function HomePage() {
                   const selectedConstructor = selectedDriver
                     ? constructors.find(c => c.id === selectedDriver.constructorId)
                     : null;
-                  const driverIndex = drivers.findIndex(d => d.id === selectedDriverId);
-                  const driverImages = [
-                    "https://images.unsplash.com/photo-1696581081893-6b2510101bef?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-                    "https://images.unsplash.com/photo-1604312142152-ebfe999a75ee?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-                    "https://images.unsplash.com/photo-1650574583439-faa89ad8e6c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
-                  ];
-                  const driverImage = driverImages[driverIndex % driverImages.length];
 
                   return selectedDriver && selectedConstructor ? (
                     <DriverDetailView
@@ -785,27 +992,19 @@ export default function HomePage() {
                       constructor={selectedConstructor}
                       races={races}
                       onBack={() => setSelectedDriverId(null)}
-                      driverImage={driverImage}
                     />
                   ) : null;
                 })()
               ) : selectedConstructorId ? (
                 (() => {
                   const selectedConstructor = constructors.find(c => c.id === selectedConstructorId);
-                  const constructorIndex = constructors.findIndex(c => c.id === selectedConstructorId);
-                  const constructorImages = [
-                    "https://images.unsplash.com/photo-1540747913346-19e32778e8e5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-                    "https://images.unsplash.com/photo-1599420186946-7b6fb4e297f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-                    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
-                  ];
-                  const constructorImage = constructorImages[constructorIndex % constructorImages.length];
 
                   return selectedConstructor ? (
                     <ConstructorDetailView
                       constructor={selectedConstructor}
                       drivers={drivers}
                       onBack={() => setSelectedConstructorId(null)}
-                      constructorImage={constructorImage}
+                      constructorImage={selectedConstructor.logo || ''}
                     />
                   ) : null;
                 })()
@@ -813,8 +1012,10 @@ export default function HomePage() {
                 <Explorer
                   drivers={drivers}
                   constructors={constructors}
-                  onDriverClick={setSelectedDriverId}
-                  onConstructorClick={setSelectedConstructorId}
+                  onDriverClick={handleDriverSelect}
+                  onConstructorClick={handleConstructorSelect}
+                  defaultTab={explorerTab}
+                  onTabChange={(tab) => setExplorerTab(tab as 'drivers' | 'constructors')}
                 />
               )}
             </TabsContent>

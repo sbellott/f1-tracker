@@ -25,6 +25,11 @@ model User {
   sessions            Session[]
   badges              UserBadge[]
   readArticles        ReadArticle[]
+  // Group relations
+  ownedGroups         Group[]       @relation("GroupOwner")
+  groupMemberships    GroupMember[]
+  sentInvitations     GroupInvitation[] @relation("InvitationSender")
+  receivedInvitations GroupInvitation[] @relation("InvitationRecipient")
 
   @@map("users")
 }
@@ -190,6 +195,8 @@ model Driver {
   circuitWins        CircuitHistory[] @relation("CircuitWinner")
   constructor        Constructor?     @relation(fields: [constructorId], references: [id])
   standings          Standing[]
+  raceResults        DriverRaceResult[]  // NEW: relation to race results
+  careerInfo         DriverCareerInfo?   // NEW: relation to career info
 
   @@map("drivers")
 }
@@ -292,6 +299,130 @@ model ReadArticle {
   @@index([userId])
   @@index([articleUrl])
   @@map("read_articles")
+}
+
+// NEW: Store driver race results (historical - never changes)
+model DriverRaceResult {
+  id              String   @id @default(cuid())
+  driverId        String
+  season          Int
+  round           Int
+  raceName        String
+  circuitName     String
+  date            DateTime
+  position        Int
+  positionText    String
+  points          Float
+  grid            Int
+  laps            Int
+  status          String
+  time            String?
+  fastestLap      Boolean  @default(false)
+  fastestLapRank  Int?
+  constructorId   String
+  constructorName String
+  syncedAt        DateTime @default(now())
+  driver          Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@unique([driverId, season, round])
+  @@index([driverId])
+  @@index([season])
+  @@map("driver_race_results")
+}
+
+// NEW: Store driver career info (historical milestones)
+model DriverCareerInfo {
+  id                  String   @id @default(cuid())
+  driverId            String   @unique
+  firstWinRace        String?
+  firstWinSeason      Int?
+  firstPoleRace       String?
+  firstPoleSeason     Int?
+  firstRaceRace       String?
+  firstRaceSeason     Int?
+  lastWinRace         String?
+  lastWinSeason       Int?
+  bestFinish          Int      @default(0)
+  totalRacesFinished  Int      @default(0)
+  totalRaces          Int      @default(0)
+  totalDNFs           Int      @default(0)
+  syncedAt            DateTime @default(now())
+  driver              Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@map("driver_career_info")
+}
+
+// ============================================
+// Group / League Models
+// ============================================
+
+model Group {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  code        String        @unique // Unique invite code (e.g., "F1FANS2026")
+  imageUrl    String?
+  isPrivate   Boolean       @default(true)
+  maxMembers  Int           @default(50)
+  season      Int           @default(2026)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  ownerId     String
+  owner       User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     GroupMember[]
+  invitations GroupInvitation[]
+
+  @@index([code])
+  @@index([ownerId])
+  @@map("groups")
+}
+
+model GroupMember {
+  id        String      @id @default(cuid())
+  groupId   String
+  userId    String
+  role      GroupRole   @default(MEMBER)
+  joinedAt  DateTime    @default(now())
+  group     Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+  @@map("group_members")
+}
+
+model GroupInvitation {
+  id          String           @id @default(cuid())
+  groupId     String
+  senderId    String
+  recipientId String?          // Optional: if inviting existing user by ID
+  email       String?          // Optional: if inviting by email
+  status      InvitationStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  expiresAt   DateTime
+  respondedAt DateTime?
+  group       Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender      User             @relation("InvitationSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   User?            @relation("InvitationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([email])
+  @@index([recipientId])
+  @@map("group_invitations")
+}
+
+enum GroupRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
 }
 
 enum SessionType {
