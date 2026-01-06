@@ -39,13 +39,16 @@ export function ConstructorDetailView({
       </div>
 
       {/* Hero Image */}
-      <div className="relative h-96 rounded-3xl overflow-hidden group">
+      <div
+        className="relative h-72 md:h-96 rounded-3xl overflow-hidden group"
+        style={{ backgroundColor: constructor.color ? `${constructor.color}20` : '#1a1a1a' }}
+      >
         <ImageWithFallback
           src={constructorImage}
           alt={constructor.name}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          className="w-full h-full object-contain object-center transition-transform duration-700 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
         <div 
           className="absolute inset-0 opacity-20"
           style={{
@@ -198,9 +201,9 @@ export function ConstructorDetailView({
       </div>
 
       {/* Achievements */}
-      <Card className="border-border/50 overflow-hidden">
+      <Card className="border-border/50 overflow-hidden relative">
         <div 
-          className="absolute inset-0 opacity-5"
+          className="absolute inset-0 opacity-5 pointer-events-none"
           style={{
             background: `linear-gradient(135deg, ${constructor.color} 0%, transparent 100%)`
           }}

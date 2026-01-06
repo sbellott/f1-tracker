@@ -24,19 +24,33 @@ export { Explorer } from "./Explorer";
 export { PredictionsModule } from "./PredictionsModule";
 export { PredictionForm } from "./PredictionForm";
 export { PredictionManager } from "./PredictionManager";
+export { PredictionHistory, PredictionHistoryCompact } from "./PredictionHistory";
 
 // User & Auth
 export { AuthButton } from "./AuthButton";
 export { LoginModal } from "./LoginModal";
 export { UserProfile } from "./UserProfile";
+export { EnhancedUserProfile, ProfileCard } from "./EnhancedUserProfile";
 export { NotificationPanel } from "./NotificationPanel";
 export { NotificationSettings } from "./NotificationSettings";
 
 // Stats & Badges
 export { StatsPanel } from "./StatsPanel";
 export { StatsAndBadges } from "./StatsAndBadges";
-export { BadgesDisplay } from "./BadgesDisplay";
+export { BadgesDisplay, BadgeCard } from "./BadgesDisplay";
 export { BadgeUnlock, BadgeDisplay, BadgeGrid, useBadgeUnlock } from "./BadgeUnlock";
+export { UserStatsPanel, UserStatsCompact } from "./UserStatsPanel";
+
+// Celebrations & Animations
+export { useConfetti, ConfettiTrigger, ConfettiButton } from "./Confetti";
+export { VictoryAnimation, ScoreToast } from "./VictoryAnimation";
+export { BadgeUnlockToast, BadgeNotificationProvider, useBadgeNotification, useBadgeUnlockQueue } from "./BadgeUnlockToast";
+
+// Comparisons
+export { HeadToHead, HeadToHeadCompact } from "./HeadToHead";
+
+// Social Sharing
+export { ShareCard, ShareButton } from "./ShareCard";
 
 // Animations & Loading
 export {

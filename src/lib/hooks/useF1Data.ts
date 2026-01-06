@@ -12,6 +12,7 @@ import type { NewsArticle, NewsCategory } from "@/lib/services/news.service";
 export const queryKeys = {
   drivers: ["drivers"] as const,
   driver: (id: string) => ["drivers", id] as const,
+  driverResults: (id: string) => ["drivers", id, "results"] as const,
   constructors: ["constructors"] as const,
   constructor: (id: string) => ["constructors", id] as const,
   circuits: ["circuits"] as const,
@@ -46,6 +47,18 @@ async function fetchAPI<T>(endpoint: string, extractKey?: string): Promise<T> {
 // Data Transformers
 // ============================================
 
+// Helper to extract date from API response (handles both string and {$type, value} formats)
+function extractDate(dateValue: unknown): Date | null {
+  if (!dateValue) return null;
+  if (typeof dateValue === 'string') return new Date(dateValue);
+  if (dateValue instanceof Date) return dateValue;
+  if (typeof dateValue === 'object' && dateValue !== null) {
+    const obj = dateValue as { value?: string; $type?: string };
+    if (obj.value) return new Date(obj.value);
+  }
+  return null;
+}
+
 // Transform API driver response to match expected Driver type
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transformDriver(apiDriver: any): Driver {
@@ -56,7 +69,7 @@ function transformDriver(apiDriver: any): Driver {
     lastName: apiDriver.lastName,
     number: apiDriver.number || 0,
     nationality: apiDriver.nationality || '',
-    dateOfBirth: apiDriver.dateOfBirth ? new Date(apiDriver.dateOfBirth) : new Date(),
+    dateOfBirth: extractDate(apiDriver.dateOfBirth) || new Date(),
     constructorId: apiDriver.constructorId || '',
     photo: apiDriver.photo,
     stats: {
@@ -83,7 +96,7 @@ function transformConstructor(apiConstructor: any): Constructor {
     technicalDirector: apiConstructor.technicalChief || apiConstructor.technicalDirector || '',
     engine: apiConstructor.powerUnit || apiConstructor.engine || '',
     color: apiConstructor.color || '#000000',
-    logo: apiConstructor.logo,
+    logo: apiConstructor.logoUrl || apiConstructor.logo,
     stats: {
       wins: apiConstructor.totalWins || 0,
       podiums: apiConstructor.totalPodiums || 0,
@@ -100,7 +113,7 @@ function transformSession(apiSession: any): Session {
     id: apiSession.id,
     raceId: apiSession.raceId || '',
     type: apiSession.type as SessionType,
-    dateTime: new Date(apiSession.dateTime),
+    dateTime: extractDate(apiSession.dateTime) || new Date(),
     channel: apiSession.canalPlusChannel || undefined,
     isLive: apiSession.isLive ?? true,
     completed: apiSession.completed || false,
@@ -147,11 +160,59 @@ function transformRace(apiRace: any): Race {
     round: apiRace.round,
     name: apiRace.name,
     circuitId: apiRace.circuit?.id || apiRace.circuitId || '',
-    date: new Date(apiRace.date),
+    date: extractDate(apiRace.date) || new Date(),
     hasSprint: apiRace.hasSprint || false,
     country: apiRace.circuit?.country || '',
     sessions: (apiRace.sessions || []).map(transformSession),
   };
+}
+
+// ============================================
+// Driver Results Hook (Race History & Career Info)
+// ============================================
+
+interface DriverResultsResponse {
+  driverId: string;
+  ergastId: string;
+  results: Array<{
+    season: number;
+    round: number;
+    raceName: string;
+    circuitName: string;
+    date: string;
+    position: number;
+    positionText: string;
+    points: number;
+    grid: number;
+    laps: number;
+    status: string;
+    time?: string;
+    fastestLap: boolean;
+    fastestLapRank?: number;
+    constructor: {
+      constructorId: string;
+      name: string;
+    };
+  }>;
+  careerInfo: {
+    firstWin?: { raceName: string; season: number };
+    firstPole?: { raceName: string; season: number };
+    firstRace?: { raceName: string; season: number };
+    lastWin?: { raceName: string; season: number };
+    bestFinish: number;
+    totalRacesFinished: number;
+    totalRaces: number;
+    totalDNFs: number;
+  };
+}
+
+export function useDriverResults(driverId: string, limit: number = 10) {
+  return useQuery<DriverResultsResponse>({
+    queryKey: [...queryKeys.driverResults(driverId), limit],
+    queryFn: () => fetchAPI<DriverResultsResponse>(`/api/drivers/${driverId}/results?limit=${limit}`),
+    enabled: !!driverId,
+    staleTime: 10 * 60 * 1000, // 10 minutes - historical data doesn't change often
+  });
 }
 
 // ============================================

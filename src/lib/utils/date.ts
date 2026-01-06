@@ -199,11 +199,16 @@ export function getSessionOrder(type: string): number {
 }
 
 /**
- * Calculate time until prediction lock (1 hour before session)
+ * Prediction lock buffer in minutes before qualifying starts
+ */
+export const PREDICTION_LOCK_MINUTES = 15;
+
+/**
+ * Calculate time until prediction lock (15 minutes before qualifying session)
  */
 export function getPredictionLockTime(sessionDateTime: Date): Date {
   const lockTime = new Date(sessionDateTime);
-  lockTime.setHours(lockTime.getHours() - 1);
+  lockTime.setMinutes(lockTime.getMinutes() - PREDICTION_LOCK_MINUTES);
   return lockTime;
 }
 
@@ -213,4 +218,50 @@ export function getPredictionLockTime(sessionDateTime: Date): Date {
 export function arePredictionsLocked(sessionDateTime: Date): boolean {
   const lockTime = getPredictionLockTime(sessionDateTime);
   return new Date() >= lockTime;
+}
+
+/**
+ * Find the session that determines prediction lock time
+ * For sprint weekends: SPRINT_QUALIFYING
+ * For normal weekends: QUALIFYING
+ */
+export function findLockSession(sessions: Array<{ type: string; dateTime: Date }>): { type: string; dateTime: Date } | null {
+  // Priority: SPRINT_QUALIFYING > QUALIFYING
+  const sprintQuali = sessions.find(s => s.type === 'SPRINT_QUALIFYING');
+  if (sprintQuali) return sprintQuali;
+
+  const quali = sessions.find(s => s.type === 'QUALIFYING');
+  if (quali) return quali;
+
+  // Fallback: use RACE session if no qualifying found
+  const race = sessions.find(s => s.type === 'RACE');
+  return race || null;
+}
+
+/**
+ * Get prediction lock status and time for a race
+ */
+export function getPredictionLockStatus(sessions: Array<{ type: string; dateTime: Date }>): {
+  isLocked: boolean;
+  lockTime: Date | null;
+  lockSession: string | null;
+  timeUntilLock: number | null; // milliseconds
+} {
+  const lockSession = findLockSession(sessions);
+
+  if (!lockSession) {
+    return { isLocked: false, lockTime: null, lockSession: null, timeUntilLock: null };
+  }
+
+  const lockTime = getPredictionLockTime(new Date(lockSession.dateTime));
+  const now = new Date();
+  const isLocked = now >= lockTime;
+  const timeUntilLock = isLocked ? null : lockTime.getTime() - now.getTime();
+
+  return {
+    isLocked,
+    lockTime,
+    lockSession: lockSession.type,
+    timeUntilLock,
+  };
 }

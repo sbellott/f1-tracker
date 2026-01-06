@@ -1,34 +1,98 @@
+"use client";
+
 import { Driver, Constructor, Race } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Award, Calendar, Flag, MapPin, Trophy, Zap, TrendingUp, Medal } from 'lucide-react';
+import { ArrowLeft, Award, Calendar, Flag, Trophy, Zap, TrendingUp, Medal, Loader2 } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
+import { getDriverHeroUrl } from '@/lib/utils/driver-images';
+import { useDriverResults, useDriverStandings } from '@/lib/hooks/useF1Data';
+
+// Helper function to safely format date
+function formatDateSafe(dateValue: string | Date | null | undefined, formatStr: string): string {
+  if (!dateValue) return 'N/A';
+  try {
+    const date = new Date(dateValue);
+    if (!isValid(date)) return 'N/A';
+    return format(date, formatStr);
+  } catch {
+    return 'N/A';
+  }
+}
+
+// Helper function to calculate age safely
+function calculateAge(dateValue: string | Date | null | undefined): string {
+  if (!dateValue) return 'N/A';
+  try {
+    const date = new Date(dateValue);
+    if (!isValid(date)) return 'N/A';
+    const age = new Date().getFullYear() - date.getFullYear();
+    return `${age} years`;
+  } catch {
+    return 'N/A';
+  }
+}
 
 interface DriverDetailViewProps {
   driver: Driver;
   constructor: Constructor;
   races: Race[];
   onBack: () => void;
-  driverImage: string;
+  driverImage?: string; // Optional - will use F1 official image if not provided
 }
 
 export function DriverDetailView({ driver, constructor, races, onBack, driverImage }: DriverDetailViewProps) {
-  // Mock recent race results
-  const recentResults = [
-    { race: races[0], position: 1, points: 25, fastestLap: true },
-    { race: races[1], position: 3, points: 15, fastestLap: false },
-    { race: races[2], position: 2, points: 18, fastestLap: true },
-    { race: races[3], position: 1, points: 25, fastestLap: false },
-    { race: races[4], position: 4, points: 12, fastestLap: false },
-  ].filter(r => r.race);
+  // Use provided image or fall back to official F1 hero image
+  const heroImage = driverImage || getDriverHeroUrl(driver.firstName, driver.lastName, constructor.name);
 
+  // Fetch real race results and career info
+  const { data: resultsData, isLoading: resultsLoading } = useDriverResults(driver.id, 10);
+  
+  // Fetch standings to get championship position
+  const { data: standings } = useDriverStandings();
+  
+  // Find driver's championship position
+  const driverStanding = standings?.find(s => s.driver?.id === driver.id);
+  const championshipPosition = driverStanding?.position || null;
+
+  // Real recent race results from API
+  const recentResults = resultsData?.results?.slice(0, 5) || [];
+  
+  // Real career info from API
+  const careerInfo = resultsData?.careerInfo;
+
+  // Build career highlights from real data
   const careerHighlights = [
-    { label: 'First win', value: 'Monaco 2020', icon: Trophy },
-    { label: 'First pole', value: 'Silverstone 2019', icon: Zap },
-    { label: 'Best result', value: '1st', icon: Medal },
-    { label: 'Races finished', value: `${Math.round((driver.stats.gp * 0.85))}/${driver.stats.gp}`, icon: Flag },
+    { 
+      label: 'First win', 
+      value: careerInfo?.firstWin 
+        ? `${careerInfo.firstWin.raceName.replace(' Grand Prix', '')} ${careerInfo.firstWin.season}` 
+        : driver.stats.wins > 0 ? 'Loading...' : 'N/A', 
+      icon: Trophy 
+    },
+    { 
+      label: 'First pole', 
+      value: careerInfo?.firstPole 
+        ? `${careerInfo.firstPole.raceName.replace(' Grand Prix', '')} ${careerInfo.firstPole.season}` 
+        : driver.stats.poles > 0 ? 'Loading...' : 'N/A', 
+      icon: Zap 
+    },
+    { 
+      label: 'Best result', 
+      value: careerInfo?.bestFinish 
+        ? `P${careerInfo.bestFinish}` 
+        : driver.stats.wins > 0 ? 'P1' : 'N/A', 
+      icon: Medal 
+    },
+    { 
+      label: 'Races finished', 
+      value: careerInfo 
+        ? `${careerInfo.totalRacesFinished}/${careerInfo.totalRaces}` 
+        : `${Math.round((driver.stats.gp * 0.85))}/${driver.stats.gp}`, 
+      icon: Flag 
+    },
   ];
 
   return (
@@ -49,7 +113,7 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
           {/* Background Image */}
           <div className="relative h-80 lg:h-96 overflow-hidden">
             <ImageWithFallback
-              src={driverImage}
+              src={heroImage}
               alt={`${driver.firstName} ${driver.lastName}`}
               className="w-full h-full object-cover"
             />
@@ -89,10 +153,12 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
                 </div>
               </div>
 
-              {/* Championship Position */}
+              {/* Championship Position - Real data */}
               <div className="rounded-2xl bg-gradient-to-br from-primary/90 to-primary/70 backdrop-blur-xl p-6 text-white shadow-2xl">
                 <div className="text-sm mb-1 opacity-90">Classement</div>
-                <div className="text-5xl font-bold">P1</div>
+                <div className="text-5xl font-bold">
+                  {championshipPosition ? `P${championshipPosition}` : '-'}
+                </div>
               </div>
             </div>
           </div>
@@ -179,13 +245,13 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Date of birth</div>
                 <div className="font-semibold">
-                  {format(new Date(driver.dateOfBirth), 'MMM d, yyyy')}
+                  {driver.dateOfBirth ? formatDateSafe(driver.dateOfBirth, 'MMM d, yyyy') : 'N/A'}
                 </div>
               </div>
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Age</div>
                 <div className="font-semibold">
-                  {new Date().getFullYear() - new Date(driver.dateOfBirth).getFullYear()} years
+                  {driver.dateOfBirth ? calculateAge(driver.dateOfBirth) : 'N/A'}
                 </div>
               </div>
               <div>
@@ -228,7 +294,7 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
           </CardContent>
         </Card>
 
-        {/* Career Highlights */}
+        {/* Career Highlights - Now with real data */}
         <Card className="border-border/50 shadow-lg">
           <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
             <CardTitle className="flex items-center gap-2">
@@ -257,7 +323,7 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
         </Card>
       </div>
 
-      {/* Recent Race Results */}
+      {/* Recent Race Results - Now with real data */}
       <Card className="border-border/50 shadow-lg">
         <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
           <CardTitle className="flex items-center gap-2">
@@ -268,50 +334,61 @@ export function DriverDetailView({ driver, constructor, races, onBack, driverIma
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="space-y-3">
-            {recentResults.map((result, index) => (
-              <div 
-                key={index}
-                className="flex items-center justify-between p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors group"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <Badge 
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      result.position === 1 
-                        ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0'
-                        : result.position === 2
-                        ? 'bg-gradient-to-br from-slate-400 to-slate-500 text-white border-0'
-                        : result.position === 3
-                        ? 'bg-gradient-to-br from-orange-600 to-orange-700 text-white border-0'
-                        : 'bg-muted text-foreground'
-                    }`}
-                  >
-                    {result.position}
-                  </Badge>
-                  
-                  <div className="flex-1">
-                    <div className="font-semibold">{result.race.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {format(new Date(result.race.date), 'MMM d, yyyy')}
+          {resultsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-muted-foreground">Loading results...</span>
+            </div>
+          ) : recentResults.length > 0 ? (
+            <div className="space-y-3">
+              {recentResults.map((result, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center justify-between p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors group"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <Badge 
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        result.position === 1 
+                          ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0'
+                          : result.position === 2
+                          ? 'bg-gradient-to-br from-slate-400 to-slate-500 text-white border-0'
+                          : result.position === 3
+                          ? 'bg-gradient-to-br from-orange-600 to-orange-700 text-white border-0'
+                          : 'bg-muted text-foreground'
+                      }`}
+                    >
+                      {result.positionText}
+                    </Badge>
+                    
+                    <div className="flex-1">
+                      <div className="font-semibold">{result.raceName}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {format(new Date(result.date), 'MMM d, yyyy')}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {result.fastestLap && (
+                      <Badge className="gap-1 bg-chart-3/10 text-chart-3 border-chart-3/20">
+                        <Zap className="w-3 h-3" />
+                        FL
+                      </Badge>
+                    )}
+                    <div className="text-right">
+                      <div className="font-bold">{result.points}</div>
+                      <div className="text-xs text-muted-foreground">pts</div>
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  {result.fastestLap && (
-                    <Badge className="gap-1 bg-chart-3/10 text-chart-3 border-chart-3/20">
-                      <Zap className="w-3 h-3" />
-                      FL
-                    </Badge>
-                  )}
-                  <div className="text-right">
-                    <div className="font-bold">{result.points}</div>
-                    <div className="text-xs text-muted-foreground">pts</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No recent results available
+            </div>
+          )}
         </CardContent>
       </Card>
 

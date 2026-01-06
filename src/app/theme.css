@@ -201,7 +201,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 0;
+  padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--border);
 }
 
@@ -238,12 +238,16 @@
   border-bottom: 1px solid var(--border);
 }
 
+.f1-accordion-item:last-child {
+  border-bottom: none;
+}
+
 .f1-accordion-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 1.25rem 0;
+  padding: 1.25rem 1.5rem;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
@@ -256,7 +260,7 @@
 }
 
 .f1-accordion-content {
-  padding-bottom: 1.25rem;
+  padding: 0 1.5rem 1.25rem 1.5rem;
   color: var(--muted-foreground);
   line-height: 1.6;
 }

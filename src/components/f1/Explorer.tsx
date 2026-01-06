@@ -1,35 +1,38 @@
-import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Building2, Zap } from 'lucide-react';
-import { Driver, Constructor, Circuit, Race } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Users, Building2 } from 'lucide-react';
+import { Driver, Constructor } from '@/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { HeadToHead } from './HeadToHead';
+import { getDriverPortraitUrl } from '@/lib/utils/driver-images';
 
 interface ExplorerProps {
   drivers: Driver[];
   constructors: Constructor[];
   onDriverClick: (driverId: string) => void;
   onConstructorClick: (constructorId: string) => void;
+  defaultTab?: 'drivers' | 'constructors';
+  onTabChange?: (tab: string) => void;
 }
 
-export function Explorer({ 
-  drivers, 
-  constructors, 
-  onDriverClick, 
-  onConstructorClick 
+export function Explorer({
+  drivers,
+  constructors,
+  onDriverClick,
+  onConstructorClick,
+  defaultTab = 'drivers',
+  onTabChange
 }: ExplorerProps) {
   return (
     <div className="space-y-8 fade-in">
       <div>
         <h2 className="text-3xl font-bold mb-2">Explorer</h2>
         <p className="text-muted-foreground text-lg">
-          Discover drivers, teams and Head-to-Head comparisons
+          Discover drivers and teams
         </p>
       </div>
 
-      <Tabs defaultValue="drivers" className="space-y-6">
+      <Tabs value={defaultTab} onValueChange={onTabChange} className="space-y-6">
         <TabsList className="inline-flex w-auto bg-muted/50 p-1.5 rounded-2xl">
           <TabsTrigger value="drivers" className="gap-2 rounded-xl">
             <Users className="w-4 h-4" />
@@ -38,10 +41,6 @@ export function Explorer({
           <TabsTrigger value="constructors" className="gap-2 rounded-xl">
             <Building2 className="w-4 h-4" />
             Teams
-          </TabsTrigger>
-          <TabsTrigger value="h2h" className="gap-2 rounded-xl">
-            <Zap className="w-4 h-4" />
-            Head-to-Head
           </TabsTrigger>
         </TabsList>
 
@@ -55,12 +54,12 @@ export function Explorer({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {drivers.map((driver, index) => {
               const constructor = constructors.find(c => c.id === driver.constructorId);
-              const driverImages = [
-                "https://images.unsplash.com/photo-1696581081893-6b2510101bef?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-                "https://images.unsplash.com/photo-1604312142152-ebfe999a75ee?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-                "https://images.unsplash.com/photo-1650574583439-faa89ad8e6c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
-              ];
-              const driverImage = driverImages[index % driverImages.length];
+              // Use official F1 driver portrait
+              const driverImage = getDriverPortraitUrl(
+                driver.firstName, 
+                driver.lastName, 
+                constructor?.name || ''
+              );
               
               return (
                 <Card 
@@ -135,12 +134,13 @@ export function Explorer({
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {constructors.map((constructor, index) => {
-              const constructorImages = [
+              // Use official F1 car image from database, fallback to placeholder
+              const fallbackImages = [
                 "https://images.unsplash.com/photo-1540747913346-19e32778e8e5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
                 "https://images.unsplash.com/photo-1599420186946-7b6fb4e297f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
                 "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
               ];
-              const constructorImage = constructorImages[index % constructorImages.length];
+              const constructorImage = constructor.logo || fallbackImages[index % fallbackImages.length];
               
               return (
                 <Card 
@@ -199,14 +199,6 @@ export function Explorer({
               );
             })}
           </div>
-        </TabsContent>
-
-        {/* H2H Sub-Tab */}
-        <TabsContent value="h2h">
-          <HeadToHead 
-            drivers={drivers}
-            constructors={constructors}
-          />
         </TabsContent>
       </Tabs>
     </div>

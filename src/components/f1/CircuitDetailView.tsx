@@ -1,14 +1,26 @@
 import { Circuit, Driver, Constructor, Race, Session } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Clock, Trophy, Zap, Calendar, ChevronDown, ChevronUp, Loader2, Plus, Flag } from 'lucide-react';
+import { ArrowLeft, Clock, Trophy, Zap, Calendar, ChevronDown, ChevronUp, Loader2, Flag, Play, Maximize2, X } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { useCircuitHistory } from '@/lib/hooks/useF1Data';
 import type { FullRaceResult } from '@/lib/services/circuit-history.service';
 import { WeatherWidget } from './WeatherWidget';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface CircuitDetailViewProps {
   circuit: Circuit;
@@ -29,6 +41,94 @@ const sessionTypeLabels: Record<string, { label: string; shortLabel: string }> =
   QUALIFYING: { label: 'Qualifying', shortLabel: 'Q' },
   RACE: { label: 'Race', shortLabel: 'RACE' },
 };
+
+// ============================================
+// TIMEZONE MAPPINGS
+// ============================================
+const cityToTimezone: Record<string, string> = {
+  'Melbourne': 'Australia/Melbourne',
+  'Shanghai': 'Asia/Shanghai',
+  'Suzuka': 'Asia/Tokyo',
+  'Sakhir': 'Asia/Bahrain',
+  'Jeddah': 'Asia/Riyadh',
+  'Miami': 'America/New_York',
+  'Monte Carlo': 'Europe/Monaco',
+  'Barcelona': 'Europe/Madrid',
+  'Montreal': 'America/Toronto',
+  'Spielberg': 'Europe/Vienna',
+  'Silverstone': 'Europe/London',
+  'Spa': 'Europe/Brussels',
+  'Budapest': 'Europe/Budapest',
+  'Zandvoort': 'Europe/Amsterdam',
+  'Monza': 'Europe/Rome',
+  'Baku': 'Asia/Baku',
+  'Marina Bay': 'Asia/Singapore',
+  'Austin': 'America/Chicago',
+  'Mexico City': 'America/Mexico_City',
+  'São Paulo': 'America/Sao_Paulo',
+  'Las Vegas': 'America/Los_Angeles',
+  'Lusail': 'Asia/Qatar',
+  'Abu Dhabi': 'Asia/Dubai',
+  'Madrid': 'Europe/Madrid',
+  'Imola': 'Europe/Rome',
+};
+
+// User's timezone (France)
+const USER_TIMEZONE = 'Europe/Paris';
+
+// Country flag emojis by city
+const cityToFlag: Record<string, string> = {
+  'Melbourne': '🇦🇺',
+  'Shanghai': '🇨🇳',
+  'Suzuka': '🇯🇵',
+  'Sakhir': '🇧🇭',
+  'Jeddah': '🇸🇦',
+  'Miami': '🇺🇸',
+  'Monte Carlo': '🇲🇨',
+  'Barcelona': '🇪🇸',
+  'Montreal': '🇨🇦',
+  'Spielberg': '🇦🇹',
+  'Silverstone': '🇬🇧',
+  'Spa': '🇧🇪',
+  'Budapest': '🇭🇺',
+  'Zandvoort': '🇳🇱',
+  'Monza': '🇮🇹',
+  'Baku': '🇦🇿',
+  'Marina Bay': '🇸🇬',
+  'Austin': '🇺🇸',
+  'Mexico City': '🇲🇽',
+  'São Paulo': '🇧🇷',
+  'Las Vegas': '🇺🇸',
+  'Lusail': '🇶🇦',
+  'Abu Dhabi': '🇦🇪',
+  'Madrid': '🇪🇸',
+  'Imola': '🇮🇹',
+};
+
+// Helper to format time in a specific timezone
+function formatTimeInTimezone(date: Date, timezone: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: timezone,
+  }).format(date);
+}
+
+// Helper to format date in a specific timezone
+function formatDateInTimezone(date: Date, timezone: string): { day: string; month: string } {
+  const day = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    timeZone: timezone,
+  }).format(date);
+  
+  const month = new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    timeZone: timezone,
+  }).format(date);
+  
+  return { day, month };
+}
 
 // ============================================
 // F1.COM OFFICIAL IMAGE URL MAPPINGS
@@ -93,6 +193,23 @@ const cityToTrackMap: Record<string, string> = {
   'Madrid': 'Spain_Circuit', // New Madrid circuit - fallback to Spain
 };
 
+// ============================================
+// CIRCUIT VIDEO MAPPINGS
+// ============================================
+const cityToVideo: Record<string, string> = {
+  'Shanghai': '/videos/chinese.mp4',
+  // Add more videos as they become available:
+  // 'Monte Carlo': '/videos/monaco.mp4',
+  // 'Abu Dhabi': '/videos/abu-dhabi.mp4',
+  // 'Las Vegas': '/videos/las-vegas.mp4',
+  // 'Lusail': '/videos/qatar.mp4',
+};
+
+// Helper function to get circuit video URL
+function getCircuitVideoUrl(city: string): string | null {
+  return cityToVideo[city] || null;
+}
+
 // Helper function to get F1.com hero image URL
 function getF1HeroImageUrl(country: string): string {
   const heroName = countryToHeroImage[country] || country.replace(/\s+/g, '%20');
@@ -108,8 +225,15 @@ function getF1TrackMapUrl(city: string): string {
 // ============================================
 // F1 SCHEDULE SECTION
 // ============================================
-function F1ScheduleSection({ races }: { races: Race[] }) {
+function F1ScheduleSection({ races, city }: { races: Race[]; city: string }) {
   const [timeZone, setTimeZone] = useState<'track' | 'local'>('local');
+  
+  // Get track timezone
+  const trackTimezone = cityToTimezone[city] || 'UTC';
+  const activeTimezone = timeZone === 'local' ? USER_TIMEZONE : trackTimezone;
+  
+  // Get track flag
+  const trackFlag = cityToFlag[city] || '🏁';
   
   // Get the most recent/upcoming race
   const currentRace = races.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
@@ -136,22 +260,24 @@ function F1ScheduleSection({ races }: { races: Race[] }) {
       <div className="flex items-center gap-2 mb-6">
         <button
           onClick={() => setTimeZone('local')}
-          className={`text-sm font-semibold px-3 py-1.5 rounded transition-colors ${
+          className={`text-sm font-semibold px-3 py-1.5 rounded transition-colors flex items-center gap-2 ${
             timeZone === 'local' 
               ? 'bg-foreground text-background' 
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
+          <span className="text-base">🇫🇷</span>
           My time
         </button>
         <button
           onClick={() => setTimeZone('track')}
-          className={`text-sm font-semibold px-3 py-1.5 rounded transition-colors ${
+          className={`text-sm font-semibold px-3 py-1.5 rounded transition-colors flex items-center gap-2 ${
             timeZone === 'track' 
               ? 'bg-foreground text-background' 
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
+          <span className="text-base">{trackFlag}</span>
           Track time
         </button>
       </div>
@@ -163,6 +289,10 @@ function F1ScheduleSection({ races }: { races: Race[] }) {
           const info = sessionTypeLabels[session.type] || { label: session.type, shortLabel: session.type };
           const isRace = session.type === 'RACE';
           
+          // Format date and time in the selected timezone
+          const { day, month } = formatDateInTimezone(sessionDate, activeTimezone);
+          const formattedTime = formatTimeInTimezone(sessionDate, activeTimezone);
+          
           return (
             <div 
               key={idx} 
@@ -172,10 +302,10 @@ function F1ScheduleSection({ races }: { races: Race[] }) {
                 {/* Date Badge */}
                 <div className="f1-date-badge">
                   <span className="f1-date-badge-day">
-                    {format(sessionDate, 'd')}
+                    {day}
                   </span>
                   <span className="f1-date-badge-month">
-                    {format(sessionDate, 'MMM', { locale: enUS })}
+                    {month}
                   </span>
                 </div>
                 
@@ -193,21 +323,13 @@ function F1ScheduleSection({ races }: { races: Race[] }) {
               {/* Time */}
               <div className="text-right">
                 <div className="font-semibold">
-                  {format(sessionDate, 'HH:mm')}
+                  {formattedTime}
                 </div>
               </div>
             </div>
           );
         })}
       </div>
-
-      {/* Add to Calendar Button */}
-      <Button 
-        className="w-full mt-4 bg-primary hover:bg-primary/90 text-white gap-2 rounded-none"
-      >
-        <Plus className="w-4 h-4" />
-        Add F1 calendar
-      </Button>
     </section>
   );
 }
@@ -228,6 +350,14 @@ function F1WeatherSection({ city }: { city: string }) {
 // F1 CIRCUIT SECTION
 // ============================================
 function F1CircuitSection({ circuit }: { circuit: Circuit }) {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const fullscreenVideoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isFullscreenPlaying, setIsFullscreenPlaying] = useState(false);
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  const [fullscreenType, setFullscreenType] = useState<'image' | 'video'>('image');
+
   // Calculate laps from circuit length (F1 races are minimum 305km, Monaco 260km exception)
   const F1_RACE_DISTANCE_KM = 305;
   const laps = circuit.length
@@ -241,28 +371,184 @@ function F1CircuitSection({ circuit }: { circuit: Circuit }) {
 
   // Use F1.com official track map URL
   const trackMapUrl = getF1TrackMapUrl(circuit.city);
+  
+  // Get circuit video URL if available
+  const videoUrl = getCircuitVideoUrl(circuit.city);
+
+  const handleVideoToggle = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleFullscreenVideoToggle = () => {
+    if (fullscreenVideoRef.current) {
+      if (isFullscreenPlaying) {
+        fullscreenVideoRef.current.pause();
+      } else {
+        fullscreenVideoRef.current.play();
+      }
+      setIsFullscreenPlaying(!isFullscreenPlaying);
+    }
+  };
+
+  const openFullscreen = (type: 'image' | 'video') => {
+    setFullscreenType(type);
+    setFullscreenOpen(true);
+    // Reset video state when opening
+    if (type === 'video') {
+      setIsFullscreenPlaying(false);
+    }
+  };
+
+  const closeFullscreen = () => {
+    setFullscreenOpen(false);
+    // Pause fullscreen video when closing
+    if (fullscreenVideoRef.current) {
+      fullscreenVideoRef.current.pause();
+      setIsFullscreenPlaying(false);
+    }
+  };
 
   return (
     <section className="py-8">
       <h2 className="f1-section-title">Circuit</h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Track Map */}
+        {/* Track Map / Video Carousel */}
         <div className="bg-card p-6">
-          <div className="aspect-square relative flex items-center justify-center">
-            {trackMapUrl ? (
-              <ImageWithFallback
-                src={trackMapUrl}
-                alt={`${circuit.name} Track Layout`}
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <div className="text-muted-foreground text-center">
-                <div className="text-6xl mb-4">🏎️</div>
-                <p>Track layout not available</p>
+          {videoUrl ? (
+            <Carousel 
+              className="w-full"
+              opts={{ loop: true }}
+            >
+              <CarouselContent>
+                {/* Slide 1: Track Map */}
+                <CarouselItem>
+                  <div 
+                    className="aspect-square relative flex items-center justify-center group cursor-pointer"
+                    onClick={() => openFullscreen('image')}
+                  >
+                    {trackMapUrl ? (
+                      <ImageWithFallback
+                        src={trackMapUrl}
+                        alt={`${circuit.name} Track Layout`}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <div className="text-muted-foreground text-center">
+                        <div className="text-6xl mb-4">🏎️</div>
+                        <p>Track layout not available</p>
+                      </div>
+                    )}
+                    {/* Fullscreen button overlay */}
+                    <button
+                      className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-black/80 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openFullscreen('image');
+                      }}
+                    >
+                      <Maximize2 className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+                </CarouselItem>
+                
+                {/* Slide 2: Circuit Video */}
+                <CarouselItem>
+                  <div className="aspect-square relative flex items-center justify-center bg-black rounded-lg overflow-hidden group">
+                    <video
+                      ref={videoRef}
+                      src={videoUrl}
+                      className="w-full h-full object-contain"
+                      loop
+                      playsInline
+                      muted
+                      onClick={handleVideoToggle}
+                      onPlay={() => setIsPlaying(true)}
+                      onPause={() => setIsPlaying(false)}
+                    />
+                    {/* Play/Pause overlay */}
+                    {!isPlaying && (
+                      <button
+                        onClick={handleVideoToggle}
+                        className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors cursor-pointer"
+                      >
+                        <div className="w-20 h-20 rounded-full bg-primary/90 flex items-center justify-center shadow-2xl">
+                          <Play className="w-10 h-10 text-white ml-1" fill="white" />
+                        </div>
+                      </button>
+                    )}
+                    {/* Fullscreen button */}
+                    <button
+                      className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-black/80 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openFullscreen('video');
+                      }}
+                    >
+                      <Maximize2 className="w-5 h-5 text-white" />
+                    </button>
+                    {/* Video label */}
+                    <div className="absolute bottom-4 left-4 bg-black/70 text-white text-sm px-3 py-1.5 rounded-full">
+                      🎬 Circuit Tour
+                    </div>
+                  </div>
+                </CarouselItem>
+              </CarouselContent>
+              
+              {/* Navigation */}
+              <CarouselPrevious className="left-2" />
+              <CarouselNext className="right-2" />
+              
+              {/* Indicators */}
+              <div className="flex justify-center gap-2 mt-4">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className="w-2 h-2 rounded-full bg-primary"></span>
+                  Track Map
+                </div>
+                <span className="text-muted-foreground">•</span>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className="w-2 h-2 rounded-full bg-primary"></span>
+                  Circuit Video
+                </div>
               </div>
-            )}
-          </div>
+            </Carousel>
+          ) : (
+            /* Original single image view when no video available */
+            <div 
+              className="aspect-square relative flex items-center justify-center group cursor-pointer"
+              onClick={() => openFullscreen('image')}
+            >
+              {trackMapUrl ? (
+                <ImageWithFallback
+                  src={trackMapUrl}
+                  alt={`${circuit.name} Track Layout`}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="text-muted-foreground text-center">
+                  <div className="text-6xl mb-4">🏎️</div>
+                  <p>Track layout not available</p>
+                </div>
+              )}
+              {/* Fullscreen button overlay */}
+              <button
+                className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-black/80 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openFullscreen('image');
+                }}
+              >
+                <Maximize2 className="w-5 h-5 text-white" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Stats Grid */}
@@ -311,6 +597,63 @@ function F1CircuitSection({ circuit }: { circuit: Circuit }) {
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Dialog */}
+      <Dialog open={fullscreenOpen} onOpenChange={setFullscreenOpen}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-0 bg-black border-none">
+          <DialogTitle className="sr-only">
+            {fullscreenType === 'image' ? `${circuit.name} Track Layout` : `${circuit.name} Circuit Tour`}
+          </DialogTitle>
+          
+          {/* Close button */}
+          <button
+            onClick={closeFullscreen}
+            className="absolute top-4 right-4 z-50 p-2 bg-black/60 hover:bg-black/80 rounded-full transition-colors"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+
+          {fullscreenType === 'image' ? (
+            /* Fullscreen Image */
+            <div className="flex items-center justify-center w-[90vw] h-[90vh]">
+              <ImageWithFallback
+                src={trackMapUrl}
+                alt={`${circuit.name} Track Layout`}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+          ) : (
+            /* Fullscreen Video */
+            <div className="relative flex items-center justify-center w-[90vw] h-[90vh] bg-black">
+              <video
+                ref={fullscreenVideoRef}
+                src={videoUrl || ''}
+                className="max-w-full max-h-full object-contain"
+                loop
+                playsInline
+                onClick={handleFullscreenVideoToggle}
+                onPlay={() => setIsFullscreenPlaying(true)}
+                onPause={() => setIsFullscreenPlaying(false)}
+              />
+              {/* Play/Pause overlay for fullscreen */}
+              {!isFullscreenPlaying && (
+                <button
+                  onClick={handleFullscreenVideoToggle}
+                  className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors cursor-pointer"
+                >
+                  <div className="w-24 h-24 rounded-full bg-primary/90 flex items-center justify-center shadow-2xl">
+                    <Play className="w-12 h-12 text-white ml-1" fill="white" />
+                  </div>
+                </button>
+              )}
+              {/* Video label */}
+              <div className="absolute bottom-6 left-6 bg-black/70 text-white text-sm px-4 py-2 rounded-full">
+                🎬 {circuit.name} - Circuit Tour
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
@@ -690,17 +1033,24 @@ export function CircuitDetailView({
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 lg:px-8 pb-12">
-        {/* Schedule Section */}
-        <F1ScheduleSection races={races} />
+        {/* Statistics Section */}
+        <F1StatsSection 
+          circuit={circuit} 
+          historyData={historyData} 
+          isLoading={historyLoading} 
+        />
         
-        {/* Weather Section */}
-        <F1WeatherSection city={circuit.city} />
+        {/* Schedule & Weather - 2 Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          {/* Schedule Section */}
+          <F1ScheduleSection races={races} city={circuit.city} />
+          
+          {/* Weather Section */}
+          <F1WeatherSection city={circuit.city} />
+        </div>
         
         {/* Circuit Section */}
         <F1CircuitSection circuit={circuit} />
-        
-        {/* About Section */}
-        <F1AboutSection circuit={circuit} />
         
         {/* Results Section */}
         <F1ResultsSection 
@@ -708,12 +1058,8 @@ export function CircuitDetailView({
           isLoading={historyLoading} 
         />
         
-        {/* Statistics Section */}
-        <F1StatsSection 
-          circuit={circuit} 
-          historyData={historyData} 
-          isLoading={historyLoading} 
-        />
+        {/* About Section */}
+        <F1AboutSection circuit={circuit} />
       </div>
     </div>
   );

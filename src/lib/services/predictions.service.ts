@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { ApiError } from "@/lib/errors/api-error";
-import { arePredictionsLocked } from "@/lib/utils/date";
+import { arePredictionsLocked, findLockSession, getPredictionLockTime } from "@/lib/utils/date";
 import {
   calculateScore,
   type RaceResults,
@@ -92,13 +92,13 @@ export async function upsertPrediction(
 ): Promise<PredictionWithDetails> {
   const { userId, raceId, topTen, polePosition, fastestLap } = input;
 
-  // Verify race exists and predictions are not locked
+  // Verify race exists and get all sessions to determine lock time
   const race = await prisma.race.findUnique({
     where: { id: raceId },
     include: {
       sessions: {
-        where: { type: "QUALIFYING" as SessionType },
-        take: 1,
+        select: { type: true, dateTime: true },
+        orderBy: { dateTime: 'asc' },
       },
     },
   });
@@ -107,10 +107,16 @@ export async function upsertPrediction(
     throw ApiError.notFound("Course non trouvée");
   }
 
-  // Check lock time based on qualifying session
-  const qualifyingSession = race.sessions[0];
-  if (qualifyingSession && arePredictionsLocked(qualifyingSession.dateTime)) {
-    throw ApiError.predictionLocked();
+  // Check lock time based on qualifying/sprint qualifying session
+  const lockSession = findLockSession(
+    race.sessions.map(s => ({ type: s.type, dateTime: s.dateTime }))
+  );
+  
+  if (lockSession) {
+    const lockTime = getPredictionLockTime(new Date(lockSession.dateTime));
+    if (new Date() >= lockTime) {
+      throw ApiError.predictionLocked();
+    }
   }
 
   // Verify all drivers exist
@@ -249,11 +255,8 @@ export async function getUserPredictions(
     },
   });
 
-  return Promise.all(
-    predictions.map((p) =>
-      formatPredictionResponse(p as unknown as PredictionWithRace)
-    )
-  );
+  // Use batch function to avoid N+1 queries
+  return formatPredictionsResponse(predictions as unknown as PredictionWithRace[]);
 }
 
 /**
@@ -310,11 +313,8 @@ export async function getRacePredictions(
     },
   });
 
-  return Promise.all(
-    predictions.map((p) =>
-      formatPredictionResponse(p as unknown as PredictionWithRace)
-    )
-  );
+  // Use batch function to avoid N+1 queries
+  return formatPredictionsResponse(predictions as unknown as PredictionWithRace[]);
 }
 
 /**
@@ -426,8 +426,8 @@ export async function deletePrediction(
       race: {
         include: {
           sessions: {
-            where: { type: "QUALIFYING" as SessionType },
-            take: 1,
+            select: { type: true, dateTime: true },
+            orderBy: { dateTime: 'asc' },
           },
         },
       },
@@ -442,10 +442,16 @@ export async function deletePrediction(
     throw ApiError.forbidden("You cannot delete this prediction");
   }
 
-  // Check if predictions are locked
-  const qualifyingSession = prediction.race.sessions[0];
-  if (qualifyingSession && arePredictionsLocked(qualifyingSession.dateTime)) {
-    throw ApiError.predictionLocked();
+  // Check if predictions are locked using shared utility
+  const lockSession = findLockSession(
+    prediction.race.sessions.map(s => ({ type: s.type, dateTime: s.dateTime }))
+  );
+  
+  if (lockSession) {
+    const lockTime = getPredictionLockTime(new Date(lockSession.dateTime));
+    if (new Date() >= lockTime) {
+      throw ApiError.predictionLocked();
+    }
   }
 
   await prisma.prediction.delete({ where: { id: predictionId } });
@@ -455,24 +461,19 @@ export async function deletePrediction(
 // Helper Functions
 // ============================================
 
-async function formatPredictionResponse(
-  prediction: PredictionWithRace
-): Promise<PredictionWithDetails> {
-  // Get driver details for positions - use Function casting
-  const drivers = await (prisma.driver.findMany as Function)({
-    where: { id: { in: prediction.topTen } },
-    select: {
-      id: true,
-      code: true,
-      firstName: true,
-      lastName: true,
-    },
-  }) as { id: string; code: string; firstName: string; lastName: string }[];
+// Driver cache type
+type DriverCache = Map<string, { id: string; code: string; firstName: string; lastName: string }>;
 
-  // Map drivers to their predicted positions
-  const driverMap = new Map(drivers.map((d) => [d.id, d]));
+/**
+ * Format a single prediction response (uses pre-fetched driver cache)
+ */
+function formatPredictionResponseWithCache(
+  prediction: PredictionWithRace,
+  driverCache: DriverCache
+): PredictionWithDetails {
+  // Map drivers to their predicted positions using cache
   const orderedDrivers = prediction.topTen.map((driverId, index) => {
-    const driver = driverMap.get(driverId);
+    const driver = driverCache.get(driverId);
     return {
       id: driverId,
       code: driver?.code || "???",
@@ -495,6 +496,61 @@ async function formatPredictionResponse(
     race: prediction.race,
     drivers: orderedDrivers,
   };
+}
+
+/**
+ * Format multiple predictions efficiently (single DB query for all drivers)
+ */
+async function formatPredictionsResponse(
+  predictions: PredictionWithRace[]
+): Promise<PredictionWithDetails[]> {
+  if (predictions.length === 0) return [];
+
+  // Collect all unique driver IDs from all predictions
+  const allDriverIds = new Set<string>();
+  for (const prediction of predictions) {
+    for (const driverId of prediction.topTen) {
+      allDriverIds.add(driverId);
+    }
+  }
+
+  // Single query to get all drivers
+  const drivers = await (prisma.driver.findMany as Function)({
+    where: { id: { in: Array.from(allDriverIds) } },
+    select: {
+      id: true,
+      code: true,
+      firstName: true,
+      lastName: true,
+    },
+  }) as { id: string; code: string; firstName: string; lastName: string }[];
+
+  // Build driver cache
+  const driverCache: DriverCache = new Map(drivers.map((d) => [d.id, d]));
+
+  // Format all predictions using the cache
+  return predictions.map((p) => formatPredictionResponseWithCache(p, driverCache));
+}
+
+/**
+ * Format single prediction (for single-prediction endpoints)
+ */
+async function formatPredictionResponse(
+  prediction: PredictionWithRace
+): Promise<PredictionWithDetails> {
+  // For single prediction, still need to fetch drivers
+  const drivers = await (prisma.driver.findMany as Function)({
+    where: { id: { in: prediction.topTen } },
+    select: {
+      id: true,
+      code: true,
+      firstName: true,
+      lastName: true,
+    },
+  }) as { id: string; code: string; firstName: string; lastName: string }[];
+
+  const driverCache: DriverCache = new Map(drivers.map((d) => [d.id, d]));
+  return formatPredictionResponseWithCache(prediction, driverCache);
 }
 
 export default {

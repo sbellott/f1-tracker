@@ -19,12 +19,18 @@ model User {
   updatedAt           DateTime      @updatedAt
   notifyBeforeSession Boolean       @default(true)
   notifyDelayMinutes  Int           @default(30)
+  notifyEmail         Boolean       @default(true)
+  notifyPush          Boolean       @default(false)
+  notifyH24           Boolean       @default(true)
+  notifyH1            Boolean       @default(true)
+  notifyResults       Boolean       @default(true)
   darkMode            Boolean       @default(true)
   accounts            Account[]
   predictions         Prediction[]
   sessions            Session[]
   badges              UserBadge[]
   readArticles        ReadArticle[]
+  notifications       Notification[]
   // Group relations
   ownedGroups         Group[]       @relation("GroupOwner")
   groupMemberships    GroupMember[]
@@ -438,4 +444,85 @@ enum SessionType {
 enum StandingType {
   DRIVER
   CONSTRUCTOR
+}
+
+// ============================================
+// Notification System
+// ============================================
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  type        NotificationType
+  title       String
+  message     String
+  data        Json?            // Additional data (raceId, sessionType, etc.)
+  read        Boolean          @default(false)
+  sentAt      DateTime         @default(now())
+  readAt      DateTime?
+  emailSent   Boolean          @default(false)
+  pushSent    Boolean          @default(false)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([sentAt])
+  @@map("notifications")
+}
+
+model NotificationSchedule {
+  id          String           @id @default(cuid())
+  raceId      String
+  sessionType SessionType
+  type        NotificationType
+  scheduledAt DateTime
+  processedAt DateTime?
+  status      ScheduleStatus   @default(PENDING)
+  
+  @@unique([raceId, sessionType, type])
+  @@index([scheduledAt])
+  @@index([status])
+  @@map("notification_schedules")
+}
+
+model ScoringJob {
+  id           String       @id @default(cuid())
+  raceId       String
+  sessionType  SessionType
+  status       JobStatus    @default(PENDING)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  error        String?
+  processed    Int          @default(0)
+  total        Int          @default(0)
+  createdAt    DateTime     @default(now())
+
+  @@unique([raceId, sessionType])
+  @@index([status])
+  @@map("scoring_jobs")
+}
+
+enum NotificationType {
+  PREDICTION_REMINDER_H24
+  PREDICTION_REMINDER_H1
+  RESULTS_AVAILABLE
+  SCORING_COMPLETE
+  BADGE_UNLOCKED
+  GROUP_INVITATION
+  GROUP_UPDATE
+  SYSTEM
+}
+
+enum ScheduleStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
 }

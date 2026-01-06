@@ -3,12 +3,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Target, Trophy, Zap, Lock, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Race, Driver, Prediction } from '@/types';
+import { Race, Driver, Prediction, Constructor } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ImageWithFallback } from '@/components/f1/figma/ImageWithFallback';
+import { getDriverHeadshotUrl, getTeamColor } from '@/lib/utils/driver-images';
+import { getPredictionLockStatus, getSessionName, PREDICTION_LOCK_MINUTES } from '@/lib/utils/date';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface PredictionFormProps {
   race: Race;
   drivers: Driver[];
+  constructors: Constructor[];
   onBack: () => void;
   onSubmit: (prediction: Prediction) => void;
   existingPrediction?: Prediction;
@@ -17,12 +31,16 @@ interface PredictionFormProps {
 export function PredictionForm({
   race,
   drivers,
+  constructors,
   onBack,
   onSubmit,
   existingPrediction,
 }: PredictionFormProps) {
   // Filter only active drivers (those with a constructor = on the 2026 grid)
   const activeDrivers = drivers.filter(d => d.constructorId);
+
+  // Helper to get constructor by ID
+  const getConstructor = (constructorId: string) => constructors.find(c => c.id === constructorId);
 
   const [prediction, setPrediction] = useState<Prediction>(
     existingPrediction || {
@@ -42,12 +60,17 @@ export function PredictionForm({
   );
 
   const [errors, setErrors] = useState<string[]>([]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
-  // Check if race is locked (5 minutes before race start)
-  const raceSession = race.sessions.find(s => s.type === 'RACE');
-  const raceDate = raceSession ? new Date(raceSession.dateTime) : new Date(race.date);
-  const lockTime = new Date(raceDate.getTime() - 5 * 60 * 1000);
-  const isLocked = new Date() >= lockTime;
+  // Check lock status using shared utility (15 minutes before qualifying/sprint qualifying)
+  const sessionsForLock = race.sessions.map(s => ({
+    type: s.type,
+    dateTime: new Date(s.dateTime),
+  }));
+  const lockStatus = getPredictionLockStatus(sessionsForLock);
+  const isLocked = lockStatus.isLocked;
+  const lockTime = lockStatus.lockTime;
+  const lockSessionName = lockStatus.lockSession ? getSessionName(lockStatus.lockSession) : null;
 
   const handlePositionChange = (position: keyof Prediction, driverId: string) => {
     setPrediction(prev => ({ ...prev, [position]: driverId }));
@@ -85,6 +108,12 @@ export function PredictionForm({
       return;
     }
 
+    // Show confirmation dialog instead of submitting directly
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    setShowConfirmDialog(false);
     onSubmit(prediction);
   };
 
@@ -104,6 +133,63 @@ export function PredictionForm({
     return Object.values(prediction).every(v => v !== '') && errors.length === 0;
   };
 
+  // Render driver option with photo and team color
+  const renderDriverOption = (driver: Driver) => {
+    const constructor = getConstructor(driver.constructorId);
+    const teamName = constructor?.name || '';
+    const teamColor = constructor?.color || getTeamColor(teamName);
+    
+    return (
+      <div className="flex items-center gap-3">
+        <div 
+          className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0"
+          style={{ backgroundColor: teamColor }}
+        >
+          <ImageWithFallback
+            src={getDriverHeadshotUrl(driver.firstName, driver.lastName, teamName)}
+            alt={`${driver.firstName} ${driver.lastName}`}
+            className="w-full h-full object-cover object-top"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">{driver.code}</span>
+          <span className="text-muted-foreground">
+            {driver.firstName} {driver.lastName}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
+  // Render selected driver in trigger with photo
+  const renderSelectedDriver = (driverId: string) => {
+    const driver = activeDrivers.find(d => d.id === driverId);
+    if (!driver) return null;
+    
+    const constructor = getConstructor(driver.constructorId);
+    const teamName = constructor?.name || '';
+    const teamColor = constructor?.color || getTeamColor(teamName);
+    
+    return (
+      <div className="flex items-center gap-2">
+        <div 
+          className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0"
+          style={{ backgroundColor: teamColor }}
+        >
+          <ImageWithFallback
+            src={getDriverHeadshotUrl(driver.firstName, driver.lastName, teamName)}
+            alt={`${driver.firstName} ${driver.lastName}`}
+            className="w-full h-full object-cover object-top"
+          />
+        </div>
+        <span className="font-semibold">{driver.code}</span>
+        <span className="text-muted-foreground text-sm">
+          {driver.firstName} {driver.lastName}
+        </span>
+      </div>
+    );
+  };
+
   if (isLocked && !existingPrediction) {
     return (
       <div className="space-y-6">
@@ -116,12 +202,12 @@ export function PredictionForm({
           <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center mx-auto mb-4">
             <Lock className="w-8 h-8 text-destructive" />
           </div>
-          <h3 className="text-2xl font-bold mb-2">Predictions locked</h3>
+          <h3 className="text-2xl font-bold mb-2">Pronostics verrouillés</h3>
           <p className="text-muted-foreground">
-            Predictions for this race have been locked since {lockTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            Les pronostics sont verrouillés depuis {lockTime?.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
           </p>
           <p className="text-sm text-muted-foreground mt-2">
-            You can make your predictions for the next race!
+            {PREDICTION_LOCK_MINUTES} minutes avant {lockSessionName || 'les qualifications'}
           </p>
         </Card>
       </div>
@@ -137,10 +223,11 @@ export function PredictionForm({
           Retour
         </Button>
         
-        {!isLocked && (
+        {!isLocked && lockTime && (
           <Badge className="gap-2 bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30">
             <CheckCircle2 className="w-3 h-3" />
             Ouvert jusqu'à {lockTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            {lockSessionName && <span className="text-xs opacity-75">({PREDICTION_LOCK_MINUTES}min avant {lockSessionName})</span>}
           </Badge>
         )}
       </div>
@@ -213,18 +300,16 @@ export function PredictionForm({
                       onValueChange={(value) => handlePositionChange(pos, value)}
                       disabled={isLocked}
                     >
-                      <SelectTrigger className="h-12">
-                        <SelectValue placeholder="Select a driver" />
+                      <SelectTrigger 
+                        className="h-12"
+                        aria-label={`Sélectionner le pilote pour la position ${posNumber}`}
+                      >
+                        {prediction[pos] ? renderSelectedDriver(prediction[pos]) : <SelectValue placeholder="Sélectionner un pilote" />}
                       </SelectTrigger>
                       <SelectContent>
                         {getAvailableDrivers(pos).map(driver => (
                           <SelectItem key={driver.id} value={driver.id}>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">{driver.code}</span>
-                              <span className="text-muted-foreground">
-                                {driver.firstName} {driver.lastName}
-                              </span>
-                            </div>
+                            {renderDriverOption(driver)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -260,18 +345,16 @@ export function PredictionForm({
               onValueChange={(value) => handlePositionChange('pole', value)}
               disabled={isLocked}
             >
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="Qui décrochera la pole ?" />
+              <SelectTrigger 
+                className="h-12"
+                aria-label="Sélectionner le pilote pour la pole position"
+              >
+                {prediction.pole ? renderSelectedDriver(prediction.pole) : <SelectValue placeholder="Qui décrochera la pole ?" />}
               </SelectTrigger>
               <SelectContent>
                 {activeDrivers.map(driver => (
                   <SelectItem key={driver.id} value={driver.id}>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{driver.code}</span>
-                      <span className="text-muted-foreground">
-                        {driver.firstName} {driver.lastName}
-                      </span>
-                    </div>
+                    {renderDriverOption(driver)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -299,18 +382,16 @@ export function PredictionForm({
               onValueChange={(value) => handlePositionChange('fastestLap', value)}
               disabled={isLocked}
             >
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="Qui fera le meilleur temps ?" />
+              <SelectTrigger 
+                className="h-12"
+                aria-label="Sélectionner le pilote pour le tour le plus rapide"
+              >
+                {prediction.fastestLap ? renderSelectedDriver(prediction.fastestLap) : <SelectValue placeholder="Qui fera le meilleur temps ?" />}
               </SelectTrigger>
               <SelectContent>
                 {activeDrivers.map(driver => (
                   <SelectItem key={driver.id} value={driver.id}>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{driver.code}</span>
-                      <span className="text-muted-foreground">
-                        {driver.firstName} {driver.lastName}
-                      </span>
-                    </div>
+                    {renderDriverOption(driver)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -362,9 +443,64 @@ export function PredictionForm({
           className="flex-1 h-14 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
         >
           <CheckCircle2 className="w-5 h-5 mr-2" />
-          {existingPrediction ? 'Edit my predictions' : 'Submit my predictions'}
+          {existingPrediction ? 'Modifier mes pronostics' : 'Soumettre mes pronostics'}
         </Button>
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-primary" />
+              Confirmer vos pronostics
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4">
+                <p>Vous êtes sur le point de soumettre vos pronostics pour :</p>
+                <div className="font-semibold text-foreground">{race.name}</div>
+                
+                <div className="bg-muted/50 rounded-lg p-3 space-y-2 text-sm">
+                  <div className="font-medium text-foreground">Podium prédit :</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['p1', 'p2', 'p3'] as const).map((pos, idx) => {
+                      const driver = getDriverById(prediction[pos]);
+                      return (
+                        <div key={pos} className="text-center">
+                          <div className="text-xs text-muted-foreground">P{idx + 1}</div>
+                          <div className="font-medium text-foreground">{driver?.code || '—'}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Pole: </span>
+                    <span className="font-medium text-foreground">{getDriverById(prediction.pole)?.code || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Fastest Lap: </span>
+                    <span className="font-medium text-foreground">{getDriverById(prediction.fastestLap)?.code || '—'}</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Vous pourrez modifier vos pronostics jusqu'au verrouillage ({PREDICTION_LOCK_MINUTES} min avant les qualifications).
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSubmit} className="bg-primary hover:bg-primary/90">
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Confirmer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
