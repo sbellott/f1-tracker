@@ -42,18 +42,24 @@ import {
 // Types
 // ============================================
 
-interface Driver {
+// Flexible Driver interface to support both enriched and API driver objects
+// Using 'team' instead of 'constructor' to avoid TypeScript reserved keyword conflict
+interface LocalDriver {
   id: string;
   code: string;
   firstName: string;
   lastName: string;
   number?: number;
+  // Support both imageUrl (enriched) and photo (API)
   imageUrl?: string | null;
-  constructor?: {
+  photo?: string | null;
+  // Support team object (enriched)
+  team?: {
     id: string;
     name: string;
     color: string;
   };
+  constructorId?: string;
 }
 
 interface PredictionVsRealityProps {
@@ -63,7 +69,7 @@ interface PredictionVsRealityProps {
   actualPole?: string | null;
   predictedFastestLap?: string | null;
   actualFastestLap?: string | null;
-  drivers: Driver[];
+  drivers: LocalDriver[];
   breakdown?: ScoringBreakdown;
   raceName?: string;
   className?: string;
@@ -73,7 +79,7 @@ interface PredictionVsRealityProps {
 // Helper Functions
 // ============================================
 
-const getDriverById = (drivers: Driver[], id: string): Driver | undefined => {
+const getDriverById = (drivers: LocalDriver[], id: string): LocalDriver | undefined => {
   return drivers.find((d) => d.id === id);
 };
 
@@ -101,7 +107,7 @@ function DriverCell({
   correct = false,
   partial = false,
 }: {
-  driver?: Driver;
+  driver?: LocalDriver;
   position?: number;
   showPosition?: boolean;
   highlight?: boolean;
@@ -116,7 +122,8 @@ function DriverCell({
     );
   }
 
-  const constructorColor = driver.constructor?.color || "#666666";
+  const teamColor = driver.team?.color || "#666666";
+  const driverImage = driver.imageUrl || driver.photo;
 
   return (
     <div
@@ -139,11 +146,11 @@ function DriverCell({
           {position}
         </Badge>
       )}
-      <Avatar className="h-8 w-8 border-2" style={{ borderColor: constructorColor }}>
-        <AvatarImage src={driver.imageUrl || undefined} />
+      <Avatar className="h-8 w-8 border-2" style={{ borderColor: teamColor }}>
+        <AvatarImage src={driverImage || undefined} />
         <AvatarFallback
           className="text-xs font-bold"
-          style={{ backgroundColor: constructorColor, color: "white" }}
+          style={{ backgroundColor: teamColor, color: "white" }}
         >
           {driver.code?.slice(0, 2) || driver.lastName?.slice(0, 2)}
         </AvatarFallback>
@@ -151,7 +158,7 @@ function DriverCell({
       <div className="flex-1 min-w-0">
         <div className="font-medium text-sm truncate">{driver.code}</div>
         <div className="text-xs text-muted-foreground truncate">
-          {driver.constructor?.name || ""}
+          {driver.team?.name || ""}
         </div>
       </div>
       {correct && <Check className="h-4 w-4 text-green-500 flex-shrink-0" />}
@@ -220,7 +227,7 @@ function SpecialPredictionRow({
   label: string;
   predicted?: string | null;
   actual?: string | null;
-  drivers: Driver[];
+  drivers: LocalDriver[];
   correct: boolean;
   points: number;
   iconColor: string;

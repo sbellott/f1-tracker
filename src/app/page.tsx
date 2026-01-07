@@ -19,6 +19,7 @@ import { AuthButton } from '@/components/f1/AuthButton';
 import { useAppStore } from '@/store/useAppStore';
 import { GlobalSearch } from '@/components/f1/GlobalSearch';
 import { NotificationPanel } from '@/components/f1/NotificationPanel';
+import { useUnreadCount } from '@/lib/hooks/use-notifications';
 import { StatsPanel } from '@/components/f1/StatsPanel';
 import { useTheme } from 'next-themes';
 import { News } from '@/components/f1/News';
@@ -94,6 +95,9 @@ export default function HomePage() {
   const [standingsSelectedRaceId, setStandingsSelectedRaceId] = useState<string | null>(null);
   const [explorerTab, setExplorerTab] = useState<'drivers' | 'constructors'>('drivers');
   const { theme, setTheme } = useTheme();
+
+  // Notifications
+  const { data: unreadCount = 0 } = useUnreadCount();
 
   // ============================================
   // Handle tab changes - reset circuit selection when leaving/entering calendar
@@ -463,9 +467,11 @@ export default function HomePage() {
                 className="rounded-xl w-10 h-10 relative"
               >
                 <Bell className="w-4 h-4" />
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg">
-                  2
-                </span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </Button>
 
               {/* Stats Button */}
@@ -1064,7 +1070,6 @@ export default function HomePage() {
       <NotificationPanel
         open={notificationPanelOpen}
         onOpenChange={setNotificationPanelOpen}
-        unreadCount={2}
       />
 
       {/* Stats Panel */}

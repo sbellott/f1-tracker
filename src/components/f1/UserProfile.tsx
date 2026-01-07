@@ -1,4 +1,4 @@
-import { User, Trophy, Target, Award, Calendar, TrendingUp, Star, Zap, Crown } from 'lucide-react';
+import { User, Trophy, Target, Award, Calendar, TrendingUp, Star, Zap, Crown, Settings } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User as UserType, UserPrediction, Achievement } from '@/types';
 import { PageTransition, SlideUp, StaggerChildren, StaggerItem } from './Animations';
+import { NotificationPreferences } from './NotificationPreferences';
 
 interface UserProfileProps {
   user: UserType;
@@ -112,6 +113,10 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
           <TabsTrigger value="achievements" className="gap-2 rounded-xl">
             <Award className="w-4 h-4" />
             Achievements
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-2 rounded-xl">
+            <Settings className="w-4 h-4" />
+            Settings
           </TabsTrigger>
         </TabsList>
 
@@ -341,6 +346,11 @@ export function UserProfile({ user, predictions = [], achievements = [], onClose
               </Card>
             </div>
           )}
+        </TabsContent>
+
+        {/* Settings Tab */}
+        <TabsContent value="settings" className="space-y-6">
+          <NotificationPreferences />
         </TabsContent>
       </Tabs>
     </PageTransition>

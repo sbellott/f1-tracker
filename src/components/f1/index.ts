@@ -33,6 +33,8 @@ export { UserProfile } from "./UserProfile";
 export { EnhancedUserProfile, ProfileCard } from "./EnhancedUserProfile";
 export { NotificationPanel } from "./NotificationPanel";
 export { NotificationSettings } from "./NotificationSettings";
+export { NotificationCenter } from "./NotificationCenter";
+export { NotificationPreferences } from "./NotificationPreferences";
 
 // Stats & Badges
 export { StatsPanel } from "./StatsPanel";

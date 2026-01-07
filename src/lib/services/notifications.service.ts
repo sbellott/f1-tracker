@@ -5,6 +5,7 @@
 
 import { prisma } from "@/lib/db/prisma";
 import type { NotificationType, SessionType, ScheduleStatus, JobStatus } from "@prisma/client";
+import webPush from "web-push";
 
 // ============================================
 // Types
@@ -634,6 +635,112 @@ export async function notifyResultsAvailable(
 }
 
 // ============================================
+// Push Notification Delivery
+// ============================================
+
+// Initialize web-push with VAPID keys
+const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+const vapidSubject = process.env.VAPID_SUBJECT || "mailto:f1-tracker@example.com";
+
+if (vapidPublicKey && vapidPrivateKey) {
+  webPush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+}
+
+/**
+ * Send push notification to a user
+ */
+export async function sendPushNotification(
+  userId: string,
+  payload: {
+    title: string;
+    body: string;
+    icon?: string;
+    badge?: string;
+    tag?: string;
+    data?: Record<string, unknown>;
+  }
+) {
+  if (!vapidPublicKey || !vapidPrivateKey) {
+    console.warn("[Push] VAPID keys not configured, skipping push notification");
+    return { sent: 0, failed: 0 };
+  }
+
+  // Get user's push subscriptions
+  const subscriptions = await prisma.pushSubscription.findMany({
+    where: { userId },
+  });
+
+  if (subscriptions.length === 0) {
+    return { sent: 0, failed: 0 };
+  }
+
+  const results = await Promise.allSettled(
+    subscriptions.map(async (sub) => {
+      try {
+        await webPush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: {
+              p256dh: sub.p256dh,
+              auth: sub.auth,
+            },
+          },
+          JSON.stringify({
+            title: payload.title,
+            body: payload.body,
+            icon: payload.icon || "/f1-logo.svg",
+            badge: payload.badge || "/f1-logo.svg",
+            tag: payload.tag || "f1-notification",
+            data: payload.data,
+          })
+        );
+        return { success: true };
+      } catch (error: unknown) {
+        // If subscription is expired/invalid, delete it
+        const statusCode = (error as { statusCode?: number })?.statusCode;
+        if (statusCode === 404 || statusCode === 410) {
+          await prisma.pushSubscription.delete({
+            where: { id: sub.id },
+          }).catch(() => {}); // Ignore errors during cleanup
+        }
+        console.error("[Push] Send failed:", error);
+        return { success: false };
+      }
+    })
+  );
+
+  const sent = results.filter((r) => r.status === "fulfilled" && (r.value as { success: boolean }).success).length;
+  const failed = results.length - sent;
+
+  return { sent, failed };
+}
+
+/**
+ * Send push notification to multiple users
+ */
+export async function sendBulkPushNotifications(
+  userIds: string[],
+  payload: {
+    title: string;
+    body: string;
+    icon?: string;
+    badge?: string;
+    tag?: string;
+    data?: Record<string, unknown>;
+  }
+) {
+  const results = await Promise.all(
+    userIds.map((userId) => sendPushNotification(userId, payload))
+  );
+
+  return {
+    sent: results.reduce((acc, r) => acc + r.sent, 0),
+    failed: results.reduce((acc, r) => acc + r.failed, 0),
+  };
+}
+
+// ============================================
 // Export
 // ============================================
 
@@ -670,4 +777,8 @@ export default {
   
   // Templates
   NOTIFICATION_TEMPLATES,
+
+  // Push Notifications
+  sendPushNotification,
+  sendBulkPushNotifications,
 };

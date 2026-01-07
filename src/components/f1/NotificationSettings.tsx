@@ -1,313 +1,358 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Bell, BellOff, Clock, Flag, Trophy, Zap, CheckCircle2, Settings } from 'lucide-react';
-import { toast } from 'sonner';
+"use client";
 
-interface NotificationPreferences {
-  enabled: boolean;
-  beforeSession: {
-    enabled: boolean;
-    delay: number; // minutes
-  };
-  sessionTypes: {
-    practice: boolean;
-    qualifying: boolean;
-    sprint: boolean;
-    race: boolean;
-  };
-  results: boolean;
-  predictionReminders: boolean;
-  news: boolean;
-}
+import { useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Bell,
+  BellOff,
+  Clock,
+  AlarmClock,
+  Mail,
+  Smartphone,
+  Flag,
+  Trophy,
+  CheckCircle2,
+  Loader2,
+  Info,
+} from "lucide-react";
+import { toast } from "sonner";
 
-const defaultPreferences: NotificationPreferences = {
-  enabled: true,
-  beforeSession: {
-    enabled: true,
-    delay: 60, // 1 hour
-  },
-  sessionTypes: {
-    practice: false,
-    qualifying: true,
-    sprint: true,
-    race: true,
-  },
-  results: true,
-  predictionReminders: true,
-  news: false,
-};
+import {
+  useNotificationPreferences,
+  useUpdatePreferences,
+  requestPushPermission,
+  isPushSupported,
+  getPushPermissionStatus,
+} from "@/lib/hooks/use-notifications";
+
+// ============================================
+// Main Component
+// ============================================
 
 export function NotificationSettings() {
-  const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
+  const { data: preferences, isLoading } = useNotificationPreferences();
+  const updatePreferences = useUpdatePreferences();
   const [testSent, setTestSent] = useState(false);
 
-  const updatePreference = (path: string, value: any) => {
-    setPreferences(prev => {
-      const keys = path.split('.');
-      const newPrefs = { ...prev };
-      let current: any = newPrefs;
-      
-      for (let i = 0; i < keys.length - 1; i++) {
-        current[keys[i]] = { ...current[keys[i]] };
-        current = current[keys[i]];
+  const pushSupported = isPushSupported();
+  const pushStatus = getPushPermissionStatus();
+
+  // Handle preference update
+  const handleUpdate = (key: string, value: boolean | number) => {
+    updatePreferences.mutate(
+      { [key]: value },
+      {
+        onSuccess: () => {
+          toast.success("Préférences enregistrées", {
+            description: "Vos paramètres ont été mis à jour.",
+          });
+        },
+        onError: () => {
+          toast.error("Erreur", {
+            description: "Impossible de mettre à jour les préférences.",
+          });
+        },
       }
-      
-      current[keys[keys.length - 1]] = value;
-      return newPrefs;
-    });
+    );
   };
 
-  const handleSavePreferences = () => {
-    toast.success('Preferences saved', {
-      description: 'Your notification settings have been updated.',
-    });
+  // Handle push notification permission request
+  const handleEnablePush = async () => {
+    const granted = await requestPushPermission();
+    if (granted) {
+      handleUpdate("notifyPush", true);
+      toast.success("Notifications push activées", {
+        description: "Vous recevrez des notifications dans votre navigateur.",
+      });
+    } else {
+      toast.error("Permission refusée", {
+        description:
+          "Vous pouvez activer les notifications dans les paramètres de votre navigateur.",
+      });
+    }
   };
 
   const handleTestNotification = () => {
     setTestSent(true);
-    toast.info('🏁 Race in 1 hour!', {
-      description: 'Monaco Grand Prix - Start at 3:00 PM',
-      duration: 5000,
+    toast("🏁 Course dans 1 heure !", {
+      description: "Grand Prix de Monaco - Départ à 15h00",
     });
-    
     setTimeout(() => setTestSent(false), 3000);
   };
 
   const delayOptions = [
-    { value: 15, label: '15 minutes' },
-    { value: 30, label: '30 minutes' },
-    { value: 60, label: '1 hour' },
-    { value: 120, label: '2 hours' },
+    { value: 15, label: "15 minutes" },
+    { value: 30, label: "30 minutes" },
+    { value: 60, label: "1 heure" },
+    { value: 120, label: "2 heures" },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!preferences) {
+    return (
+      <div className="text-center py-12 text-muted-foreground">
+        Impossible de charger les préférences
+      </div>
+    );
+  }
+
+  const notificationsEnabled = preferences.notifyEmail || preferences.notifyPush;
+
   return (
-    <div className="space-y-8 fade-in">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold mb-2">Notifications</h2>
           <p className="text-muted-foreground text-lg">
-            Configure your F1 reminders and alerts
+            Configurez vos rappels et alertes F1
           </p>
         </div>
-        <Button
-          variant={preferences.enabled ? 'default' : 'outline'}
-          className="rounded-xl gap-2"
-          onClick={() => updatePreference('enabled', !preferences.enabled)}
+        <Badge
+          variant={notificationsEnabled ? "default" : "secondary"}
+          className="gap-2"
         >
-          {preferences.enabled ? (
+          {notificationsEnabled ? (
             <>
-              <Bell className="w-4 h-4" />
-              Enabled
+              <Bell className="w-3 h-3" />
+              Activées
             </>
           ) : (
             <>
-              <BellOff className="w-4 h-4" />
-              Disabled
+              <BellOff className="w-3 h-3" />
+              Désactivées
             </>
           )}
-        </Button>
+        </Badge>
       </div>
 
-      {/* Master Toggle Info */}
-      {!preferences.enabled && (
-        <Card className="border-amber-500/50 bg-amber-500/5">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <BellOff className="w-5 h-5 text-amber-500 mt-0.5" />
-              <div>
-                <div className="font-semibold mb-1">Notifications disabled</div>
-                <p className="text-sm text-muted-foreground">
-                  Enable notifications to receive reminders before sessions and stay informed.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Session Reminders */}
-      <Card className="border-border/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-primary" />
-            Session reminders
-          </CardTitle>
-          <CardDescription>
-            Receive a notification before a session starts
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-            <Label htmlFor="session-reminders" className="cursor-pointer">
-              <div className="font-medium mb-1">Enable reminders</div>
-              <div className="text-sm text-muted-foreground">
-                Get alerted before sessions start
-              </div>
-            </Label>
-            <Switch
-              id="session-reminders"
-              checked={preferences.beforeSession.enabled}
-              onCheckedChange={(checked) => updatePreference('beforeSession.enabled', checked)}
-              disabled={!preferences.enabled}
-            />
-          </div>
-
-          {preferences.beforeSession.enabled && (
-            <div className="space-y-4 animate-scale-in">
-              <div>
-                <Label className="mb-3 block">Notification delay</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {delayOptions.map((option) => (
-                    <Button
-                      key={option.value}
-                      variant={preferences.beforeSession.delay === option.value ? 'default' : 'outline'}
-                      className="rounded-xl"
-                      onClick={() => updatePreference('beforeSession.delay', option.value)}
-                      disabled={!preferences.enabled}
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <Label className="mb-3 block">Session types</Label>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-background flex items-center justify-center">
-                        <Settings className="w-5 h-5 text-muted-foreground" />
-                      </div>
-                      <Label htmlFor="notify-practice" className="cursor-pointer">
-                        <div className="font-medium">Free Practice</div>
-                        <div className="text-sm text-muted-foreground">FP1, FP2, FP3</div>
-                      </Label>
-                    </div>
-                    <Switch
-                      id="notify-practice"
-                      checked={preferences.sessionTypes.practice}
-                      onCheckedChange={(checked) => updatePreference('sessionTypes.practice', checked)}
-                      disabled={!preferences.enabled}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-background flex items-center justify-center">
-                        <Flag className="w-5 h-5 text-chart-2" />
-                      </div>
-                      <Label htmlFor="notify-qualifying" className="cursor-pointer">
-                        <div className="font-medium">Qualifying</div>
-                        <div className="text-sm text-muted-foreground">Qualifying session</div>
-                      </Label>
-                    </div>
-                    <Switch
-                      id="notify-qualifying"
-                      checked={preferences.sessionTypes.qualifying}
-                      onCheckedChange={(checked) => updatePreference('sessionTypes.qualifying', checked)}
-                      disabled={!preferences.enabled}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-background flex items-center justify-center">
-                        <Zap className="w-5 h-5 text-chart-3" />
-                      </div>
-                      <Label htmlFor="notify-sprint" className="cursor-pointer">
-                        <div className="font-medium">Sprint</div>
-                        <div className="text-sm text-muted-foreground">Sprint race</div>
-                      </Label>
-                    </div>
-                    <Switch
-                      id="notify-sprint"
-                      checked={preferences.sessionTypes.sprint}
-                      onCheckedChange={(checked) => updatePreference('sessionTypes.sprint', checked)}
-                      disabled={!preferences.enabled}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-background flex items-center justify-center">
-                        <Trophy className="w-5 h-5 text-primary" />
-                      </div>
-                      <Label htmlFor="notify-race" className="cursor-pointer">
-                        <div className="font-medium">Race</div>
-                        <div className="text-sm text-muted-foreground">Grand Prix</div>
-                      </Label>
-                    </div>
-                    <Switch
-                      id="notify-race"
-                      checked={preferences.sessionTypes.race}
-                      onCheckedChange={(checked) => updatePreference('sessionTypes.race', checked)}
-                      disabled={!preferences.enabled}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Other Notifications */}
+      {/* Notification Channels */}
       <Card className="border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="w-5 h-5 text-primary" />
-            Other notifications
+            Canaux de notification
+          </CardTitle>
+          <CardDescription>
+            Choisissez comment recevoir vos notifications
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Email */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <Mail className="w-5 h-5 text-blue-500" />
+              </div>
+              <Label htmlFor="notify-email" className="cursor-pointer">
+                <div className="font-medium mb-1">Email</div>
+                <div className="text-sm text-muted-foreground">
+                  Recevez les alertes par email
+                </div>
+              </Label>
+            </div>
+            <Switch
+              id="notify-email"
+              checked={preferences.notifyEmail}
+              onCheckedChange={(checked) => handleUpdate("notifyEmail", checked)}
+            />
+          </div>
+
+          {/* Push */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                <Smartphone className="w-5 h-5 text-green-500" />
+              </div>
+              <Label htmlFor="notify-push" className="cursor-pointer">
+                <div className="font-medium mb-1">Notifications push</div>
+                <div className="text-sm text-muted-foreground">
+                  Alertes instantanées dans le navigateur
+                </div>
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              {!pushSupported ? (
+                <Badge variant="secondary">Non supporté</Badge>
+              ) : pushStatus === "denied" ? (
+                <Badge variant="destructive">Bloqué</Badge>
+              ) : pushStatus === "granted" ? (
+                <Switch
+                  id="notify-push"
+                  checked={preferences.notifyPush}
+                  onCheckedChange={(checked) => handleUpdate("notifyPush", checked)}
+                />
+              ) : (
+                <Switch
+                  id="notify-push"
+                  checked={preferences.notifyPush}
+                  onCheckedChange={handleEnablePush}
+                />
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Prediction Reminders */}
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
+            Rappels de pronostics
+          </CardTitle>
+          <CardDescription>
+            Rappels avant la clôture des pronostics
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* H-24 reminder */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <Clock className="w-5 h-5 text-blue-500" />
+              </div>
+              <Label htmlFor="notify-h24" className="cursor-pointer">
+                <div className="font-medium mb-1">Rappel J-1 (24h avant)</div>
+                <div className="text-sm text-muted-foreground">
+                  Notification 24 heures avant la clôture
+                </div>
+              </Label>
+            </div>
+            <Switch
+              id="notify-h24"
+              checked={preferences.notifyH24}
+              onCheckedChange={(checked) => handleUpdate("notifyH24", checked)}
+              disabled={!notificationsEnabled}
+            />
+          </div>
+
+          {/* H-1 reminder */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                <AlarmClock className="w-5 h-5 text-orange-500" />
+              </div>
+              <Label htmlFor="notify-h1" className="cursor-pointer">
+                <div className="font-medium mb-1">Rappel H-1 (1h avant)</div>
+                <div className="text-sm text-muted-foreground">
+                  Dernière chance avant la clôture
+                </div>
+              </Label>
+            </div>
+            <Switch
+              id="notify-h1"
+              checked={preferences.notifyH1}
+              onCheckedChange={(checked) => handleUpdate("notifyH1", checked)}
+              disabled={!notificationsEnabled}
+            />
+          </div>
+
+          {/* Before session */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                <Flag className="w-5 h-5 text-green-500" />
+              </div>
+              <Label htmlFor="notify-before-session" className="cursor-pointer">
+                <div className="font-medium mb-1">Avant la session</div>
+                <div className="text-sm text-muted-foreground">
+                  Notification X minutes avant le départ
+                </div>
+              </Label>
+            </div>
+            <Switch
+              id="notify-before-session"
+              checked={preferences.notifyBeforeSession}
+              onCheckedChange={(checked) =>
+                handleUpdate("notifyBeforeSession", checked)
+              }
+              disabled={!notificationsEnabled}
+            />
+          </div>
+
+          {/* Delay selector */}
+          {preferences.notifyBeforeSession && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="pl-4 ml-12"
+            >
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                <Label className="text-sm text-muted-foreground">
+                  Délai avant la session:
+                </Label>
+                <Select
+                  value={String(preferences.notifyDelayMinutes)}
+                  onValueChange={(value) =>
+                    handleUpdate("notifyDelayMinutes", parseInt(value, 10))
+                  }
+                  disabled={!notificationsEnabled}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {delayOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={String(opt.value)}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </motion.div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Results Notifications */}
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-primary" />
+            Résultats et scores
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
             <Label htmlFor="notify-results" className="cursor-pointer">
-              <div className="font-medium mb-1">Race results</div>
+              <div className="font-medium mb-1">Résultats disponibles</div>
               <div className="text-sm text-muted-foreground">
-                Notification with podium after the race
+                Notification quand les résultats sont publiés
               </div>
             </Label>
             <Switch
               id="notify-results"
-              checked={preferences.results}
-              onCheckedChange={(checked) => updatePreference('results', checked)}
-              disabled={!preferences.enabled}
-            />
-          </div>
-
-          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-            <Label htmlFor="notify-predictions" className="cursor-pointer">
-              <div className="font-medium mb-1">Prediction reminder</div>
-              <div className="text-sm text-muted-foreground">
-                Alert if predictions not filled 24h before race
-              </div>
-            </Label>
-            <Switch
-              id="notify-predictions"
-              checked={preferences.predictionReminders}
-              onCheckedChange={(checked) => updatePreference('predictionReminders', checked)}
-              disabled={!preferences.enabled}
-            />
-          </div>
-
-          <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50">
-            <Label htmlFor="notify-news" className="cursor-pointer">
-              <div className="font-medium mb-1">Important news</div>
-              <div className="text-sm text-muted-foreground">
-                Major news (transfers, regulations, etc.)
-              </div>
-            </Label>
-            <Switch
-              id="notify-news"
-              checked={preferences.news}
-              onCheckedChange={(checked) => updatePreference('news', checked)}
-              disabled={!preferences.enabled}
+              checked={preferences.notifyResults}
+              onCheckedChange={(checked) => handleUpdate("notifyResults", checked)}
+              disabled={!notificationsEnabled}
             />
           </div>
         </CardContent>
@@ -318,25 +363,25 @@ export function NotificationSettings() {
         <CardContent className="pt-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="font-semibold mb-1">Test notifications</div>
+              <div className="font-semibold mb-1">Tester les notifications</div>
               <p className="text-sm text-muted-foreground">
-                Send a test notification to verify your settings
+                Envoyez une notification de test pour vérifier vos paramètres
               </p>
             </div>
             <Button
               onClick={handleTestNotification}
-              disabled={!preferences.enabled || testSent}
+              disabled={!notificationsEnabled || testSent}
               className="rounded-xl gap-2 shrink-0"
             >
               {testSent ? (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  Sent
+                  Envoyé
                 </>
               ) : (
                 <>
                   <Bell className="w-4 h-4" />
-                  Test
+                  Tester
                 </>
               )}
             </Button>
@@ -344,17 +389,19 @@ export function NotificationSettings() {
         </CardContent>
       </Card>
 
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <Button
-          size="lg"
-          onClick={handleSavePreferences}
-          className="rounded-xl gap-2"
-          disabled={!preferences.enabled}
-        >
-          <CheckCircle2 className="w-4 h-4" />
-          Save preferences
-        </Button>
+      {/* Info box */}
+      <div className="rounded-lg bg-muted/50 p-4 flex gap-3">
+        <Info className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-muted-foreground">
+          <p>
+            Les notifications vous aident à ne pas manquer les dates limites de
+            pronostics et à suivre vos scores en temps réel.
+          </p>
+          <p className="mt-2">
+            Activez les notifications push pour recevoir des alertes même quand
+            le site n'est pas ouvert.
+          </p>
+        </div>
       </div>
     </div>
   );

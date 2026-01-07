@@ -380,22 +380,6 @@ export function PredictionsModule({
           drivers={drivers}
           userPredictions={userPredictions}
           onBack={() => setViewMode('duel')}
-          onViewScore={(prediction, race) => {
-            if (prediction.points !== null && prediction.points !== undefined && prediction.pointsBreakdown) {
-              const breakdown = prediction.pointsBreakdown;
-              triggerCelebration({
-                raceName: race.name,
-                score: {
-                  positionPoints: breakdown.positionPoints || 0,
-                  partialPoints: breakdown.partialPoints || 0,
-                  polePoints: breakdown.polePoints || 0,
-                  fastestLapPoints: breakdown.fastestLapPoints || 0,
-                  podiumBonus: breakdown.podiumBonus || 0,
-                  totalPoints: prediction.points,
-                },
-              });
-            }
-          }}
         />
       )}
 

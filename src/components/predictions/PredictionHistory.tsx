@@ -1,8 +1,12 @@
+"use client";
+
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, History, Trophy, Zap, Target, Eye } from 'lucide-react';
 import { User, Race, Driver, UserPrediction } from '@/types';
+import { ScoreDetailModal } from './ScoreDetailModal';
 
 interface PredictionHistoryProps {
   currentUser: User;
@@ -10,7 +14,6 @@ interface PredictionHistoryProps {
   drivers: Driver[];
   userPredictions: UserPrediction[];
   onBack: () => void;
-  onViewScore?: (prediction: UserPrediction, race: Race) => void;
 }
 
 export function PredictionHistory({
@@ -19,8 +22,11 @@ export function PredictionHistory({
   drivers,
   userPredictions,
   onBack,
-  onViewScore,
 }: PredictionHistoryProps) {
+  const [selectedPrediction, setSelectedPrediction] = useState<UserPrediction | null>(null);
+  const [selectedRace, setSelectedRace] = useState<Race | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
   const completedRaces = races
     .filter(r => new Date(r.date) < new Date())
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -28,6 +34,12 @@ export function PredictionHistory({
   const getDriverName = (driverId: string) => {
     const driver = drivers.find(d => d.id === driverId);
     return driver ? `${driver.firstName} ${driver.lastName}` : 'Inconnu';
+  };
+
+  const handleViewScore = (prediction: UserPrediction, race: Race) => {
+    setSelectedPrediction(prediction);
+    setSelectedRace(race);
+    setModalOpen(true);
   };
 
   return (
@@ -43,17 +55,17 @@ export function PredictionHistory({
         <CardHeader className="border-b border-border/50 bg-gradient-to-br from-muted/50 to-transparent">
           <CardTitle className="flex items-center gap-2">
             <History className="w-5 h-5" />
-            Prediction history
+            Historique des pronostics
           </CardTitle>
           <CardDescription>
-            {userPredictions.length} prediction{userPredictions.length > 1 ? 's' : ''} submitted
+            {userPredictions.length} pronostic{userPredictions.length > 1 ? 's' : ''} soumis
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
           {userPredictions.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No predictions yet</p>
+              <p>Aucun pronostic pour le moment</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -83,11 +95,11 @@ export function PredictionHistory({
                             <Trophy className="w-3 h-3" />
                             {prediction.points} points
                           </Badge>
-                          {onViewScore && prediction.pointsBreakdown && (
+                          {prediction.pointsBreakdown && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => onViewScore(prediction, race)}
+                              onClick={() => handleViewScore(prediction, race)}
                               className="h-7 px-2 text-muted-foreground hover:text-foreground"
                             >
                               <Eye className="w-4 h-4" />
@@ -101,9 +113,9 @@ export function PredictionHistory({
                       {/* Top 3 */}
                       <div>
                         <div className="text-sm font-semibold text-muted-foreground mb-2">
-                          Predicted podium
+                          Podium prédit
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <Badge className="bg-gradient-to-br from-amber-500 to-amber-600 text-white border-0">
                             1. {getDriverName(prediction.predictions.p1)}
                           </Badge>
@@ -145,6 +157,15 @@ export function PredictionHistory({
           )}
         </CardContent>
       </Card>
+
+      {/* Score Detail Modal */}
+      <ScoreDetailModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        prediction={selectedPrediction}
+        race={selectedRace}
+        drivers={drivers}
+      />
     </div>
   );
 }
