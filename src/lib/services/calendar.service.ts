@@ -9,6 +9,7 @@ export interface CalendarRace {
   officialName: string | null;
   date: Date;
   hasSprint: boolean;
+  resultsJson: Prisma.JsonValue | null;
   circuit: {
     id: string;
     name: string;
@@ -56,7 +57,15 @@ interface GetSeasonCalendarOptions {
 export async function getCalendar(season: number = new Date().getFullYear()): Promise<CalendarRace[]> {
   const races = await prisma.race.findMany({
     where: { season },
-    include: {
+    select: {
+      id: true,
+      season: true,
+      round: true,
+      name: true,
+      officialName: true,
+      date: true,
+      hasSprint: true,
+      resultsJson: true,
       circuit: {
         select: {
           id: true,
@@ -87,16 +96,24 @@ export async function getCalendar(season: number = new Date().getFullYear()): Pr
 // Alias for route compatibility
 export async function getSeasonCalendar(options: GetSeasonCalendarOptions = {}): Promise<CalendarRace[]> {
   const { season = new Date().getFullYear(), upcoming = false, hasSprint } = options;
-  
+
   const now = new Date();
-  
+
   const races = await prisma.race.findMany({
     where: {
       season,
       ...(upcoming && { date: { gte: now } }),
       ...(hasSprint !== undefined && { hasSprint }),
     },
-    include: {
+    select: {
+      id: true,
+      season: true,
+      round: true,
+      name: true,
+      officialName: true,
+      date: true,
+      hasSprint: true,
+      resultsJson: true,
       circuit: {
         select: {
           id: true,
@@ -127,12 +144,20 @@ export async function getSeasonCalendar(options: GetSeasonCalendarOptions = {}):
 // Get upcoming races
 export async function getUpcomingRaces(limit = 5): Promise<CalendarRace[]> {
   const now = new Date();
-  
+
   const races = await prisma.race.findMany({
     where: {
       date: { gte: now },
     },
-    include: {
+    select: {
+      id: true,
+      season: true,
+      round: true,
+      name: true,
+      officialName: true,
+      date: true,
+      hasSprint: true,
+      resultsJson: true,
       circuit: {
         select: {
           id: true,

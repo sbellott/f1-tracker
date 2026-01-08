@@ -137,6 +137,12 @@ export interface Race {
   hasSprint: boolean;
   country: string;
   sessions: Session[];
+  // Optional results data from API
+  resultsJson?: {
+    positions?: string[];
+    pole?: string;
+    fastestLap?: string;
+  } | null;
 }
 
 export interface Standing {

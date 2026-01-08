@@ -164,6 +164,8 @@ function transformRace(apiRace: any): Race {
     hasSprint: apiRace.hasSprint || false,
     country: apiRace.circuit?.country || '',
     sessions: (apiRace.sessions || []).map(transformSession),
+    // Include resultsJson for race results display
+    resultsJson: apiRace.resultsJson || null,
   };
 }
 

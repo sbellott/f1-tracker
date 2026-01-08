@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, History, Target, Crown, Swords, Calendar, TrendingUp, TrendingDown, Minus, Eye } from 'lucide-react';
+import { Trophy, History, Target, Crown, Swords, Calendar, TrendingUp, TrendingDown, Minus, Eye, Loader2, UserPlus } from 'lucide-react';
 import { Race, Driver, Constructor, UserPrediction, User } from '@/types';
 import { PredictionForm } from '@/components/predictions/PredictionForm';
 import { PredictionHistory } from '@/components/predictions/PredictionHistory';
@@ -10,6 +10,8 @@ import { Prediction } from '@/types';
 import { useConfetti } from '@/hooks/use-confetti';
 import { VictoryAnimation } from './VictoryAnimation';
 import { useScoringCelebration, type ScoreBreakdown } from '@/lib/hooks/useScoringCelebration';
+import { useDuelData, usePinnedOpponent, calculateDuelStats } from '@/lib/hooks/use-opponent-duel';
+import { DuelOpponentSelector } from '@/components/predictions/results/DuelOpponentSelector';
 
 interface Participant {
   id: string;
@@ -20,12 +22,12 @@ interface Participant {
 
 interface PredictionsModuleProps {
   currentUser: User;
-  opponent: User;
+  opponent?: User; // Now optional - can be overridden by pinnedOpponent
   races: Race[];
   drivers: Driver[];
   constructors: Constructor[];
   userPredictions: UserPrediction[];
-  opponentPredictions: UserPrediction[];
+  opponentPredictions?: UserPrediction[]; // Now optional - can be overridden by pinnedOpponent
   onSubmitPrediction: (raceId: string, sessionType: 'RACE' | 'SPRINT', prediction: Prediction) => void;
 }
 
@@ -33,17 +35,59 @@ type ViewMode = 'duel' | 'form' | 'history';
 
 export function PredictionsModule({
   currentUser,
-  opponent,
+  opponent: propOpponent,
   races,
   drivers,
   constructors,
   userPredictions,
-  opponentPredictions,
+  opponentPredictions: propOpponentPredictions,
   onSubmitPrediction,
 }: PredictionsModuleProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('duel');
   const [selectedRace, setSelectedRace] = useState<Race | null>(null);
+  const [showOpponentSelector, setShowOpponentSelector] = useState(false);
   const { celebrate, celebrateFirstPrediction } = useConfetti();
+
+  // Get pinned opponent from store and fetch duel data
+  const { pinnedOpponent } = usePinnedOpponent();
+  const { data: duelData, isLoading: isDuelLoading } = useDuelData();
+
+  // Determine which opponent data to use - pinned opponent takes priority
+  const activeOpponent = useMemo(() => {
+    if (pinnedOpponent && duelData?.opponent) {
+      return {
+        id: duelData.opponent.id,
+        email: duelData.opponent.email,
+        pseudo: duelData.opponent.pseudo,
+        avatar: duelData.opponent.avatar,
+      } as User;
+    }
+    return propOpponent;
+  }, [pinnedOpponent, duelData, propOpponent]);
+
+  // Determine which opponent predictions to use
+  const activeOpponentPredictions = useMemo(() => {
+    if (pinnedOpponent && duelData?.opponentPredictions) {
+      // Convert duel predictions to UserPrediction format
+      return duelData.opponentPredictions.map(p => ({
+        id: p.id,
+        raceId: p.raceId,
+        userId: p.userId,
+        points: p.points,
+        // Add other required fields with defaults
+        createdAt: p.createdAt,
+      })) as UserPrediction[];
+    }
+    return propOpponentPredictions || [];
+  }, [pinnedOpponent, duelData, propOpponentPredictions]);
+
+  // Calculate duel statistics
+  const duelStats = useMemo(() => {
+    if (pinnedOpponent && duelData) {
+      return calculateDuelStats(duelData.userPredictions, duelData.opponentPredictions);
+    }
+    return null;
+  }, [pinnedOpponent, duelData]);
 
   // Scoring celebration hook
   const {
@@ -79,7 +123,7 @@ export function PredictionsModule({
 
   // Calculate total points for each participant
   const myTotalPoints = userPredictions.reduce((sum, p) => sum + (p.points || 0), 0);
-  const opponentTotalPoints = opponentPredictions.reduce((sum, p) => sum + (p.points || 0), 0);
+  const opponentTotalPoints = activeOpponentPredictions.reduce((sum, p) => sum + (p.points || 0), 0);
   const pointsDiff = myTotalPoints - opponentTotalPoints;
 
   // Get next race that needs prediction
@@ -148,6 +192,46 @@ export function PredictionsModule({
             </p>
           </div>
 
+          {/* Opponent Selector */}
+          <Card className="border-border/50 mb-4">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Swords className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="font-medium">
+                      {pinnedOpponent ? (
+                        <>Duel contre <span className="text-primary">{activeOpponent?.pseudo || 'Adversaire'}</span></>
+                      ) : (
+                        'Sélectionne un adversaire'
+                      )}
+                    </p>
+                    {pinnedOpponent && (
+                      <p className="text-xs text-muted-foreground">
+                        Groupe: {pinnedOpponent.groupName}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  variant={pinnedOpponent ? "outline" : "default"}
+                  size="sm"
+                  onClick={() => setShowOpponentSelector(true)}
+                  className="gap-2"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  {pinnedOpponent ? 'Changer' : 'Choisir'}
+                </Button>
+              </div>
+              {isDuelLoading && (
+                <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Chargement des données du duel...
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Main Score Card */}
           <Card className="border-border/50 overflow-hidden">
             <div className="h-2 bg-gradient-to-r from-primary via-accent to-chart-3" />
@@ -188,10 +272,10 @@ export function PredictionsModule({
                       <Crown className="w-5 h-5 md:w-6 md:h-6 text-amber-500 absolute -top-3 md:-top-4 left-1/2 transform -translate-x-1/2" />
                     )}
                     <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-accent to-accent/80 flex items-center justify-center text-xl md:text-2xl font-bold text-white mx-auto">
-                      {opponent.pseudo?.[0] || opponent.email[0]}
+                      {activeOpponent?.pseudo?.[0] || activeOpponent?.email[0]}
                     </div>
                   </div>
-                  <h3 className="font-bold text-base md:text-lg mb-1">{opponent.pseudo || 'Adversaire'}</h3>
+                  <h3 className="font-bold text-base md:text-lg mb-1">{activeOpponent?.pseudo || 'Adversaire'}</h3>
                   <div className="text-3xl md:text-4xl font-bold text-accent mb-1">
                     {opponentTotalPoints}
                   </div>
@@ -229,7 +313,7 @@ export function PredictionsModule({
               <div className="text-2xl font-bold">
                 {completedRaces.filter(race => {
                   const myPred = userPredictions.find(p => p.raceId === race.id);
-                  const oppPred = opponentPredictions.find(p => p.raceId === race.id);
+                  const oppPred = activeOpponentPredictions.find(p => p.raceId === race.id);
                   return (myPred?.points || 0) > (oppPred?.points || 0);
                 }).length}
               </div>
@@ -320,7 +404,7 @@ export function PredictionsModule({
                 <div className="space-y-3">
                   {completedRaces.slice(-5).reverse().map(race => {
                     const myPred = userPredictions.find(p => p.raceId === race.id);
-                    const oppPred = opponentPredictions.find(p => p.raceId === race.id);
+                    const oppPred = activeOpponentPredictions.find(p => p.raceId === race.id);
                     const myPoints = myPred?.points || 0;
                     const oppPoints = oppPred?.points || 0;
                     const winner = myPoints > oppPoints ? 'me' : myPoints < oppPoints ? 'opponent' : 'tie';
@@ -395,6 +479,35 @@ export function PredictionsModule({
           perfectPodium={celebrationData.perfectPodium}
           badgesUnlocked={celebrationData.badgesUnlocked}
         />
+      )}
+
+      {/* Opponent Selector Modal */}
+      {showOpponentSelector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-md mx-4 max-h-[80vh] overflow-hidden">
+            <CardHeader className="border-b border-border/50">
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Swords className="w-5 h-5" />
+                  Choisir un adversaire
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowOpponentSelector(false)}
+                >
+                  ✕
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 overflow-y-auto max-h-[60vh]">
+              <DuelOpponentSelector 
+                currentUserId={currentUser.id} 
+                onSelect={() => setShowOpponentSelector(false)}
+              />
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
