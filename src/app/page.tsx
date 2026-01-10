@@ -34,6 +34,53 @@ import Image from 'next/image';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { GroupsSection } from '@/components/groups';
 
+// Race Countdown Component
+function RaceCountdown({ targetDate }: { targetDate: string }) {
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const difference = new Date(targetDate).getTime() - new Date().getTime();
+
+      if (difference > 0) {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60),
+        });
+      } else {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      }
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+
+    return () => clearInterval(timer);
+  }, [targetDate]);
+
+  return (
+    <div className="flex gap-3">
+      {[
+        { value: timeLeft.days, label: 'Days' },
+        { value: timeLeft.hours, label: 'Hrs' },
+        { value: timeLeft.minutes, label: 'Min' },
+        { value: timeLeft.seconds, label: 'Sec' }
+      ].map((item, index) => (
+        <div key={index} className="text-center">
+          <div className="bg-gradient-to-br from-red-600 to-red-700 rounded-xl px-4 py-3 min-w-[60px] shadow-lg shadow-red-600/20">
+            <div className="text-2xl lg:text-3xl font-bold text-white tabular-nums">
+              {String(item.value).padStart(2, '0')}
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1.5">{item.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function HomePage() {
   // ============================================
   // NextAuth session
@@ -576,6 +623,39 @@ export default function HomePage() {
                   </p>
                 </div>
               </div>
+
+              {/* Next Race Countdown Widget */}
+              {nextRace && (() => {
+                const raceSession = nextRace.sessions?.find(s => s.type === 'RACE');
+                if (!raceSession) return null;
+
+                return (
+                  <Card className="overflow-hidden border-red-500/30 bg-gradient-to-br from-red-950/20 via-background to-background shadow-xl shadow-red-500/10">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center shadow-lg shadow-red-600/30">
+                            <Flag className="w-7 h-7 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-1">Next Race</p>
+                            <h3 className="text-2xl font-bold">{nextRace.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(raceSession.dateTime).toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        <RaceCountdown targetDate={raceSession.dateTime} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
               {nextSession && nextRace && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
