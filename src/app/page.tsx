@@ -569,7 +569,7 @@ export default function HomePage() {
                     <span>Live - 2026 Season</span>
                   </div>
                   <h2 className="text-3xl lg:text-5xl font-bold text-white mb-3">
-                    Follow Formula 1
+                    Forza Ferrari
                   </h2>
                   <p className="text-white/90 text-lg max-w-xl">
                     Real-time standings, full calendar and predictions with friends
