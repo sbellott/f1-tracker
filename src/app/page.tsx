@@ -35,12 +35,13 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { GroupsSection } from '@/components/groups';
 
 // Race Countdown Component
-function RaceCountdown({ targetDate }: { targetDate: string }) {
+function RaceCountdown({ targetDate }: { targetDate: Date | string }) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const difference = new Date(targetDate).getTime() - new Date().getTime();
+      const target = targetDate instanceof Date ? targetDate : new Date(targetDate);
+      const difference = target.getTime() - new Date().getTime();
 
       if (difference > 0) {
         setTimeLeft({
