@@ -343,8 +343,9 @@ export function useNextRace() {
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rawData = await fetchAPI<any>("/api/calendar/next");
-      if (!rawData || !rawData.race) return null;
-      return transformRace(rawData.race);
+      // The API returns { nextSession: { race, ... }, upcomingRaces }
+      if (!rawData || !rawData.nextSession?.race) return null;
+      return transformRace(rawData.nextSession.race);
     },
     staleTime: 60 * 1000, // 1 minute - next race info can change
   });
